@@ -67,3 +67,25 @@ async def test_redirect(client, auth_headers):
     resp = await client.get(f"/{code}", follow_redirects=False)
     assert resp.status_code == 302
     assert resp.headers["location"] == "https://redirect.com"
+
+async def test_redirect_not_found(client):
+    resp = await client.get("/nonexistent-short-code", follow_redirects=False)
+    assert resp.status_code == 404
+
+async def test_create_url_custom_code(client, auth_headers):
+    resp = await client.post("/api/urls", json={"original_url": "https://custom.com", "custom_code": "mycode1"}, headers=auth_headers)
+    assert resp.status_code == 201
+    assert resp.json()["short_code"] == "mycode1"
+
+async def test_create_url_custom_code_conflict(client, auth_headers):
+    await client.post("/api/urls", json={"original_url": "https://a.com", "custom_code": "taken123"}, headers=auth_headers)
+    resp = await client.post("/api/urls", json={"original_url": "https://b.com", "custom_code": "taken123"}, headers=auth_headers)
+    assert resp.status_code == 409
+
+async def test_delete_url_not_found(client, auth_headers):
+    resp = await client.delete("/api/urls/99999", headers=auth_headers)
+    assert resp.status_code == 404
+
+async def test_stats_not_found(client, auth_headers):
+    resp = await client.get("/api/urls/99999/stats", headers=auth_headers)
+    assert resp.status_code == 404

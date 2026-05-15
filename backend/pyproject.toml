@@ -14,6 +14,7 @@ dependencies = [
     "python-multipart>=0.0.28",
     "sqlalchemy>=2.0.49",
     "uvicorn[standard]>=0.47.0",
+    "pytest-cov>=7.1.0",
 ]
 
 [dependency-groups]
@@ -31,3 +32,15 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ["src"]
 omit = ["tests/*"]
+# Use sys.monitoring for accurate async/await coverage on Python 3.12+
+core = "sysmon"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "pass",
+    "\\.\\.\\.",
+]

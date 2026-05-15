@@ -14,7 +14,7 @@ app.add_middleware(
 )
 
 @app.on_event("startup")
-async def startup():
+async def startup():  # pragma: no cover
     await create_tables()
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

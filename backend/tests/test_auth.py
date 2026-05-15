@@ -53,3 +53,11 @@ async def test_me_endpoint(client):
     resp = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
     assert resp.json()["email"] == "me@b.com"
+
+async def test_invalid_token(client):
+    resp = await client.get("/api/auth/me", headers={"Authorization": "Bearer not-a-real-token"})
+    assert resp.status_code == 401
+
+async def test_missing_token(client):
+    resp = await client.get("/api/auth/me")
+    assert resp.status_code == 401
