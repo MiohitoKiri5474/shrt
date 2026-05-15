@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.uv/
+*.egg-info/
+dist/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Node / Bun
+node_modules/
+.bun/
+dist/
+coverage/
+
+# DB
+*.db
+*.sqlite
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
