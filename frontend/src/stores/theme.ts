@@ -16,7 +16,7 @@ export const useThemeStore = defineStore('theme', () => {
       localStorage.setItem('theme', dark ? 'dark' : 'light')
       document.documentElement.classList.toggle('dark', dark)
     },
-    { immediate: true },
+    { immediate: true, flush: 'sync' },
   )
 
   return { isDark, toggle }
