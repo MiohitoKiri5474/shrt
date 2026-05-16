@@ -54,12 +54,10 @@ async def delete_url(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(URL).where(URL.id == url_id))
+    result = await db.execute(select(URL).where(URL.id == url_id, URL.user_id == current_user.id))
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
-    if url.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not your URL")
     await db.delete(url)
     await db.commit()
 
@@ -69,12 +67,10 @@ async def get_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(URL).where(URL.id == url_id))
+    result = await db.execute(select(URL).where(URL.id == url_id, URL.user_id == current_user.id))
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
-    if url.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not your URL")
     total = await db.scalar(select(func.count()).where(Click.url_id == url_id)) or 0
     date_rows = await db.execute(
         select(func.date(Click.clicked_at), func.count())
