@@ -160,7 +160,7 @@ button[type='submit']:disabled {
 }
 
 .error {
-  color: #dc2626;
+  color: var(--color-error);
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
 }

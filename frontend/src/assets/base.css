@@ -41,6 +41,9 @@
   --color-heading: var(--nippon-sumi);
   --color-text:    var(--nippon-sumi);
   --color-accent:  var(--nippon-konjou);
+  --color-error:   #b52626;
+  --color-link:    var(--nippon-konjou);
+  --color-code:    #374151;
 
   --section-gap: 160px;
 }
@@ -57,6 +60,9 @@
   --color-heading: var(--nippon-gofun);
   --color-text:    var(--nippon-hakuji);
   --color-accent:  var(--nippon-nadeshiko);
+  --color-error:   #f87171;
+  --color-link:    #93b8e8;
+  --color-code:    var(--nippon-hakuji);
 }
 
 *,

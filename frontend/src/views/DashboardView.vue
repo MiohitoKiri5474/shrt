@@ -190,6 +190,6 @@ async function handleDelete(id: number) {
 }
 
 .error {
-  color: #dc2626;
+  color: var(--color-error);
 }
 </style>
