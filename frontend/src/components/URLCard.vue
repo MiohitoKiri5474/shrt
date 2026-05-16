@@ -7,14 +7,25 @@ const emit = defineEmits<{ delete: [id: number]; stats: [id: number] }>()
 function copyShortUrl() {
   navigator.clipboard.writeText(`${props.baseUrl}/${props.url.short_code}`)
 }
+
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
 </script>
 
 <template>
   <div class="url-card" :data-testid="`url-card-${url.id}`">
     <div class="url-info">
-      <a :href="url.original_url" target="_blank" rel="noopener noreferrer" class="original">
+      <a v-if="isSafeUrl(url.original_url)" :href="url.original_url" target="_blank" rel="noopener noreferrer" class="original">
         {{ url.original_url }}
       </a>
+      <span v-else class="original">{{ url.original_url }}</span>
       <div class="short">
         <code>{{ baseUrl }}/{{ url.short_code }}</code>
         <button class="btn-copy" @click="copyShortUrl">Copy</button>
