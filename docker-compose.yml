@@ -8,6 +8,8 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - DATABASE_URL=sqlite+aiosqlite:///./data/shortener.db
+      - DEFAULT_USER_EMAIL=${DEFAULT_USER_EMAIL}
+      - DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
     volumes:
       - backend-data:/app/data
     ports:
