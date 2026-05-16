@@ -1,7 +1,12 @@
 import axios from 'axios'
 
+const baseURL: string = import.meta.env.VITE_API_BASE_URL
+  ?? (import.meta.env.PROD
+    ? (() => { throw new Error('VITE_API_BASE_URL must be set in production builds') })()
+    : 'http://localhost:8000')
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 })
 
