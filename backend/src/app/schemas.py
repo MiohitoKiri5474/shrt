@@ -26,6 +26,15 @@ class URLCreate(BaseModel):
     original_url: str
     custom_code: str | None = None
 
+    @field_validator("original_url")
+    @classmethod
+    def validate_url_scheme(cls, v: str) -> str:
+        from urllib.parse import urlparse
+        parsed = urlparse(v)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError("URL must use http or https scheme")
+        return v
+
 class URLOut(BaseModel):
     id: int
     short_code: str
