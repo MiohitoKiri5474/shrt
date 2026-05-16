@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useURLsStore } from '../stores/urls'
+import { mapErrorToMessage } from '../utils/errorMessages'
 
 const urlsStore = useURLsStore()
 const originalUrl = ref('')
@@ -26,7 +27,9 @@ async function handleCreate() {
     originalUrl.value = ''
     customCode.value = ''
   } catch (e: any) {
-    error.value = e.response?.data?.detail || 'Failed to create URL'
+    error.value = mapErrorToMessage(e, {
+      409: e.response?.data?.detail ?? 'Short code already taken.',
+    })
   } finally {
     loading.value = false
   }
