@@ -10,6 +10,16 @@ const loading = ref(false)
 
 async function handleCreate() {
   error.value = ''
+  try {
+    const parsed = new URL(originalUrl.value)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      error.value = 'Only http and https URLs are allowed.'
+      return
+    }
+  } catch {
+    error.value = 'Please enter a valid URL.'
+    return
+  }
   loading.value = true
   try {
     await urlsStore.create(originalUrl.value, customCode.value || undefined)
