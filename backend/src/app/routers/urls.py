@@ -21,7 +21,10 @@ async def create_url(
             raise HTTPException(status_code=409, detail="Short code already taken")
         code = data.custom_code
     else:
-        code = await get_unique_short_code(db)
+        try:
+            code = await get_unique_short_code(db)
+        except RuntimeError:
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
     url = URL(user_id=current_user.id, original_url=str(data.original_url), short_code=code)
     db.add(url)
     await db.commit()
