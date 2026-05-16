@@ -5,6 +5,7 @@ import { useURLsStore } from '../stores/urls'
 import { useThemeStore } from '../stores/theme'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
+import AddUserForm from '../components/AddUserForm.vue'
 import type { StatsOut } from '../api/urls'
 
 const authStore = useAuthStore()
@@ -13,6 +14,7 @@ const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const showAddUser = ref(false)
 
 onMounted(() => urlsStore.fetchAll())
 
@@ -39,6 +41,7 @@ async function handleDelete(id: number) {
       <h1>URL Shortener</h1>
       <nav class="dash-nav">
         <span class="user-email">{{ authStore.user?.email }}</span>
+        <button class="btn-add-user" @click="showAddUser = true">Add User</button>
         <button
           class="theme-toggle"
           :aria-label="themeStore.isDark ? '昼モードに切り替え' : '夜モードに切り替え'"
@@ -79,6 +82,8 @@ async function handleDelete(id: number) {
       </aside>
       <p v-if="statsError" class="error">{{ statsError }}</p>
     </main>
+
+    <AddUserForm v-if="showAddUser" @close="showAddUser = false" />
   </div>
 </template>
 
@@ -137,6 +142,21 @@ async function handleDelete(id: number) {
 .theme-toggle:hover {
   background: var(--color-border);
   transform: rotate(15deg);
+}
+
+.btn-add-user {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-add-user:hover {
+  background: var(--color-border);
 }
 
 .btn-signout {
