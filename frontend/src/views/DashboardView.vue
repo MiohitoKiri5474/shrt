@@ -2,12 +2,14 @@
 import { onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useURLsStore } from '../stores/urls'
+import { useThemeStore } from '../stores/theme'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import type { StatsOut } from '../api/urls'
 
 const authStore = useAuthStore()
 const urlsStore = useURLsStore()
+const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -35,10 +37,18 @@ async function handleDelete(id: number) {
   <div class="dashboard">
     <header class="dash-header">
       <h1>URL Shortener</h1>
-      <div class="user-info">
-        <span>{{ authStore.user?.email }}</span>
-        <button @click="authStore.logout()">Sign out</button>
-      </div>
+      <nav class="dash-nav">
+        <span class="user-email">{{ authStore.user?.email }}</span>
+        <button
+          class="theme-toggle"
+          :aria-label="themeStore.isDark ? '昼モードに切り替え' : '夜モードに切り替え'"
+          :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
+          @click="themeStore.toggle()"
+        >
+          <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
+        </button>
+        <button class="btn-signout" @click="authStore.logout()">Sign out</button>
+      </nav>
     </header>
     <main class="dash-content">
       <CreateURLForm />
@@ -73,15 +83,113 @@ async function handleDelete(id: number) {
 </template>
 
 <style scoped>
-.dashboard { min-height: 100vh; background: #f9fafb; }
-.dash-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: white; border-bottom: 1px solid #e5e7eb; }
-.dash-header h1 { margin: 0; font-size: 1.25rem; }
-.user-info { display: flex; align-items: center; gap: 1rem; }
-.user-info button { padding: 0.4rem 0.8rem; border: 1px solid #e5e7eb; background: transparent; border-radius: 4px; cursor: pointer; }
-.dash-content { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
-.empty { color: #6b7280; }
-.stats-panel { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-top: 2rem; }
-.stats-panel table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
-.stats-panel th, .stats-panel td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #e5e7eb; }
-.error { color: #dc2626; }
+.dashboard {
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 2rem;
+  background: var(--color-background-soft);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+.dash-header h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  letter-spacing: 0.02em;
+}
+
+.dash-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-email {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  opacity: 0.75;
+}
+
+.theme-toggle {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  color: var(--color-text);
+  padding: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--color-border);
+  transform: rotate(15deg);
+}
+
+.btn-signout {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-signout:hover {
+  background: var(--color-border);
+}
+
+.dash-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.empty {
+  color: var(--color-text);
+  opacity: 0.6;
+}
+
+.stats-panel {
+  background: var(--color-background-soft);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-top: 2rem;
+  transition: background 0.35s ease;
+}
+
+.stats-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.stats-panel th,
+.stats-panel td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.error {
+  color: var(--color-error);
+}
 </style>

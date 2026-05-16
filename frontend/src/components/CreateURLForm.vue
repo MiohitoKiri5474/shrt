@@ -40,12 +40,69 @@ async function handleCreate() {
 </template>
 
 <style scoped>
-.create-form { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 2rem; }
-h2 { margin-bottom: 1rem; }
-.field { margin-bottom: 1rem; }
-.field label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
-.field input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-button { padding: 0.6rem 1.2rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:disabled { opacity: 0.6; }
-.error { color: #dc2626; font-size: 0.875rem; }
+.create-form {
+  background: var(--color-background-soft);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+  transition: background 0.35s ease;
+}
+
+h2 {
+  margin-bottom: 1rem;
+  color: var(--color-heading);
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.field input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  box-sizing: border-box;
+  background: var(--color-background);
+  color: var(--color-text);
+  transition: background 0.35s ease, border-color 0.2s;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+button {
+  padding: 0.6rem 1.2rem;
+  background: var(--color-accent);
+  color: var(--color-background);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+button:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+button:disabled {
+  opacity: 0.55;
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
 </style>
