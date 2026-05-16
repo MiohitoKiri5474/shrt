@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -24,7 +24,7 @@ class Token(BaseModel):
 
 class URLCreate(BaseModel):
     original_url: str
-    custom_code: str | None = None
+    custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
 
 class URLOut(BaseModel):
     id: int
