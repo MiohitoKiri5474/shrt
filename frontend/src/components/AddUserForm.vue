@@ -207,7 +207,7 @@ function handleClose() {
 }
 
 .success {
-  color: #16a34a;
+  color: var(--color-success);
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
 }
