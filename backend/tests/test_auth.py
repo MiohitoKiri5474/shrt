@@ -32,7 +32,7 @@ async def test_register(client):
 
 async def test_register_duplicate(client):
     await client.post("/api/auth/register", json={"email": "dup@b.com", "password": "secret123"})
-    resp = await client.post("/api/auth/register", json={"email": "dup@b.com", "password": "other"})
+    resp = await client.post("/api/auth/register", json={"email": "dup@b.com", "password": "other123"})
     assert resp.status_code == 409
 
 async def test_login_success(client):
@@ -61,3 +61,45 @@ async def test_invalid_token(client):
 async def test_missing_token(client):
     resp = await client.get("/api/auth/me")
     assert resp.status_code == 401
+
+async def _get_token(client, email: str = "admin@b.com", password: str = "secret123") -> str:
+    await client.post("/api/auth/register", json={"email": email, "password": password})
+    resp = await client.post("/api/auth/login", data={"username": email, "password": password})
+    return resp.json()["access_token"]
+
+async def test_create_user_authenticated(client):
+    token = await _get_token(client)
+    resp = await client.post(
+        "/api/auth/users",
+        json={"email": "new@b.com", "password": "newpass1"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["email"] == "new@b.com"
+
+async def test_create_user_unauthenticated(client):
+    resp = await client.post("/api/auth/users", json={"email": "anon@b.com", "password": "anon1234"})
+    assert resp.status_code == 401
+
+async def test_create_user_duplicate(client):
+    token = await _get_token(client)
+    await client.post(
+        "/api/auth/users",
+        json={"email": "dup2@b.com", "password": "pass1234"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    resp = await client.post(
+        "/api/auth/users",
+        json={"email": "dup2@b.com", "password": "other123"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 409
+
+async def test_create_user_short_password(client):
+    token = await _get_token(client)
+    resp = await client.post(
+        "/api/auth/users",
+        json={"email": "short@b.com", "password": "abc"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 422

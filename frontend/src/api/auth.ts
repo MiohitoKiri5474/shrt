@@ -27,4 +27,8 @@ export const authApi = {
     const { data } = await apiClient.get<UserOut>('/api/auth/me')
     return data
   },
+  async addUser(email: string, password: string): Promise<UserOut> {
+    const { data } = await apiClient.post<UserOut>('/api/auth/users', { email, password })
+    return data
+  },
 }

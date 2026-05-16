@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from jose import JWTError
 from app.database import get_db
 from app.models import User
@@ -26,16 +27,23 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
-@router.post("/register", response_model=UserOut, status_code=201)
-async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
+async def _create_user(data: UserCreate, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == data.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")
     user = User(email=data.email, password_hash=hash_password(data.password))
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Email already registered")
     await db.refresh(user)
     return user
+
+@router.post("/register", response_model=UserOut, status_code=201)
+async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
+    return await _create_user(data, db)
 
 @router.post("/login", response_model=Token)
 async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
@@ -49,3 +57,11 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.post("/users", response_model=UserOut, status_code=201)
+async def create_user(
+    data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    return await _create_user(data, db)
