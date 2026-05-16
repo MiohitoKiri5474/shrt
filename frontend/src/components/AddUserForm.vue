@@ -131,12 +131,14 @@ function handleClose() {
 }
 
 .modal {
-  background: white;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   width: 100%;
   max-width: 420px;
   padding: 1.5rem;
+  transition: background 0.35s ease, border-color 0.35s ease;
 }
 
 .modal-header {
@@ -149,6 +151,7 @@ function handleClose() {
 .modal-header h2 {
   margin: 0;
   font-size: 1.125rem;
+  color: var(--color-heading);
 }
 
 .close-btn {
@@ -157,12 +160,14 @@ function handleClose() {
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-text);
+  opacity: 0.6;
   padding: 0.25rem;
+  transition: opacity 0.2s;
 }
 
 .close-btn:hover {
-  color: #111827;
+  opacity: 1;
 }
 
 .add-user-form .field {
@@ -174,31 +179,35 @@ function handleClose() {
   margin-bottom: 0.25rem;
   font-weight: 500;
   font-size: 0.875rem;
+  color: var(--color-text);
 }
 
 .add-user-form .field input {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border-hover);
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 0.9375rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  transition: background 0.35s ease, border-color 0.2s, color 0.35s ease;
 }
 
 .add-user-form .field input:focus {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
-  border-color: #3b82f6;
+  border-color: var(--color-accent);
 }
 
 .error {
-  color: #dc2626;
+  color: var(--color-error);
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
 }
 
 .success {
-  color: #16a34a;
+  color: var(--color-success);
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
 }
@@ -212,12 +221,17 @@ function handleClose() {
 
 .btn-primary {
   padding: 0.5rem 1.1rem;
-  background: #3b82f6;
-  color: white;
+  background: var(--color-accent);
+  color: var(--color-background);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9375rem;
+  transition: opacity 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
 }
 
 .btn-primary:disabled {
@@ -228,14 +242,15 @@ function handleClose() {
 .btn-secondary {
   padding: 0.5rem 1.1rem;
   background: transparent;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-hover);
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9375rem;
+  transition: background 0.2s;
 }
 
 .btn-secondary:hover {
-  background: #f3f4f6;
+  background: var(--color-background-mute);
 }
 </style>
