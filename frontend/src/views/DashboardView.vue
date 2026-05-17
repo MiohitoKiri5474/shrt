@@ -7,6 +7,7 @@ import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import AddUserForm from '../components/AddUserForm.vue'
 import type { StatsOut } from '../api/urls'
+import { BASE_URL } from '../api/client'
 
 const authStore = useAuthStore()
 const urlsStore = useURLsStore()
@@ -14,7 +15,6 @@ const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const showAddUser = ref(false)
 
 onMounted(() => urlsStore.fetchAll())
