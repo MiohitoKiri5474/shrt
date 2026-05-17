@@ -8,12 +8,13 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def password_min_length(cls, v: str) -> str:
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters")
+        if len(v) < 12:
+            raise ValueError("Password must be at least 12 characters")
+        if len(v) > 128:
+            raise ValueError("Password must be at most 128 characters")
         return v
 
 class UserOut(BaseModel):
-    id: int
     email: str
     created_at: datetime
     model_config = {"from_attributes": True}
