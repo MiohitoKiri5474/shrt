@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -10,6 +10,7 @@ from app.models import User
 from app.schemas import UserCreate, UserOut, Token
 from app.services.auth import hash_password, verify_password, create_access_token, decode_token
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.rate_limiter import limiter
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
@@ -37,6 +38,11 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 async def _create_user(data: UserCreate, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == data.email))
     if result.scalar_one_or_none():
@@ -55,8 +61,9 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
     return await _create_user(data, db)
 
+@limiter.limit("5/minute")
 @router.post("/login", response_model=Token)
-async def login(response: Response, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+async def login(request: Request, response: Response, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
     if not user or not verify_password(form.password, user.password_hash):
@@ -85,6 +92,6 @@ async def me(current_user: User = Depends(get_current_user)):
 async def create_user(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_admin),
 ):
     return await _create_user(data, db)

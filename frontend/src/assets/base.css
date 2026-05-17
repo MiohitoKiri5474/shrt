@@ -41,6 +41,7 @@
   --color-heading: var(--nippon-sumi);
   --color-text:    var(--nippon-sumi);
   --color-accent:  var(--nippon-konjou);
+  --color-success: #16a34a;
   --color-error:   #b52626;
   --color-link:    var(--nippon-konjou);
   --color-code:    #374151;
@@ -60,6 +61,7 @@
   --color-heading: var(--nippon-gofun);
   --color-text:    var(--nippon-hakuji);
   --color-accent:  var(--nippon-nadeshiko);
+  --color-success: #4ade80;
   --color-error:   #f87171;
   --color-link:    #93b8e8;
   --color-code:    var(--nippon-hakuji);
