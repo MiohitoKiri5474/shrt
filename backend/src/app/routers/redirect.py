@@ -14,7 +14,8 @@ async def redirect(short_code: str, request: Request, db: AsyncSession = Depends
     if not url:
         raise HTTPException(status_code=404, detail="Short URL not found")
     client_ip = request.client.host if request.client else None
-    user_agent = (request.headers.get("user-agent") or "")[:512]
+    _ua = request.headers.get("user-agent")
+    user_agent = _ua[:512] if _ua else None
     click = Click(url_id=url.id, ip_address=client_ip, user_agent=user_agent)
     db.add(click)
     await db.commit()
