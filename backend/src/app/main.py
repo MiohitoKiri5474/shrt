@@ -11,6 +11,8 @@ from app.routers import auth, urls, redirect
 
 app = FastAPI(title="URL Shortener API", version="1.0.0")
 
+_APP_ENV = os.getenv("APP_ENV", "production").lower()
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -19,6 +21,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+        if _APP_ENV not in {"development", "dev"}:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
         return response
 
 
