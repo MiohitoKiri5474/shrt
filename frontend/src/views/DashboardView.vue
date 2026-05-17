@@ -13,13 +13,18 @@ const urlsStore = useURLsStore()
 const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
+const deleteError = ref('')
+const loadError = ref('')
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const showAddUser = ref(false)
 const pendingDeleteId = ref<number | null>(null)
-const deleteError = ref('')
 const dialogRef = ref<HTMLDialogElement | null>(null)
 
-onMounted(() => urlsStore.fetchAll())
+onMounted(() => {
+  urlsStore.fetchAll().catch(() => {
+    loadError.value = 'Failed to load URLs. Please refresh.'
+  })
+})
 
 watch(pendingDeleteId, (id) => {
   if (id !== null) {
@@ -106,6 +111,7 @@ function cancelDelete() {
         </table>
         <button @click="selectedStats = null">Close</button>
       </aside>
+      <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
       <p v-if="statsError" class="error">{{ statsError }}</p>
       <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
     </main>
@@ -216,6 +222,13 @@ function cancelDelete() {
 
 .btn-signout:hover {
   background: var(--color-border);
+}
+
+.theme-toggle:focus-visible,
+.btn-add-user:focus-visible,
+.btn-signout:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .dash-content {
