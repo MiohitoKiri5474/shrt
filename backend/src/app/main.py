@@ -83,7 +83,7 @@ async def seed_default_user():
         result = await db.execute(select(User).where(User.email == email))
         if result.scalar_one_or_none() is None:
             try:
-                db.add(User(email=email, password_hash=hash_password(password)))
+                db.add(User(email=email, password_hash=hash_password(password), is_admin=True))
                 await db.commit()
             except IntegrityError:
                 await db.rollback()
