@@ -18,4 +18,4 @@ async def redirect(short_code: str, request: Request, db: AsyncSession = Depends
     click = Click(url_id=url.id, ip_address=client_ip, user_agent=user_agent)
     db.add(click)
     await db.commit()
-    return RedirectResponse(url=url.original_url, status_code=302)
+    return RedirectResponse(url=str(url.original_url), status_code=302)
