@@ -6,6 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from app.database import create_tables, AsyncSessionLocal
 from app.models import User
 from app.services.auth import hash_password
+from app.schemas import UserCreate
+from pydantic import ValidationError
 from app.routers import auth, urls, redirect
 
 app = FastAPI(title="URL Shortener API", version="1.0.0")
@@ -27,6 +29,10 @@ async def seed_default_user():
     email = os.getenv("DEFAULT_USER_EMAIL")
     password = os.getenv("DEFAULT_USER_PASSWORD")
     if not email or not password:
+        return
+    try:
+        UserCreate(email=email, password=password)
+    except ValidationError:
         return
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
