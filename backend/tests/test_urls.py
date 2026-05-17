@@ -27,8 +27,8 @@ async def client():
 
 @pytest.fixture
 async def auth_headers(client):
-    await client.post("/api/auth/register", json={"email": "owner@b.com", "password": "pass1234"})
-    resp = await client.post("/api/auth/login", data={"username": "owner@b.com", "password": "pass1234"})
+    await client.post("/api/auth/register", json={"email": "owner@b.com", "password": "pass12345678"})
+    resp = await client.post("/api/auth/login", data={"username": "owner@b.com", "password": "pass12345678"})
     token = resp.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -55,8 +55,8 @@ async def test_delete_url(client, auth_headers):
 async def test_delete_url_not_owner(client, auth_headers):
     create = await client.post("/api/urls", json={"original_url": "https://priv.com"}, headers=auth_headers)
     url_id = create.json()["id"]
-    await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass1234"})
-    other_login = await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass1234"})
+    await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
+    other_login = await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
     other_token = other_login.json()["access_token"]
     resp = await client.delete(f"/api/urls/{url_id}", headers={"Authorization": f"Bearer {other_token}"})
     assert resp.status_code == 403
