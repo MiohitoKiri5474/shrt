@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { authApi } from '../api/auth'
-import { mapErrorToMessage } from '../utils/errorMessages'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -50,10 +49,13 @@ async function handleSubmit() {
     successEmail.value = user.email
     email.value = ''
     password.value = ''
-  } catch (e: any) {
-    error.value = mapErrorToMessage(e, {
-      409: 'Email is already taken.',
-    })
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 409) {
+      error.value = 'Email is already taken.'
+    } else {
+      error.value = 'Failed to create user.'
+    }
   } finally {
     loading.value = false
   }

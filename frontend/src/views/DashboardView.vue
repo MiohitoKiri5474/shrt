@@ -15,9 +15,14 @@ const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
+const loadError = ref('')
 const showAddUser = ref(false)
 
-onMounted(() => urlsStore.fetchAll())
+onMounted(() => {
+  urlsStore.fetchAll().catch(() => {
+    loadError.value = 'Failed to load URLs. Please refresh.'
+  })
+})
 
 async function handleStats(id: number) {
   statsError.value = ''
@@ -86,6 +91,7 @@ async function handleDelete(id: number) {
         </table>
         <button @click="selectedStats = null">Close</button>
       </aside>
+      <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
       <p v-if="statsError" class="error">{{ statsError }}</p>
       <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
     </main>
