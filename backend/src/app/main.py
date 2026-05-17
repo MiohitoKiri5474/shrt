@@ -8,12 +8,13 @@ from app.models import User
 from app.services.auth import hash_password
 from app.routers import auth, urls, redirect
 
-env = os.getenv("ENV", "development")
+env = os.getenv("APP_ENV", "production").lower()
 app = FastAPI(
     title="URL Shortener API",
     version="1.0.0",
-    docs_url=None if env == "production" else "/docs",
-    redoc_url=None if env == "production" else "/redoc",
+    docs_url=None if env not in {"development", "dev"} else "/docs",
+    redoc_url=None if env not in {"development", "dev"} else "/redoc",
+    openapi_url=None if env not in {"development", "dev"} else "/openapi.json",
 )
 
 app.add_middleware(
