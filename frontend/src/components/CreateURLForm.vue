@@ -107,6 +107,11 @@ button:hover:not(:disabled) {
   opacity: 0.88;
 }
 
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 button:disabled {
   opacity: 0.55;
 }

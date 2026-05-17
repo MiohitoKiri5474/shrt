@@ -174,6 +174,13 @@ async function handleDelete(id: number) {
   background: var(--color-border);
 }
 
+.theme-toggle:focus-visible,
+.btn-add-user:focus-visible,
+.btn-signout:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .dash-content {
   max-width: 800px;
   margin: 0 auto;
