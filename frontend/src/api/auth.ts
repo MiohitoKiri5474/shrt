@@ -23,7 +23,6 @@
 import { apiClient } from './client'
 
 export interface UserOut {
-  id: number
   email: string
   created_at: string
 }
