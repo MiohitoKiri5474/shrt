@@ -21,7 +21,10 @@ async def create_url(
             raise HTTPException(status_code=409, detail="Short code already taken")
         code = data.custom_code
     else:
-        code = await get_unique_short_code(db)
+        try:
+            code = await get_unique_short_code(db)
+        except RuntimeError:
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
     url = URL(user_id=current_user.id, original_url=str(data.original_url), short_code=code)
     db.add(url)
     await db.commit()
@@ -54,12 +57,10 @@ async def delete_url(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(URL).where(URL.id == url_id))
+    result = await db.execute(select(URL).where(URL.id == url_id, URL.user_id == current_user.id))
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
-    if url.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not your URL")
     await db.delete(url)
     await db.commit()
 
@@ -69,12 +70,10 @@ async def get_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(URL).where(URL.id == url_id))
+    result = await db.execute(select(URL).where(URL.id == url_id, URL.user_id == current_user.id))
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
-    if url.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not your URL")
     total = await db.scalar(select(func.count()).where(Click.url_id == url_id)) or 0
     date_rows = await db.execute(
         select(func.date(Click.clicked_at), func.count())
