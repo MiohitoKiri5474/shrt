@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { authApi } from '../api/auth'
-import { mapErrorToMessage } from '../utils/errorMessages'
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -44,16 +43,27 @@ function trapFocus(e: KeyboardEvent) {
 async function handleSubmit() {
   error.value = ''
   successEmail.value = ''
+  if (password.value.length < 12) {
+    error.value = 'Password must be at least 12 characters.'
+    return
+  }
+  if (password.value.length > 128) {
+    error.value = 'Password must be at most 128 characters.'
+    return
+  }
   loading.value = true
   try {
     const user = await authApi.addUser(email.value, password.value)
     successEmail.value = user.email
     email.value = ''
     password.value = ''
-  } catch (e: any) {
-    error.value = mapErrorToMessage(e, {
-      409: 'Email is already taken.',
-    })
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 409) {
+      error.value = 'Email is already taken.'
+    } else {
+      error.value = 'Failed to create user.'
+    }
   } finally {
     loading.value = false
   }
@@ -97,7 +107,8 @@ function handleClose() {
             type="password"
             placeholder="••••••••"
             required
-            minlength="6"
+            minlength="12"
+            maxlength="128"
             autocomplete="new-password"
           />
         </div>

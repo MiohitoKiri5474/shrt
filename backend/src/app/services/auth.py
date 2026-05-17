@@ -2,7 +2,8 @@ import secrets
 import string
 import bcrypt
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError as JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models import URL
@@ -26,13 +27,7 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_token(token: str) -> dict:
-    return jwt.decode(
-        token,
-        SECRET_KEY,
-        algorithms=[ALGORITHM],
-        audience="url-shortener-api",
-        issuer="url-shortener",
-    )
+    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
 def generate_short_code(length: int = 8) -> str:
     chars = string.ascii_letters + string.digits

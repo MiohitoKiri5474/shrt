@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useURLsStore } from '../stores/urls'
-import { mapErrorToMessage } from '../utils/errorMessages'
 
 const urlsStore = useURLsStore()
 const originalUrl = ref('')
@@ -21,8 +20,8 @@ async function handleCreate() {
     error.value = 'Please enter a valid URL.'
     return
   }
-  if (customCode.value && !/^[A-Za-z0-9_-]{1,16}$/.test(customCode.value)) {
-    error.value = 'Custom code must be 1–16 characters and contain only letters, digits, hyphens, or underscores.'
+  if (customCode.value && !/^[A-Za-z0-9_-]{3,16}$/.test(customCode.value)) {
+    error.value = 'Custom code must be 3–16 characters and contain only letters, digits, hyphens, or underscores.'
     return
   }
   loading.value = true
@@ -30,10 +29,13 @@ async function handleCreate() {
     await urlsStore.create(originalUrl.value, customCode.value || undefined)
     originalUrl.value = ''
     customCode.value = ''
-  } catch (e: any) {
-    error.value = mapErrorToMessage(e, {
-      409: 'Short code already taken.',
-    })
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 409) {
+      error.value = 'Short code already taken.'
+    } else {
+      error.value = 'Failed to create URL.'
+    }
   } finally {
     loading.value = false
   }
@@ -49,7 +51,7 @@ async function handleCreate() {
     </div>
     <div class="field">
       <label for="custom-code">Custom code (optional)</label>
-      <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" maxlength="16" pattern="[A-Za-z0-9_-]+" />
+      <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" minlength="3" maxlength="16" pattern="[A-Za-z0-9_-]{3,16}" />
     </div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create short URL' }}</button>

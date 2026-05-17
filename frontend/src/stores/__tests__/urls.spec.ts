@@ -57,4 +57,15 @@ describe('urls store', () => {
     await expect(store.remove(1)).rejects.toThrow('delete failed')
     expect(store.urls).toHaveLength(1)
   })
+
+  it('fetchStats sets currentStats', async () => {
+    const mockStats = {
+      url_id: 1, short_code: 'abc12345', original_url: 'https://ex.com',
+      total_clicks: 5, clicks_by_date: { '2024-01-01': 3, '2024-01-02': 2 },
+    }
+    vi.mocked(urlsApiModule.urlsApi.stats).mockResolvedValue(mockStats)
+    const store = useURLsStore()
+    await store.fetchStats(1)
+    expect(store.currentStats).toEqual(mockStats)
+  })
 })
