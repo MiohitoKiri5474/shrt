@@ -1,3 +1,4 @@
+import logging
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,8 @@ from app.services.auth import hash_password
 from app.schemas import UserCreate
 from pydantic import ValidationError
 from app.routers import auth, urls, redirect
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="URL Shortener API", version="1.0.0")
 
@@ -33,6 +36,7 @@ async def seed_default_user():
     try:
         UserCreate(email=email, password=password)
     except ValidationError:
+        logger.warning("seed_default_user: skipping — DEFAULT_USER_PASSWORD failed schema validation")
         return
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
