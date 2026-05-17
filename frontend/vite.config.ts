@@ -15,4 +15,18 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    headers: {
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data:",
+        "connect-src 'self' ws:",
+        "font-src 'self'",
+        "frame-src 'none'",
+        "object-src 'none'",
+      ].join('; '),
+    },
+  },
 })
