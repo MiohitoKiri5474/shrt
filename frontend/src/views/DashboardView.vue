@@ -13,6 +13,7 @@ const urlsStore = useURLsStore()
 const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
+const deleteError = ref('')
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const showAddUser = ref(false)
 
@@ -29,9 +30,14 @@ async function handleStats(id: number) {
 }
 
 async function handleDelete(id: number) {
+  deleteError.value = ''
   if (!confirm('Delete this URL?')) return
-  await urlsStore.remove(id)
-  if (selectedStats.value?.url_id === id) selectedStats.value = null
+  try {
+    await urlsStore.remove(id)
+    if (selectedStats.value?.url_id === id) selectedStats.value = null
+  } catch {
+    deleteError.value = 'Failed to delete URL. Please try again.'
+  }
 }
 </script>
 
@@ -81,6 +87,7 @@ async function handleDelete(id: number) {
         <button @click="selectedStats = null">Close</button>
       </aside>
       <p v-if="statsError" class="error">{{ statsError }}</p>
+      <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
     </main>
 
     <AddUserForm v-if="showAddUser" @close="showAddUser = false" />
