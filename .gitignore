@@ -35,4 +35,5 @@ coverage/
 .idea/
 *.swp
 
+worktree/
 worktrees/

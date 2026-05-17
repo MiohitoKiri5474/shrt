@@ -49,11 +49,12 @@ async function handleSubmit() {
     successEmail.value = user.email
     email.value = ''
     password.value = ''
-  } catch (e: any) {
-    if (e.response?.status === 409) {
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 409) {
       error.value = 'Email is already taken.'
     } else {
-      error.value = e.response?.data?.detail || 'Failed to create user.'
+      error.value = 'Failed to create user.'
     }
   } finally {
     loading.value = false
