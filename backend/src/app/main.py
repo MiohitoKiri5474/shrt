@@ -1,5 +1,8 @@
 import os
 from fastapi import FastAPI
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.rate_limiter import limiter
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -9,6 +12,8 @@ from app.services.auth import hash_password
 from app.routers import auth, urls, redirect
 
 app = FastAPI(title="URL Shortener API", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:80").split(",") if o.strip()]
 app.add_middleware(
