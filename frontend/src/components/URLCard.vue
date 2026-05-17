@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { URLOut } from '../api/urls'
 
 const props = defineProps<{ url: URLOut; baseUrl: string }>()
 const emit = defineEmits<{ delete: [id: number]; stats: [id: number] }>()
+const copied = ref(false)
 
-function copyShortUrl() {
-  navigator.clipboard.writeText(`${props.baseUrl}/${props.url.short_code}`)
+async function copyShortUrl() {
+  try {
+    await navigator.clipboard.writeText(`${props.baseUrl}/${props.url.short_code}`)
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 1500)
+  } catch {
+    // clipboard unavailable
+  }
 }
 </script>
 
@@ -17,7 +25,7 @@ function copyShortUrl() {
       </a>
       <div class="short">
         <code>{{ baseUrl }}/{{ url.short_code }}</code>
-        <button class="btn-copy" @click="copyShortUrl">Copy</button>
+        <button class="btn-copy" @click="copyShortUrl">{{ copied ? 'Copied!' : 'Copy' }}</button>
       </div>
       <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>
     </div>
