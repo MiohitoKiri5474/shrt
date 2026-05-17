@@ -5,14 +5,17 @@ import type { URLOut } from '../api/urls'
 const props = defineProps<{ url: URLOut; baseUrl: string }>()
 const emit = defineEmits<{ delete: [id: number]; stats: [id: number] }>()
 const copied = ref(false)
+const copyError = ref(false)
 
 async function copyShortUrl() {
+  copyError.value = false
   try {
     await navigator.clipboard.writeText(`${props.baseUrl}/${props.url.short_code}`)
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
   } catch {
-    // clipboard unavailable
+    copyError.value = true
+    setTimeout(() => { copyError.value = false }, 1500)
   }
 }
 </script>
@@ -25,7 +28,7 @@ async function copyShortUrl() {
       </a>
       <div class="short">
         <code>{{ baseUrl }}/{{ url.short_code }}</code>
-        <button class="btn-copy" @click="copyShortUrl">{{ copied ? 'Copied!' : 'Copy' }}</button>
+        <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
       </div>
       <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>
     </div>
@@ -129,5 +132,10 @@ code {
 
 .btn-copy:hover {
   background: var(--color-border);
+}
+
+.btn-copy--error {
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 </style>
