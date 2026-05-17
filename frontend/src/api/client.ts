@@ -15,10 +15,11 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (res) => res,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token')
-      window.location.href = '/login'
+      const { default: router } = await import('../router')
+      router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
     }
     return Promise.reject(error)
   },
