@@ -15,6 +15,7 @@ const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const showAddUser = ref(false)
+const pendingDeleteId = ref<number | null>(null)
 
 onMounted(() => urlsStore.fetchAll())
 
@@ -28,10 +29,20 @@ async function handleStats(id: number) {
   }
 }
 
-async function handleDelete(id: number) {
-  if (!confirm('Delete this URL?')) return
+function handleDelete(id: number) {
+  pendingDeleteId.value = id
+}
+
+async function confirmDelete() {
+  if (pendingDeleteId.value === null) return
+  const id = pendingDeleteId.value
+  pendingDeleteId.value = null
   await urlsStore.remove(id)
   if (selectedStats.value?.url_id === id) selectedStats.value = null
+}
+
+function cancelDelete() {
+  pendingDeleteId.value = null
 }
 </script>
 
@@ -84,6 +95,23 @@ async function handleDelete(id: number) {
     </main>
 
     <AddUserForm v-if="showAddUser" @close="showAddUser = false" />
+
+    <dialog
+      v-if="pendingDeleteId !== null"
+      open
+      class="confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-desc"
+    >
+      <h3 id="confirm-title">Delete URL</h3>
+      <p id="confirm-desc">Are you sure you want to delete this short URL? This cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" @click="cancelDelete">Cancel</button>
+        <button class="btn-confirm-delete" @click="confirmDelete">Delete</button>
+      </div>
+    </dialog>
   </div>
 </template>
 
@@ -211,5 +239,65 @@ async function handleDelete(id: number) {
 
 .error {
   color: var(--color-error);
+}
+
+.confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  z-index: 200;
+}
+
+.confirm-dialog h3 {
+  margin: 0 0 0.5rem;
+  color: var(--color-heading);
+}
+
+.confirm-dialog p {
+  margin: 0 0 1.25rem;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-cancel {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+  background: var(--color-border);
+}
+
+.btn-confirm-delete {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-error);
+  background: var(--color-error);
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-confirm-delete:hover {
+  opacity: 0.85;
 }
 </style>
