@@ -17,11 +17,18 @@ from app.routers import auth, urls, redirect
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="URL Shortener API", version="1.0.0")
+_APP_ENV = os.getenv("APP_ENV", "production").lower()
+_is_dev = _APP_ENV in {"development", "dev"}
+
+app = FastAPI(
+    title="URL Shortener API",
+    version="1.0.0",
+    docs_url="/docs" if _is_dev else None,
+    redoc_url="/redoc" if _is_dev else None,
+    openapi_url="/openapi.json" if _is_dev else None,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-_APP_ENV = os.getenv("APP_ENV", "production").lower()
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -31,7 +38,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
-        if _APP_ENV not in {"development", "dev"}:
+        if not _is_dev:
             response.headers["Strict-Transport-Security"] = (
                 "max-age=31536000; includeSubDomains"
             )
@@ -41,7 +48,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 _cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS")
-if _APP_ENV not in {"development", "dev"} and not _cors_origins_env:
+if not _is_dev and not _cors_origins_env:
     raise ValueError("CORS_ALLOWED_ORIGINS must be set in production")
 origins = [o.strip() for o in (_cors_origins_env or "http://localhost:5173,http://localhost:80").split(",") if o.strip()]
 
@@ -52,6 +59,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 @app.on_event("startup")
 async def startup():  # pragma: no cover
