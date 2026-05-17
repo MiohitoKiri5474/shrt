@@ -9,6 +9,7 @@ export const BASE_URL: string = _baseURL || 'http://localhost:8000'
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
 
 apiClient.interceptors.request.use((config) => {
