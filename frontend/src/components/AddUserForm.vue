@@ -107,6 +107,7 @@ function handleClose() {
             placeholder="••••••••"
             required
             minlength="12"
+            maxlength="128"
             autocomplete="new-password"
           />
         </div>
