@@ -13,10 +13,16 @@ const urlsStore = useURLsStore()
 const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
+const deleteError = ref('')
+const loadError = ref('')
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const showAddUser = ref(false)
 
-onMounted(() => urlsStore.fetchAll())
+onMounted(() => {
+  urlsStore.fetchAll().catch(() => {
+    loadError.value = 'Failed to load URLs. Please refresh.'
+  })
+})
 
 async function handleStats(id: number) {
   statsError.value = ''
@@ -29,9 +35,14 @@ async function handleStats(id: number) {
 }
 
 async function handleDelete(id: number) {
+  deleteError.value = ''
   if (!confirm('Delete this URL?')) return
-  await urlsStore.remove(id)
-  if (selectedStats.value?.url_id === id) selectedStats.value = null
+  try {
+    await urlsStore.remove(id)
+    if (selectedStats.value?.url_id === id) selectedStats.value = null
+  } catch {
+    deleteError.value = 'Failed to delete URL. Please try again.'
+  }
 }
 </script>
 
@@ -80,7 +91,9 @@ async function handleDelete(id: number) {
         </table>
         <button @click="selectedStats = null">Close</button>
       </aside>
+      <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
       <p v-if="statsError" class="error">{{ statsError }}</p>
+      <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
     </main>
 
     <AddUserForm v-if="showAddUser" @close="showAddUser = false" />
@@ -172,6 +185,13 @@ async function handleDelete(id: number) {
 
 .btn-signout:hover {
   background: var(--color-border);
+}
+
+.theme-toggle:focus-visible,
+.btn-add-user:focus-visible,
+.btn-signout:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .dash-content {

@@ -122,4 +122,11 @@ code {
 .btn-copy:hover {
   background: var(--color-border);
 }
+
+.btn-stats:focus-visible,
+.btn-delete:focus-visible,
+.btn-copy:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
 </style>

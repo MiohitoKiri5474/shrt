@@ -15,7 +15,6 @@ class UserCreate(BaseModel):
         return v
 
 class UserOut(BaseModel):
-    id: int
     email: str
     created_at: datetime
     model_config = {"from_attributes": True}
