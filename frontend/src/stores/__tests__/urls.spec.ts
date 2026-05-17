@@ -47,4 +47,14 @@ describe('urls store', () => {
     await store.remove(1)
     expect(store.urls).toHaveLength(0)
   })
+
+  it('remove keeps urls and rejects when API delete fails', async () => {
+    vi.mocked(urlsApiModule.urlsApi.list).mockResolvedValue([mockURL])
+    vi.mocked(urlsApiModule.urlsApi.remove).mockRejectedValue(new Error('delete failed'))
+    const store = useURLsStore()
+    await store.fetchAll()
+
+    await expect(store.remove(1)).rejects.toThrow('delete failed')
+    expect(store.urls).toHaveLength(1)
+  })
 })
