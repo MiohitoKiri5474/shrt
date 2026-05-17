@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useURLsStore } from '../stores/urls'
 import { useThemeStore } from '../stores/theme'
@@ -16,8 +16,18 @@ const statsError = ref('')
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const showAddUser = ref(false)
 const pendingDeleteId = ref<number | null>(null)
+const deleteError = ref('')
+const dialogRef = ref<HTMLDialogElement | null>(null)
 
 onMounted(() => urlsStore.fetchAll())
+
+watch(pendingDeleteId, (id) => {
+  if (id !== null) {
+    nextTick(() => dialogRef.value?.showModal())
+  } else {
+    dialogRef.value?.close()
+  }
+})
 
 async function handleStats(id: number) {
   statsError.value = ''
@@ -37,8 +47,13 @@ async function confirmDelete() {
   if (pendingDeleteId.value === null) return
   const id = pendingDeleteId.value
   pendingDeleteId.value = null
-  await urlsStore.remove(id)
-  if (selectedStats.value?.url_id === id) selectedStats.value = null
+  deleteError.value = ''
+  try {
+    await urlsStore.remove(id)
+    if (selectedStats.value?.url_id === id) selectedStats.value = null
+  } catch {
+    deleteError.value = 'Failed to delete URL. Please try again.'
+  }
 }
 
 function cancelDelete() {
@@ -92,23 +107,24 @@ function cancelDelete() {
         <button @click="selectedStats = null">Close</button>
       </aside>
       <p v-if="statsError" class="error">{{ statsError }}</p>
+      <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
     </main>
 
     <AddUserForm v-if="showAddUser" @close="showAddUser = false" />
 
     <dialog
-      v-if="pendingDeleteId !== null"
-      open
+      ref="dialogRef"
       class="confirm-dialog"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="confirm-title"
       aria-describedby="confirm-desc"
+      @close="cancelDelete"
     >
       <h3 id="confirm-title">Delete URL</h3>
       <p id="confirm-desc">Are you sure you want to delete this short URL? This cannot be undone.</p>
       <div class="confirm-actions">
-        <button class="btn-cancel" @click="cancelDelete">Cancel</button>
+        <button class="btn-cancel" autofocus @click="cancelDelete">Cancel</button>
         <button class="btn-confirm-delete" @click="confirmDelete">Delete</button>
       </div>
     </dialog>
@@ -291,7 +307,7 @@ function cancelDelete() {
   padding: 0.4rem 1rem;
   border: 1px solid var(--color-error);
   background: var(--color-error);
-  color: #fff;
+  color: var(--color-background);
   border-radius: 4px;
   cursor: pointer;
   transition: opacity 0.2s;
