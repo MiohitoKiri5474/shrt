@@ -43,4 +43,29 @@ describe('auth store', () => {
     const store = useAuthStore()
     await expect(store.login('bad@b.com', 'wrong')).rejects.toThrow()
   })
+
+  it('restore sets user when token exists', async () => {
+    localStorage.setItem('access_token', 'tok')
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ id: 1, email: 'a@b.com', created_at: '' })
+    const store = useAuthStore()
+    await store.restore()
+    expect(store.user?.email).toBe('a@b.com')
+    expect(store.isAuthenticated).toBe(true)
+  })
+
+  it('restore does nothing when no token', async () => {
+    const store = useAuthStore()
+    await store.restore()
+    expect(authApiModule.authApi.me).not.toHaveBeenCalled()
+    expect(store.user).toBeNull()
+  })
+
+  it('restore logs out when API throws', async () => {
+    localStorage.setItem('access_token', 'tok')
+    vi.mocked(authApiModule.authApi.me).mockRejectedValue(new Error('401'))
+    const store = useAuthStore()
+    await store.restore()
+    expect(store.user).toBeNull()
+    expect(localStorage.getItem('access_token')).toBeNull()
+  })
 })
