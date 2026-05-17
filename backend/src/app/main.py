@@ -8,7 +8,13 @@ from app.models import User
 from app.services.auth import hash_password
 from app.routers import auth, urls, redirect
 
-app = FastAPI(title="URL Shortener API", version="1.0.0")
+env = os.getenv("ENV", "development")
+app = FastAPI(
+    title="URL Shortener API",
+    version="1.0.0",
+    docs_url=None if env == "production" else "/docs",
+    redoc_url=None if env == "production" else "/redoc",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,6 +23,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 @app.on_event("startup")
 async def startup():  # pragma: no cover
