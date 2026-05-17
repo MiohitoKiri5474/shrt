@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
-from urllib.parse import urlparse
+import ipaddress
+import socket
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -25,15 +26,20 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 class URLCreate(BaseModel):
-    original_url: str
+    original_url: AnyHttpUrl
     custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
 
     @field_validator("original_url")
     @classmethod
-    def validate_url_scheme(cls, v: str) -> str:
-        parsed = urlparse(v)
-        if parsed.scheme not in ("http", "https"):
-            raise ValueError("URL must use http or https scheme")
+    def block_private_hosts(cls, v: AnyHttpUrl) -> AnyHttpUrl:
+        host = v.host
+        if host:
+            try:
+                addr = ipaddress.ip_address(socket.gethostbyname(host))
+                if addr.is_private or addr.is_loopback or addr.is_link_local:
+                    raise ValueError("Private/internal hosts are not allowed")
+            except socket.gaierror:
+                pass
         return v
 
 class URLOut(BaseModel):
