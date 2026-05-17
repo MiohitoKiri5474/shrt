@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
@@ -12,14 +12,55 @@ const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 
+const failureCount = ref(0)
+const cooldownUntil = ref(0)
+const cooldownSecondsLeft = ref(0)
+
+const isOnCooldown = computed(() => Date.now() < cooldownUntil.value)
+
+let cooldownTimer: ReturnType<typeof setInterval> | null = null
+
+function startCooldownTimer() {
+  if (cooldownTimer !== null) {
+    clearInterval(cooldownTimer)
+  }
+  cooldownTimer = setInterval(() => {
+    const remaining = Math.ceil((cooldownUntil.value - Date.now()) / 1000)
+    if (remaining <= 0) {
+      cooldownSecondsLeft.value = 0
+      if (cooldownTimer !== null) {
+        clearInterval(cooldownTimer)
+        cooldownTimer = null
+      }
+    } else {
+      cooldownSecondsLeft.value = remaining
+    }
+  }, 200)
+}
+
+onUnmounted(() => {
+  if (cooldownTimer !== null) {
+    clearInterval(cooldownTimer)
+  }
+})
+
 async function handleSubmit() {
+  if (isOnCooldown.value) return
   error.value = ''
   loading.value = true
   try {
     await authStore.login(email.value, password.value)
+    failureCount.value = 0
     router.push('/dashboard')
   } catch {
     error.value = 'Invalid email or password'
+    failureCount.value += 1
+    if (failureCount.value >= 3) {
+      const backoffMs = Math.min(failureCount.value * 5000, 30000)
+      cooldownUntil.value = Date.now() + backoffMs
+      cooldownSecondsLeft.value = Math.ceil(backoffMs / 1000)
+      startCooldownTimer()
+    }
   } finally {
     loading.value = false
   }
@@ -49,7 +90,10 @@ async function handleSubmit() {
           <input id="password" v-model="password" type="password" required autocomplete="current-password" />
         </div>
         <p v-if="error" class="error" role="alert">{{ error }}</p>
-        <button type="submit" :disabled="loading">
+        <p v-if="isOnCooldown" class="cooldown" role="status">
+          Too many failed attempts. Please wait {{ cooldownSecondsLeft }}s before trying again.
+        </p>
+        <button type="submit" :disabled="loading || isOnCooldown">
           {{ loading ? 'Signing in…' : 'Sign in' }}
         </button>
       </form>
@@ -154,12 +198,24 @@ button[type='submit']:hover:not(:disabled) {
   opacity: 0.88;
 }
 
+button[type='submit']:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 button[type='submit']:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
 .error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.cooldown {
   color: var(--color-error);
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
