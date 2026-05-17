@@ -28,7 +28,7 @@ async function handleCreate() {
     customCode.value = ''
   } catch (e: any) {
     error.value = mapErrorToMessage(e, {
-      409: e.response?.data?.detail ?? 'Short code already taken.',
+      409: 'Short code already taken.',
     })
   } finally {
     loading.value = false
