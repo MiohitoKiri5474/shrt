@@ -86,11 +86,14 @@ async def logout(response: Response):
     return {"message": "Logged out"}
 
 @router.get("/me", response_model=UserOut)
-async def me(current_user: User = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def me(request: Request, current_user: User = Depends(get_current_user)):
     return current_user
 
 @router.post("/users", response_model=UserOut, status_code=201)
+@limiter.limit("10/minute")
 async def create_user(
+    request: Request,
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_admin),

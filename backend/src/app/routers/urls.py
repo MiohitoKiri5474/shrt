@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
@@ -6,11 +6,14 @@ from app.models import URL, Click, User
 from app.schemas import URLCreate, URLOut, StatsOut
 from app.services.auth import get_unique_short_code
 from app.routers.auth import get_current_user
+from app.rate_limiter import limiter
 
 router = APIRouter()
 
 @router.post("", response_model=URLOut, status_code=201)
+@limiter.limit("20/minute")
 async def create_url(
+    request: Request,
     data: URLCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -35,7 +38,9 @@ async def create_url(
     return item
 
 @router.get("", response_model=list[URLOut])
+@limiter.limit("100/minute")
 async def list_urls(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -52,7 +57,9 @@ async def list_urls(
     return out
 
 @router.delete("/{url_id}", status_code=204)
+@limiter.limit("30/minute")
 async def delete_url(
+    request: Request,
     url_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -65,7 +72,9 @@ async def delete_url(
     await db.commit()
 
 @router.get("/{url_id}/stats", response_model=StatsOut)
+@limiter.limit("60/minute")
 async def get_stats(
+    request: Request,
     url_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
