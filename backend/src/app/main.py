@@ -77,8 +77,10 @@ async def seed_default_user():
     try:
         UserCreate(email=email, password=password)
     except ValidationError:
-        logger.warning("seed_default_user: skipping — DEFAULT_USER_PASSWORD failed schema validation")
-        return
+        raise ValueError(
+            "DEFAULT_USER_PASSWORD failed schema validation — "
+            "refusing to start with invalid seed credentials"
+        )
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
         if result.scalar_one_or_none() is None:

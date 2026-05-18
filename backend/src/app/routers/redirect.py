@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +20,7 @@ async def redirect(short_code: str, request: Request, db: AsyncSession = Depends
     raw_ip = request.client.host if request.client else None
     client_ip = anonymize_ip(raw_ip)
     _ua = request.headers.get("user-agent")
-    user_agent = _ua[:512] if _ua else None
+    user_agent = re.sub(r'[^\x20-\x7E]', '', _ua)[:512] if _ua else None
     click = Click(url_id=url.id, ip_address=client_ip, user_agent=user_agent)
     db.add(click)
     await db.commit()
