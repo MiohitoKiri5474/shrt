@@ -43,6 +43,14 @@ function trapFocus(e: KeyboardEvent) {
 async function handleSubmit() {
   error.value = ''
   successEmail.value = ''
+  if (password.value.length < 12) {
+    error.value = 'Password must be at least 12 characters.'
+    return
+  }
+  if (password.value.length > 128) {
+    error.value = 'Password must be at most 128 characters.'
+    return
+  }
   loading.value = true
   try {
     const user = await authApi.addUser(email.value, password.value)
@@ -99,7 +107,8 @@ function handleClose() {
             type="password"
             placeholder="••••••••"
             required
-            minlength="6"
+            minlength="12"
+            maxlength="128"
             autocomplete="new-password"
           />
         </div>

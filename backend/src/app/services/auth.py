@@ -2,7 +2,8 @@ import secrets
 import string
 import bcrypt
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError as JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models import URL

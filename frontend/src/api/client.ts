@@ -1,11 +1,22 @@
 import axios from 'axios'
+import type { Router } from 'vue-router'
 
-export const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const _baseURL = import.meta.env.VITE_API_BASE_URL
+if (!_baseURL && import.meta.env.PROD) {
+  throw new Error('VITE_API_BASE_URL is required in production')
+}
+export const BASE_URL: string = _baseURL || 'http://localhost:8000'
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
+
+let _router: Router | null = null
+export function setRouter(r: Router) {
+  _router = r
+}
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
@@ -20,7 +31,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token')
-      window.location.href = '/login'
+      if (_router) {
+        _router.push({ name: 'login', query: { redirect: _router.currentRoute.value.fullPath } })
+      } else {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   },
