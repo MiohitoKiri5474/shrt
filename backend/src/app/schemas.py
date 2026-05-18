@@ -2,6 +2,35 @@ from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 import ipaddress
 import socket
+from urllib.parse import urlparse
+
+
+def validate_no_ssrf(url: str) -> None:
+    """Resolve hostname and block private/internal/reserved/multicast targets.
+
+    Call at both URL-creation time and redirect-serve time to prevent DNS rebinding.
+    """
+    try:
+        host = urlparse(url).hostname
+    except Exception:
+        return
+    if not host:
+        return
+    try:
+        addr = ipaddress.ip_address(socket.gethostbyname(host))
+    except OSError:
+        return
+    if addr.is_private:
+        raise ValueError("URL points to a private address")
+    if addr.is_loopback:
+        raise ValueError("URL points to a loopback address")
+    if addr.is_link_local:
+        raise ValueError("URL points to a link-local address")
+    if addr.is_reserved:
+        raise ValueError("URL points to a reserved address")
+    if addr.is_multicast:
+        raise ValueError("URL points to a multicast address")
+
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -32,14 +61,7 @@ class URLCreate(BaseModel):
     @field_validator("original_url")
     @classmethod
     def block_private_hosts(cls, v: AnyHttpUrl) -> AnyHttpUrl:
-        host = v.host
-        if host:
-            try:
-                addr = ipaddress.ip_address(socket.gethostbyname(host))
-                if addr.is_private or addr.is_loopback or addr.is_link_local:
-                    raise ValueError("Private/internal hosts are not allowed")
-            except socket.gaierror:
-                pass
+        validate_no_ssrf(str(v))
         return v
 
 class URLOut(BaseModel):
