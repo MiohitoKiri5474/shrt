@@ -7,7 +7,6 @@ services:
       dockerfile: Dockerfile
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - APP_ENV=development
       - DATABASE_URL=sqlite+aiosqlite:///./data/shortener.db
       - DEFAULT_USER_EMAIL=${DEFAULT_USER_EMAIL}
       - DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
