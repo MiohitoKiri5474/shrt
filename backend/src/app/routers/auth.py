@@ -63,11 +63,14 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
     return await _create_user(data, db)
 
 @limiter.limit("5/minute")
-@router.post("/login", response_model=Token)
+@router.post("/login")
 async def login(request: Request, response: Response, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(form.password, user.password_hash):
+    if not user:
+        verify_password("dummy", "$2b$12$" + "a" * 53)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not verify_password(form.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token({"sub": str(user.id)})
     response.set_cookie(
@@ -78,7 +81,7 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         secure=_COOKIE_SECURE,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
-    return {"access_token": token, "token_type": "bearer"}
+    return {"token_type": "bearer"}
 
 @router.post("/logout")
 async def logout(response: Response):
