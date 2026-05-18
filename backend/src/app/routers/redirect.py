@@ -1,3 +1,4 @@
+import asyncio
 import re
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.responses import RedirectResponse
@@ -22,6 +23,11 @@ async def redirect(
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="Short URL not found")
+    loop = asyncio.get_running_loop()
+    try:
+        await loop.run_in_executor(None, validate_no_ssrf, str(url.original_url))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="URL destination is no longer valid")
     raw_ip = request.client.host if request.client else None
     client_ip = anonymize_ip(raw_ip)
     _ua = request.headers.get("user-agent")
@@ -29,8 +35,4 @@ async def redirect(
     click = Click(url_id=url.id, ip_address=client_ip, user_agent=user_agent)
     db.add(click)
     await db.commit()
-    try:
-        validate_no_ssrf(str(url.original_url))
-    except ValueError:
-        raise HTTPException(status_code=400, detail="URL destination is no longer valid")
     return RedirectResponse(url=str(url.original_url), status_code=302)
