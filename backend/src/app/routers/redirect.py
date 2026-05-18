@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import URL, Click
 from app.utils import anonymize_ip
 from app.rate_limiter import limiter
+from app.schemas import validate_no_ssrf
 
 router = APIRouter()
 
@@ -28,4 +29,8 @@ async def redirect(
     click = Click(url_id=url.id, ip_address=client_ip, user_agent=user_agent)
     db.add(click)
     await db.commit()
+    try:
+        validate_no_ssrf(str(url.original_url))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="URL destination is no longer valid")
     return RedirectResponse(url=str(url.original_url), status_code=302)
