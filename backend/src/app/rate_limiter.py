@@ -27,7 +27,11 @@ def get_real_ip(request: Request) -> str:
     if _is_trusted_proxy(direct_ip):
         forwarded_for = request.headers.get("X-Forwarded-For")
         if forwarded_for:
-            return forwarded_for.split(",")[0].strip()
+            ips = [ip.strip() for ip in forwarded_for.split(",")]
+            for ip in reversed(ips):
+                if not _is_trusted_proxy(ip):
+                    return ip
+            return ips[0]
     return direct_ip
 
 
