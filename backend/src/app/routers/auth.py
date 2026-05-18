@@ -4,13 +4,13 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from jose import JWTError
+from jwt import PyJWTError as JWTError
 from app.database import get_db
+from app.rate_limiter import limiter
 from app.models import User
 from app.schemas import UserCreate, UserOut, Token
 from app.services.auth import hash_password, verify_password, create_access_token, decode_token
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
-from app.rate_limiter import limiter
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
@@ -58,7 +58,8 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
     return user
 
 @router.post("/register", response_model=UserOut, status_code=201)
-async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)):
     return await _create_user(data, db)
 
 @limiter.limit("5/minute")
