@@ -31,15 +31,3 @@ feature/xxx or fix/xxx → develop → main
 ```
 
 **Never commit directly to `main` or `develop`.** All work goes to a feature or fix branch first, then merges into `develop`, then `develop` merges into `main`.
-
-### Pull Request Workflow
-
-Pull requests should mention Copilot by using `@copilot` in the description to get AI assistance with code review and suggestions.
-
-Here is the process:
-
-1. Create a pull request from your feature/fix branch to `develop`.
-2. Create a comment which mention `@copilot` in the description to get AI review.
-3. Wait 15 minutes Copilot's feedback comments. Address the feedback by making necessary changes to your code.
-4. Push the changes to your branch and mention `@copilot` again for another review.
-5. Repeat steps 2-4 until Copilot approves the pull request.
