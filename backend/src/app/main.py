@@ -36,7 +36,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; "
+            "img-src 'self' data: https:; connect-src 'self'; font-src 'self'; "
+            "frame-ancestors 'none'; frame-src 'none'; object-src 'none'; "
             "base-uri 'self'; form-action 'self';"
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
