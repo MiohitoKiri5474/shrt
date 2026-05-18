@@ -18,14 +18,28 @@ async function copyShortUrl() {
     setTimeout(() => { copyError.value = false }, 1500)
   }
 }
+
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
 </script>
 
 <template>
   <div class="url-card" :data-testid="`url-card-${url.id}`">
     <div class="url-info">
-      <a :href="url.original_url" target="_blank" rel="noopener noreferrer" class="original">
+      <a v-if="isSafeUrl(url.original_url)" :href="url.original_url" target="_blank" rel="noopener noreferrer" class="original">
         {{ url.original_url }}
       </a>
+      <span v-else class="original url-invalid" title="Invalid URL — unsafe protocol">
+        {{ url.original_url }}
+        <span class="url-invalid__badge" aria-label="Invalid URL">Invalid URL</span>
+      </span>
       <div class="short">
         <code>{{ baseUrl }}/{{ url.short_code }}</code>
         <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
@@ -144,5 +158,26 @@ code {
 .btn-copy:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+.url-invalid {
+  text-decoration: line-through;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.url-invalid__badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-error, #c0392b);
+  border: 1px solid var(--color-error, #c0392b);
+  border-radius: 3px;
+  vertical-align: middle;
+  opacity: 1;
 }
 </style>
