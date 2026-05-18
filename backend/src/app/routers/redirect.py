@@ -1,5 +1,5 @@
 import re
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -12,7 +12,11 @@ router = APIRouter()
 
 @router.get("/{short_code}")
 @limiter.limit("60/minute")
-async def redirect(short_code: str, request: Request, db: AsyncSession = Depends(get_db)):
+async def redirect(
+    request: Request,
+    short_code: str = Path(..., max_length=16, pattern=r"^[a-zA-Z0-9_-]+$"),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(select(URL).where(URL.short_code == short_code))
     url = result.scalar_one_or_none()
     if not url:
