@@ -1,11 +1,16 @@
 import axios from 'axios'
 import type { Router } from 'vue-router'
 
-export const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const _baseURL = import.meta.env.VITE_API_BASE_URL
+if (!_baseURL && import.meta.env.PROD) {
+  throw new Error('VITE_API_BASE_URL is required in production')
+}
+export const BASE_URL: string = _baseURL || 'http://localhost:8000'
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
 
 let _router: Router | null = null

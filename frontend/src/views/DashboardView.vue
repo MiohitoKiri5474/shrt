@@ -21,6 +21,7 @@ const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
 
 onMounted(() => {
+  loadError.value = ''
   urlsStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load URLs. Please refresh.'
   })
