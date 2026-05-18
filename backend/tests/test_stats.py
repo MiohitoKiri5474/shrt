@@ -27,8 +27,8 @@ async def client():
 
 @pytest.fixture
 async def url_with_clicks(client):
-    await client.post("/api/auth/register", json={"email": "s@b.com", "password": "pass1234"})
-    login = await client.post("/api/auth/login", data={"username": "s@b.com", "password": "pass1234"})
+    await client.post("/api/auth/register", json={"email": "s@b.com", "password": "pass12345678"})
+    login = await client.post("/api/auth/login", data={"username": "s@b.com", "password": "pass12345678"})
     token = login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     create = await client.post("/api/urls", json={"original_url": "https://stats.com"}, headers=headers)
@@ -51,8 +51,8 @@ async def test_stats_by_date(client, url_with_clicks):
 
 async def test_stats_forbidden_for_non_owner(client, url_with_clicks):
     url_id, _ = url_with_clicks
-    await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass1234"})
-    login = await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass1234"})
+    await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
+    login = await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
     other_token = login.json()["access_token"]
     resp = await client.get(f"/api/urls/{url_id}/stats", headers={"Authorization": f"Bearer {other_token}"})
     assert resp.status_code == 403

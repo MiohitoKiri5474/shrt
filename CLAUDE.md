@@ -38,7 +38,8 @@ Pull requests should mention Copilot by using `@copilot` in the description to g
 
 Here is the process:
 
-1. Create a pull request from your feature/fix branch to `develop`. Mention `@copilot` in the description to get AI review.
-2. Wait 15 minutes for Copilot's feedback comments. Address the feedback by making necessary changes to your code.
-3. Push the changes to your branch and mention `@copilot` again for another review.
-4. Repeat steps 2-3 until Copilot approves the pull request.
+1. Create a pull request from your feature/fix branch to `develop`.
+2. Create a comment which mention `@copilot` in the description to get AI review.
+3. Wait 15 minutes Copilot's feedback comments. Address the feedback by making necessary changes to your code.
+4. Push the changes to your branch and mention `@copilot` again for another review.
+5. Repeat steps 2-4 until Copilot approves the pull request.

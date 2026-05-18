@@ -19,7 +19,7 @@ async def session_factory():
 
 async def test_seed_creates_user(session_factory, monkeypatch):
     monkeypatch.setenv("DEFAULT_USER_EMAIL", "seed@test.com")
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "testpass")
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "testpassword123")
     with patch("app.main.AsyncSessionLocal", session_factory):
         await seed_default_user()
     async with session_factory() as db:
@@ -29,7 +29,7 @@ async def test_seed_creates_user(session_factory, monkeypatch):
 
 async def test_seed_idempotent(session_factory, monkeypatch):
     monkeypatch.setenv("DEFAULT_USER_EMAIL", "seed@test.com")
-    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "testpass")
+    monkeypatch.setenv("DEFAULT_USER_PASSWORD", "testpassword123")
     with patch("app.main.AsyncSessionLocal", session_factory):
         await seed_default_user()
         await seed_default_user()

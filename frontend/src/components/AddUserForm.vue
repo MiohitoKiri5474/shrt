@@ -43,17 +43,26 @@ function trapFocus(e: KeyboardEvent) {
 async function handleSubmit() {
   error.value = ''
   successEmail.value = ''
+  if (password.value.length < 12) {
+    error.value = 'Password must be at least 12 characters.'
+    return
+  }
+  if (password.value.length > 128) {
+    error.value = 'Password must be at most 128 characters.'
+    return
+  }
   loading.value = true
   try {
     const user = await authApi.addUser(email.value, password.value)
     successEmail.value = user.email
     email.value = ''
     password.value = ''
-  } catch (e: any) {
-    if (e.response?.status === 409) {
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 409) {
       error.value = 'Email is already taken.'
     } else {
-      error.value = e.response?.data?.detail || 'Failed to create user.'
+      error.value = 'Failed to create user.'
     }
   } finally {
     loading.value = false
@@ -98,7 +107,8 @@ function handleClose() {
             type="password"
             placeholder="••••••••"
             required
-            minlength="6"
+            minlength="12"
+            maxlength="128"
             autocomplete="new-password"
           />
         </div>
