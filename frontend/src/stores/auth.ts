@@ -7,19 +7,15 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => user.value !== null)
 
   async function login(email: string, password: string) {
-    const token = await authApi.login(email, password)
-    localStorage.setItem('access_token', token.access_token)
+    await authApi.login(email, password)
     user.value = await authApi.me()
   }
 
   function logout() {
-    localStorage.removeItem('access_token')
     user.value = null
   }
 
   async function restore() {
-    const token = localStorage.getItem('access_token')
-    if (!token) return
     try {
       user.value = await authApi.me()
     } catch {

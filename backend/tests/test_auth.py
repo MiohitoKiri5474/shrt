@@ -32,7 +32,7 @@ async def client():
 
 @pytest.fixture
 async def admin_token(client):
-    """Create an admin user directly in DB and return its auth token."""
+    """Create an admin user directly in DB and return its auth cookies."""
     async with _AsyncTestSession() as session:
         admin = User(
             email="admin@b.com",
@@ -42,7 +42,7 @@ async def admin_token(client):
         session.add(admin)
         await session.commit()
     resp = await client.post("/api/auth/login", data={"username": "admin@b.com", "password": "adminpassword123"})
-    return resp.json()["access_token"]
+    return dict(resp.cookies)
 
 async def test_register(client):
     resp = await client.post("/api/auth/register", json={"email": "a@b.com", "password": "secret123456"})
@@ -58,7 +58,8 @@ async def test_login_success(client):
     await client.post("/api/auth/register", json={"email": "login@b.com", "password": "pass12345678"})
     resp = await client.post("/api/auth/login", data={"username": "login@b.com", "password": "pass12345678"})
     assert resp.status_code == 200
-    assert "access_token" in resp.json()
+    assert "token_type" in resp.json()
+    assert "access_token" not in resp.json()
 
 async def test_login_wrong_password(client):
     await client.post("/api/auth/register", json={"email": "x@b.com", "password": "correctpass123"})
@@ -68,8 +69,7 @@ async def test_login_wrong_password(client):
 async def test_me_endpoint(client):
     await client.post("/api/auth/register", json={"email": "me@b.com", "password": "pass12345678"})
     login = await client.post("/api/auth/login", data={"username": "me@b.com", "password": "pass12345678"})
-    token = login.json()["access_token"]
-    resp = await client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get("/api/auth/me", cookies=login.cookies)
     assert resp.status_code == 200
     assert resp.json()["email"] == "me@b.com"
 
@@ -86,7 +86,7 @@ async def test_create_user_as_admin(client, admin_token):
     resp = await client.post(
         "/api/auth/users",
         json={"email": "new@b.com", "password": "newpassword123"},
-        headers={"Authorization": f"Bearer {admin_token}"},
+        cookies=admin_token,
     )
     assert resp.status_code == 201
     assert resp.json()["email"] == "new@b.com"
@@ -95,11 +95,10 @@ async def test_create_user_non_admin_gets_403(client):
     """Non-admin authenticated users cannot create accounts (403)."""
     await client.post("/api/auth/register", json={"email": "regular@b.com", "password": "regularpass123"})
     login = await client.post("/api/auth/login", data={"username": "regular@b.com", "password": "regularpass123"})
-    token = login.json()["access_token"]
     resp = await client.post(
         "/api/auth/users",
         json={"email": "target@b.com", "password": "targetpass123"},
-        headers={"Authorization": f"Bearer {token}"},
+        cookies=login.cookies,
     )
     assert resp.status_code == 403
 
@@ -111,12 +110,12 @@ async def test_create_user_duplicate(client, admin_token):
     await client.post(
         "/api/auth/users",
         json={"email": "dup2@b.com", "password": "pass12345678"},
-        headers={"Authorization": f"Bearer {admin_token}"},
+        cookies=admin_token,
     )
     resp = await client.post(
         "/api/auth/users",
         json={"email": "dup2@b.com", "password": "other12345678"},
-        headers={"Authorization": f"Bearer {admin_token}"},
+        cookies=admin_token,
     )
     assert resp.status_code == 409
 
@@ -124,6 +123,6 @@ async def test_create_user_short_password(client, admin_token):
     resp = await client.post(
         "/api/auth/users",
         json={"email": "short@b.com", "password": "abc"},
-        headers={"Authorization": f"Bearer {admin_token}"},
+        cookies=admin_token,
     )
     assert resp.status_code == 422
