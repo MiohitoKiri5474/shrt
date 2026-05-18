@@ -18,7 +18,7 @@ def validate_no_ssrf(url: str) -> None:
         return
     try:
         addr = ipaddress.ip_address(socket.gethostbyname(host))
-    except socket.gaierror:
+    except OSError:
         return
     if addr.is_private:
         raise ValueError("URL points to a private address")
