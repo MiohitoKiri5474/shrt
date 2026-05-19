@@ -10,6 +10,9 @@ const loading = ref(false)
 
 async function handleCreate() {
   error.value = ''
+  if (originalUrl.value && !/^https?:\/\//i.test(originalUrl.value)) {
+    originalUrl.value = 'https://' + originalUrl.value
+  }
   try {
     const parsed = new URL(originalUrl.value)
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {

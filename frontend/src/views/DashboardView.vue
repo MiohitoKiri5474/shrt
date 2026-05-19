@@ -7,7 +7,7 @@ import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import AddUserForm from '../components/AddUserForm.vue'
 import type { StatsOut } from '../api/urls'
-import { BASE_URL } from '../api/client'
+const BASE_URL = window.location.origin
 
 const authStore = useAuthStore()
 const urlsStore = useURLsStore()
