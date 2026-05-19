@@ -1,11 +1,9 @@
 import axios from 'axios'
 import type { Router } from 'vue-router'
 
-const _baseURL = import.meta.env.VITE_API_BASE_URL
-if (!_baseURL && import.meta.env.PROD) {
-  throw new Error('VITE_API_BASE_URL is required in production')
-}
-export const BASE_URL: string = _baseURL || 'http://localhost:8000'
+// In production, nginx proxies /api/* to the backend — no env var needed.
+// Set VITE_API_BASE_URL to override (e.g. when backend is on a different host).
+export const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
