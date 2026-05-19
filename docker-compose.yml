@@ -8,6 +8,7 @@ services:
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - DATABASE_URL=sqlite+aiosqlite:///./data/shortener.db
+      - APP_ENV=development
       - DEFAULT_USER_EMAIL=${DEFAULT_USER_EMAIL}
       - DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
     volumes:

@@ -14,7 +14,7 @@ export function mapErrorToMessage(
     (error as any)?.response?.status
 
   if (status !== undefined && Object.prototype.hasOwnProperty.call(overrides, status)) {
-    return overrides[status]
+    return overrides[status]!
   }
 
   switch (status) {
