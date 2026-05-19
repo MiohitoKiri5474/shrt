@@ -12,7 +12,7 @@ services:
       - DEFAULT_USER_EMAIL=${DEFAULT_USER_EMAIL}
       - DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
     volumes:
-      - backend-data:/app/data
+      - ./backend-data:/app/data
     ports:
       - "8000:8000"
     healthcheck:

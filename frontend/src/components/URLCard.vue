@@ -9,8 +9,19 @@ const copyError = ref(false)
 
 async function copyShortUrl() {
   copyError.value = false
+  const text = `${props.baseUrl}/${props.url.short_code}`
   try {
-    await navigator.clipboard.writeText(`${props.baseUrl}/${props.url.short_code}`)
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.style.cssText = 'position:fixed;opacity:0'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
   } catch {

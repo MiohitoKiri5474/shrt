@@ -50,7 +50,7 @@ async function handleCreate() {
     <h2>Shorten a URL</h2>
     <div class="field">
       <label for="original-url">Original URL</label>
-      <input id="original-url" v-model="originalUrl" type="url" placeholder="https://example.com" required />
+      <input id="original-url" v-model="originalUrl" type="text" placeholder="https://example.com" required />
     </div>
     <div class="field">
       <label for="custom-code">Custom code (optional)</label>
