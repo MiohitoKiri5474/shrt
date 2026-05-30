@@ -16,7 +16,7 @@ const failureCount = ref(0)
 const cooldownUntil = ref(0)
 const cooldownSecondsLeft = ref(0)
 
-const isOnCooldown = computed(() => Date.now() < cooldownUntil.value)
+const isOnCooldown = computed(() => cooldownSecondsLeft.value > 0)
 
 let cooldownTimer: ReturnType<typeof setInterval> | null = null
 

@@ -10,47 +10,35 @@ who maintain or extend the codebase.
 
 ### Current Approach
 
-Cross-Site Request Forgery (CSRF) is currently mitigated by using Bearer tokens
-transmitted via the `Authorization` HTTP header (see
-`frontend/src/api/client.ts`).
+Authentication uses **HttpOnly cookies** set by the backend on successful login
+(`backend/src/app/routers/auth.py`). The cookie is configured with:
 
-The browser's Same-Origin Policy (SOP) prevents cross-origin pages from setting
-custom request headers. Because the `Authorization: Bearer <token>` header is a
-non-simple, custom header, a malicious page on another origin cannot include it in a
-forged request. Every authenticated request reaching the backend therefore must have
-originated from JavaScript running on the legitimate frontend origin.
+- `HttpOnly=True` — JavaScript cannot read it, preventing XSS-based token theft
+- `SameSite=Strict` — the browser will not attach the cookie to any cross-site request,
+  including navigations from external pages
+- `Secure=True` in production (`APP_ENV != development`) — cookie transmitted only over HTTPS
 
-Token storage: the access token is kept in `localStorage` and attached to each request
-by an Axios interceptor (`apiClient.interceptors.request.use`).
+The frontend uses `withCredentials: true` on all Axios requests so the browser includes
+the cookie automatically. No `Authorization` header or `localStorage` is involved.
 
-### Why This Works (and When It Stops Working)
+### Why This Works
+
+`SameSite=Strict` is the active CSRF mitigation. A malicious page on a different origin
+cannot trigger a state-changing request that carries the session cookie because the
+browser refuses to attach `SameSite=Strict` cookies to cross-origin requests.
 
 | Condition | CSRF risk |
 |---|---|
-| Token in `localStorage`, sent via `Authorization` header (current state) | Low — cross-origin requests cannot set the header |
-| Token in a regular (non-HttpOnly) cookie, sent automatically by browser | High — browser sends cookies cross-origin regardless of SOP |
-| Token in an HttpOnly cookie | High — same as above; JS cannot read it but the browser still attaches it |
+| `SameSite=Strict` HttpOnly cookie (current state) | Low — browser blocks cross-site cookie attachment |
+| `SameSite=Lax` cookie | Low for non-idempotent requests; moderate for top-level GET navigations |
+| No `SameSite` / `SameSite=None` cookie | High — browser sends cookies cross-origin |
+| Token in `localStorage`, sent via `Authorization` header | Low — cross-origin scripts cannot set custom headers |
 
-### Migration Warning
+### Relevant Files
 
-**If token storage is ever migrated to HttpOnly cookies**, the Bearer-header defense
-no longer applies and CSRF becomes a genuine risk. Before or at the same time as that
-migration, one of the following mitigations MUST be added:
-
-1. **Synchronizer Token Pattern** — include a CSRF token in a non-cookie header (e.g.,
-   `X-CSRF-Token`) and validate it server-side.
-2. **Double-Submit Cookie** — set a separate CSRF cookie that is also sent as a request
-   header; the server verifies both values match.
-3. **SameSite cookie attribute** — set the session cookie with `SameSite=Strict` or
-   `SameSite=Lax` to prevent cross-site submission (effective in modern browsers;
-   verify support for your target browser matrix before relying on this alone).
-
-The relevant files that must be updated during such a migration are:
-
-- `frontend/src/api/client.ts` — Axios interceptor that attaches the token
+- `backend/src/app/routers/auth.py` — sets and clears the `access_token` cookie
+- `frontend/src/api/client.ts` — Axios instance with `withCredentials: true`
 - `frontend/src/api/auth.ts` — authentication API calls
-- `frontend/src/api/urls.ts` — URL management API calls
-- Backend authentication middleware / route guards
 
 ---
 
