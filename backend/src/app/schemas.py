@@ -18,8 +18,8 @@ def validate_no_ssrf(url: str) -> None:
         return
     try:
         addr = ipaddress.ip_address(socket.gethostbyname(host))
-    except OSError:
-        return
+    except OSError as e:
+        raise ValueError(f"Could not resolve hostname for SSRF check: {e}")
     if addr.is_private:
         raise ValueError("URL points to a private address")
     if addr.is_loopback:
