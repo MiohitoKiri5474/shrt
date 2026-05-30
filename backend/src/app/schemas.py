@@ -26,7 +26,7 @@ def validate_no_ssrf(url: str) -> None:
     try:
         results = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
     except OSError as e:
-        raise SSRFDNSError(f"Could not resolve hostname for SSRF check: {e}")
+        raise SSRFDNSError("URL destination temporarily unreachable")
     for (_, _, _, _, sockaddr) in results:
         addr = ipaddress.ip_address(sockaddr[0])
         if (
