@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from app.schemas import SSRFDNSError, URLCreate, validate_no_ssrf
+from app.schemas import SSRFDNSError, validate_no_ssrf
 
 
 def _addr(ip: str):
@@ -70,21 +70,28 @@ class TestValidateNoSsrf:
 
 
 # ---------------------------------------------------------------------------
-# URLCreate.block_private_hosts — ensure DNS errors return generic message
+# Router-layer behaviour — validate_no_ssrf called by create_url via executor
 # ---------------------------------------------------------------------------
 
-class TestURLCreateBlockPrivateHosts:
-    def test_dns_error_generic_message(self):
-        """SSRFDNSError must surface as a generic 422 message, not OS error details."""
+class TestRouterSSRFBehaviour:
+    def test_dns_error_raises_ssrf_dns_error_not_plain_value_error(self):
+        """DNS errors must raise SSRFDNSError (not plain ValueError) so the router
+        can return 503 instead of leaking OS errno in a 422 detail string."""
         with patch("socket.getaddrinfo", side_effect=OSError("[Errno -2] Name or service not known")):
-            with pytest.raises(Exception) as exc_info:
-                URLCreate(original_url="http://nonexistent.invalid/")
-            # Pydantic wraps as ValidationError; detail must NOT expose OS errno
-            assert "[Errno" not in str(exc_info.value)
-            assert "temporarily unreachable" in str(exc_info.value)
+            with pytest.raises(SSRFDNSError) as exc_info:
+                validate_no_ssrf("http://nonexistent.invalid/")
+            assert isinstance(exc_info.value, SSRFDNSError)
 
-    def test_private_ip_validation_error(self):
+    def test_dns_error_is_ssrf_dns_error_subclass(self):
+        """SSRFDNSError must be a ValueError subclass so existing ValueError handlers
+        catch it as a fallback, but the router catches SSRFDNSError first."""
+        assert issubclass(SSRFDNSError, ValueError)
+
+    def test_private_ip_raises_value_error_not_ssrf_dns_error(self):
+        """Blocked addresses must raise plain ValueError (not SSRFDNSError)
+        so the router returns 422 with structured detail, not 503."""
         with patch("socket.getaddrinfo", return_value=[_addr("192.168.1.1")]):
-            with pytest.raises(Exception) as exc_info:
-                URLCreate(original_url="http://internal.example.com/")
+            with pytest.raises(ValueError) as exc_info:
+                validate_no_ssrf("http://internal.example.com/")
+            assert type(exc_info.value) is ValueError
             assert "blocked address" in str(exc_info.value)
