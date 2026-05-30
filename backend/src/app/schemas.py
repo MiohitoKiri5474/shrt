@@ -9,6 +9,7 @@ def validate_no_ssrf(url: str) -> None:
     """Resolve hostname and block private/internal/reserved/multicast targets.
 
     Call at both URL-creation time and redirect-serve time to prevent DNS rebinding.
+    Uses getaddrinfo to check all resolved IPs, preventing multi-A-record SSRF bypass.
     """
     try:
         host = urlparse(url).hostname
@@ -17,19 +18,19 @@ def validate_no_ssrf(url: str) -> None:
     if not host:
         return
     try:
-        addr = ipaddress.ip_address(socket.gethostbyname(host))
+        results = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
     except OSError as e:
         raise ValueError(f"Could not resolve hostname for SSRF check: {e}")
-    if addr.is_private:
-        raise ValueError("URL points to a private address")
-    if addr.is_loopback:
-        raise ValueError("URL points to a loopback address")
-    if addr.is_link_local:
-        raise ValueError("URL points to a link-local address")
-    if addr.is_reserved:
-        raise ValueError("URL points to a reserved address")
-    if addr.is_multicast:
-        raise ValueError("URL points to a multicast address")
+    for (_, _, _, _, sockaddr) in results:
+        addr = ipaddress.ip_address(sockaddr[0])
+        if (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_reserved
+            or addr.is_multicast
+        ):
+            raise ValueError(f"URL resolves to a blocked address: {addr}")
 
 
 class UserCreate(BaseModel):
