@@ -58,11 +58,6 @@ class URLCreate(BaseModel):
     original_url: AnyHttpUrl
     custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
 
-    @field_validator("original_url")
-    @classmethod
-    def block_private_hosts(cls, v: AnyHttpUrl) -> AnyHttpUrl:
-        validate_no_ssrf(str(v))
-        return v
 
 class URLOut(BaseModel):
     id: int

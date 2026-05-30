@@ -1,9 +1,10 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
 from app.models import URL, Click, User
-from app.schemas import URLCreate, URLOut, StatsOut
+from app.schemas import URLCreate, URLOut, StatsOut, validate_no_ssrf
 from app.services.auth import get_unique_short_code
 from app.routers.auth import get_current_user
 from app.rate_limiter import limiter
@@ -18,6 +19,11 @@ async def create_url(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    loop = asyncio.get_running_loop()
+    try:
+        await loop.run_in_executor(None, validate_no_ssrf, str(data.original_url))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     if data.custom_code:
         result = await db.execute(select(URL).where(URL.short_code == data.custom_code))
         if result.scalar_one_or_none():
