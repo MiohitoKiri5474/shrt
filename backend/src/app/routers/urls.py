@@ -53,15 +53,17 @@ async def list_urls(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(
-        select(URL).where(URL.user_id == current_user.id).order_by(URL.created_at.desc())
+    rows = await db.execute(
+        select(URL, func.count(Click.id).label("click_count"))
+        .outerjoin(Click, Click.url_id == URL.id)
+        .where(URL.user_id == current_user.id)
+        .group_by(URL.id)
+        .order_by(URL.created_at.desc())
     )
-    urls = result.scalars().all()
     out = []
-    for url in urls:
-        count = await db.scalar(select(func.count()).where(Click.url_id == url.id))
+    for url, click_count in rows:
         item = URLOut.model_validate(url)
-        item.click_count = count or 0
+        item.click_count = click_count or 0
         out.append(item)
     return out
 

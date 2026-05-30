@@ -10,8 +10,15 @@ export function mapErrorToMessage(
   error: unknown,
   overrides: Record<number, string> = {},
 ): string {
+  const resp =
+    typeof error === 'object' && error !== null && 'response' in error
+      ? (error as { response?: unknown }).response
+      : undefined
   const status: number | undefined =
-    (error as any)?.response?.status
+    typeof resp === 'object' && resp !== null && 'status' in resp &&
+    typeof (resp as { status?: unknown }).status === 'number'
+      ? (resp as { status: number }).status
+      : undefined
 
   if (status !== undefined && Object.prototype.hasOwnProperty.call(overrides, status)) {
     return overrides[status]!
