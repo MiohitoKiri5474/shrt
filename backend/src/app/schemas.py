@@ -5,11 +5,17 @@ import socket
 from urllib.parse import urlparse
 
 
+class SSRFDNSError(ValueError):
+    """DNS resolution failed during SSRF check — transient, not a client error."""
+
+
 def validate_no_ssrf(url: str) -> None:
     """Resolve hostname and block private/internal/reserved/multicast targets.
 
     Call at both URL-creation time and redirect-serve time to prevent DNS rebinding.
     Uses getaddrinfo to check all resolved IPs, preventing multi-A-record SSRF bypass.
+
+    Raises SSRFDNSError for transient DNS failures, ValueError for blocked addresses.
     """
     try:
         host = urlparse(url).hostname
@@ -20,7 +26,7 @@ def validate_no_ssrf(url: str) -> None:
     try:
         results = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
     except OSError as e:
-        raise ValueError(f"Could not resolve hostname for SSRF check: {e}")
+        raise SSRFDNSError(f"Could not resolve hostname for SSRF check: {e}")
     for (_, _, _, _, sockaddr) in results:
         addr = ipaddress.ip_address(sockaddr[0])
         if (

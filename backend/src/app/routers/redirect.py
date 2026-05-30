@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models import URL, Click
 from app.utils import anonymize_ip
 from app.rate_limiter import limiter
-from app.schemas import validate_no_ssrf
+from app.schemas import SSRFDNSError, validate_no_ssrf
 
 router = APIRouter()
 
@@ -26,6 +26,8 @@ async def redirect(
     loop = asyncio.get_running_loop()
     try:
         await loop.run_in_executor(None, validate_no_ssrf, str(url.original_url))
+    except SSRFDNSError:
+        raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except ValueError:
         raise HTTPException(status_code=400, detail="URL destination is no longer valid")
     raw_ip = request.client.host if request.client else None
