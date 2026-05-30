@@ -1,7 +1,7 @@
 FROM node:24-alpine AS builder
 WORKDIR /app
 COPY package.json bun.lock* ./
-RUN npm install --frozen-lockfile 2>&1 || npm install
+RUN npm install --frozen-lockfile
 COPY . .
 RUN npm run build
 

@@ -1,23 +1,59 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { URLOut } from '../api/urls'
 
 const props = defineProps<{ url: URLOut; baseUrl: string }>()
 const emit = defineEmits<{ delete: [id: number]; stats: [id: number] }>()
+const copied = ref(false)
+const copyError = ref(false)
 
-function copyShortUrl() {
-  navigator.clipboard.writeText(`${props.baseUrl}/${props.url.short_code}`)
+async function copyShortUrl() {
+  copyError.value = false
+  const text = `${props.baseUrl}/${props.url.short_code}`
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.style.cssText = 'position:fixed;opacity:0'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 1500)
+  } catch {
+    copyError.value = true
+    setTimeout(() => { copyError.value = false }, 1500)
+  }
 }
+
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
 </script>
 
 <template>
   <div class="url-card" :data-testid="`url-card-${url.id}`">
     <div class="url-info">
-      <a :href="url.original_url" target="_blank" rel="noopener noreferrer" class="original">
+      <a v-if="isSafeUrl(url.original_url)" :href="url.original_url" target="_blank" rel="noopener noreferrer" class="original">
         {{ url.original_url }}
       </a>
+      <span v-else class="original url-invalid" title="Invalid URL — unsafe protocol">
+        {{ url.original_url }}
+        <span class="url-invalid__badge" aria-label="Invalid URL">Invalid URL</span>
+      </span>
       <div class="short">
         <code>{{ baseUrl }}/{{ url.short_code }}</code>
-        <button class="btn-copy" @click="copyShortUrl">Copy</button>
+        <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
       </div>
       <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>
     </div>
@@ -121,5 +157,38 @@ code {
 
 .btn-copy:hover {
   background: var(--color-border);
+}
+
+.btn-copy--error {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.btn-stats:focus-visible,
+.btn-delete:focus-visible,
+.btn-copy:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.url-invalid {
+  text-decoration: line-through;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.url-invalid__badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-error, #c0392b);
+  border: 1px solid var(--color-error, #c0392b);
+  border-radius: 3px;
+  vertical-align: middle;
+  opacity: 1;
 }
 </style>

@@ -1,23 +1,62 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
+import ipaddress
+import socket
+from urllib.parse import urlparse
+
+
+def validate_no_ssrf(url: str) -> None:
+    """Resolve hostname and block private/internal/reserved/multicast targets.
+
+    Call at both URL-creation time and redirect-serve time to prevent DNS rebinding.
+    """
+    try:
+        host = urlparse(url).hostname
+    except Exception:
+        return
+    if not host:
+        return
+    try:
+        addr = ipaddress.ip_address(socket.gethostbyname(host))
+    except OSError as e:
+        raise ValueError(f"Could not resolve hostname for SSRF check: {e}")
+    if addr.is_private:
+        raise ValueError("URL points to a private address")
+    if addr.is_loopback:
+        raise ValueError("URL points to a loopback address")
+    if addr.is_link_local:
+        raise ValueError("URL points to a link-local address")
+    if addr.is_reserved:
+        raise ValueError("URL points to a reserved address")
+    if addr.is_multicast:
+        raise ValueError("URL points to a multicast address")
+
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
 
+    @field_validator("password")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 12:
+            raise ValueError("Password must be at least 12 characters")
+        if len(v) > 128:
+            raise ValueError("Password must be at most 128 characters")
+        return v
+
 class UserOut(BaseModel):
-    id: int
     email: str
     created_at: datetime
     model_config = {"from_attributes": True}
 
 class Token(BaseModel):
-    access_token: str
     token_type: str = "bearer"
 
 class URLCreate(BaseModel):
-    original_url: str
-    custom_code: str | None = None
+    original_url: AnyHttpUrl
+    custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+
 
 class URLOut(BaseModel):
     id: int

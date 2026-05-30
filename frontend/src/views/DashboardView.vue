@@ -1,20 +1,39 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useURLsStore } from '../stores/urls'
 import { useThemeStore } from '../stores/theme'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
+import AddUserForm from '../components/AddUserForm.vue'
 import type { StatsOut } from '../api/urls'
+const BASE_URL = window.location.origin
 
 const authStore = useAuthStore()
 const urlsStore = useURLsStore()
 const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const deleteError = ref('')
+const loadError = ref('')
+const showAddUser = ref(false)
+const pendingDeleteId = ref<number | null>(null)
+const dialogRef = ref<HTMLDialogElement | null>(null)
 
-onMounted(() => urlsStore.fetchAll())
+onMounted(() => {
+  loadError.value = ''
+  urlsStore.fetchAll().catch(() => {
+    loadError.value = 'Failed to load URLs. Please refresh.'
+  })
+})
+
+watch(pendingDeleteId, (id) => {
+  if (id !== null) {
+    nextTick(() => dialogRef.value?.showModal())
+  } else {
+    dialogRef.value?.close()
+  }
+})
 
 async function handleStats(id: number) {
   statsError.value = ''
@@ -26,10 +45,25 @@ async function handleStats(id: number) {
   }
 }
 
-async function handleDelete(id: number) {
-  if (!confirm('Delete this URL?')) return
-  await urlsStore.remove(id)
-  if (selectedStats.value?.url_id === id) selectedStats.value = null
+function handleDelete(id: number) {
+  pendingDeleteId.value = id
+}
+
+async function confirmDelete() {
+  if (pendingDeleteId.value === null) return
+  const id = pendingDeleteId.value
+  pendingDeleteId.value = null
+  deleteError.value = ''
+  try {
+    await urlsStore.remove(id)
+    if (selectedStats.value?.url_id === id) selectedStats.value = null
+  } catch {
+    deleteError.value = 'Failed to delete URL. Please try again.'
+  }
+}
+
+function cancelDelete() {
+  pendingDeleteId.value = null
 }
 </script>
 
@@ -39,6 +73,7 @@ async function handleDelete(id: number) {
       <h1>URL Shortener</h1>
       <nav class="dash-nav">
         <span class="user-email">{{ authStore.user?.email }}</span>
+        <button class="btn-add-user" @click="showAddUser = true">Add User</button>
         <button
           class="theme-toggle"
           :aria-label="themeStore.isDark ? '昼モードに切り替え' : '夜モードに切り替え'"
@@ -77,8 +112,29 @@ async function handleDelete(id: number) {
         </table>
         <button @click="selectedStats = null">Close</button>
       </aside>
+      <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
       <p v-if="statsError" class="error">{{ statsError }}</p>
+      <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
     </main>
+
+    <AddUserForm v-if="showAddUser" @close="showAddUser = false" />
+
+    <dialog
+      ref="dialogRef"
+      class="confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-title"
+      aria-describedby="confirm-desc"
+      @close="cancelDelete"
+    >
+      <h3 id="confirm-title">Delete URL</h3>
+      <p id="confirm-desc">Are you sure you want to delete this short URL? This cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" autofocus @click="cancelDelete">Cancel</button>
+        <button class="btn-confirm-delete" @click="confirmDelete">Delete</button>
+      </div>
+    </dialog>
   </div>
 </template>
 
@@ -139,6 +195,21 @@ async function handleDelete(id: number) {
   transform: rotate(15deg);
 }
 
+.btn-add-user {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-add-user:hover {
+  background: var(--color-border);
+}
+
 .btn-signout {
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--color-border-hover);
@@ -152,6 +223,13 @@ async function handleDelete(id: number) {
 
 .btn-signout:hover {
   background: var(--color-border);
+}
+
+.theme-toggle:focus-visible,
+.btn-add-user:focus-visible,
+.btn-signout:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .dash-content {
@@ -191,5 +269,65 @@ async function handleDelete(id: number) {
 
 .error {
   color: var(--color-error);
+}
+
+.confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  z-index: 200;
+}
+
+.confirm-dialog h3 {
+  margin: 0 0 0.5rem;
+  color: var(--color-heading);
+}
+
+.confirm-dialog p {
+  margin: 0 0 1.25rem;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-cancel {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+  background: var(--color-border);
+}
+
+.btn-confirm-delete {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-error);
+  background: var(--color-error);
+  color: var(--color-background);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-confirm-delete:hover {
+  opacity: 0.85;
 }
 </style>

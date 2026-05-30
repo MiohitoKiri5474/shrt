@@ -10,13 +10,35 @@ const loading = ref(false)
 
 async function handleCreate() {
   error.value = ''
+  if (originalUrl.value && !/^https?:\/\//i.test(originalUrl.value)) {
+    originalUrl.value = 'https://' + originalUrl.value
+  }
+  try {
+    const parsed = new URL(originalUrl.value)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      error.value = 'Only http and https URLs are allowed.'
+      return
+    }
+  } catch {
+    error.value = 'Please enter a valid URL.'
+    return
+  }
+  if (customCode.value && !/^[A-Za-z0-9_-]{3,16}$/.test(customCode.value)) {
+    error.value = 'Custom code must be 3–16 characters and contain only letters, digits, hyphens, or underscores.'
+    return
+  }
   loading.value = true
   try {
     await urlsStore.create(originalUrl.value, customCode.value || undefined)
     originalUrl.value = ''
     customCode.value = ''
-  } catch (e: any) {
-    error.value = e.response?.data?.detail || 'Failed to create URL'
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 409) {
+      error.value = 'Short code already taken.'
+    } else {
+      error.value = 'Failed to create URL.'
+    }
   } finally {
     loading.value = false
   }
@@ -28,11 +50,11 @@ async function handleCreate() {
     <h2>Shorten a URL</h2>
     <div class="field">
       <label for="original-url">Original URL</label>
-      <input id="original-url" v-model="originalUrl" type="url" placeholder="https://example.com" required />
+      <input id="original-url" v-model="originalUrl" type="text" placeholder="https://example.com" required />
     </div>
     <div class="field">
       <label for="custom-code">Custom code (optional)</label>
-      <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" />
+      <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" minlength="3" maxlength="16" pattern="[A-Za-z0-9_-]{3,16}" />
     </div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create short URL' }}</button>
@@ -95,6 +117,11 @@ button {
 
 button:hover:not(:disabled) {
   opacity: 0.88;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 button:disabled {
