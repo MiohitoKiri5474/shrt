@@ -23,7 +23,10 @@ async def create_url(
     try:
         await loop.run_in_executor(None, validate_no_ssrf, str(data.original_url))
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(
+            status_code=422,
+            detail=[{"loc": ["body", "original_url"], "msg": str(e), "type": "value_error"}],
+        )
     if data.custom_code:
         result = await db.execute(select(URL).where(URL.short_code == data.custom_code))
         if result.scalar_one_or_none():
