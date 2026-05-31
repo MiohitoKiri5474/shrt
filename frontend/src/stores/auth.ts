@@ -12,15 +12,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    await authApi.logout()
-    user.value = null
+    try {
+      await authApi.logout()
+    } finally {
+      user.value = null
+    }
   }
 
   async function restore() {
     try {
       user.value = await authApi.me()
     } catch {
-      logout()
+      await logout()
     }
   }
 
