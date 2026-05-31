@@ -15,13 +15,24 @@ async def create_tables():  # pragma: no cover
 
 
 async def _migrate_schema(conn) -> None:  # pragma: no cover
-    # SQLite-safe column additions — ALTER TABLE is idempotent via PRAGMA check.
-    result = await conn.execute(text("PRAGMA table_info(users)"))
-    existing = {row[1] for row in result.fetchall()}
-    if "is_admin" not in existing:
-        await conn.execute(
-            text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
+    if engine.dialect.name == "sqlite":
+        result = await conn.execute(text("PRAGMA table_info(users)"))
+        existing = {row[1] for row in result.fetchall()}
+        if "is_admin" not in existing:
+            await conn.execute(
+                text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
+            )
+    else:
+        result = await conn.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'users' AND column_name = 'is_admin'"
+            )
         )
+        if not result.fetchone():
+            await conn.execute(
+                text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE")
+            )
 
 
 async def get_db():  # pragma: no cover

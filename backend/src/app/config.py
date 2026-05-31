@@ -2,6 +2,8 @@ import os
 from typing import Final
 
 SECRET_KEY = os.environ["SECRET_KEY"]  # KeyError if missing — intentional
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY must not be empty")
 ALGORITHM: Final = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 DATABASE_URL: str = os.environ["DATABASE_URL"]

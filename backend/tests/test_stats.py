@@ -28,31 +28,28 @@ async def client():
 @pytest.fixture
 async def url_with_clicks(client):
     await client.post("/api/auth/register", json={"email": "s@b.com", "password": "pass12345678"})
-    login = await client.post("/api/auth/login", data={"username": "s@b.com", "password": "pass12345678"})
-    token = login.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    create = await client.post("/api/urls", json={"original_url": "https://stats.com"}, headers=headers)
+    await client.post("/api/auth/login", data={"username": "s@b.com", "password": "pass12345678"})
+    create = await client.post("/api/urls", json={"original_url": "https://stats.com"})
     url_data = create.json()
     await client.get(f"/{url_data['short_code']}", follow_redirects=False)
     await client.get(f"/{url_data['short_code']}", follow_redirects=False)
-    return url_data["id"], headers
+    return url_data["id"]
 
 async def test_stats_total_clicks(client, url_with_clicks):
-    url_id, headers = url_with_clicks
-    resp = await client.get(f"/api/urls/{url_id}/stats", headers=headers)
+    url_id = url_with_clicks
+    resp = await client.get(f"/api/urls/{url_id}/stats")
     assert resp.status_code == 200
     assert resp.json()["total_clicks"] == 2
 
 async def test_stats_by_date(client, url_with_clicks):
-    url_id, headers = url_with_clicks
-    resp = await client.get(f"/api/urls/{url_id}/stats", headers=headers)
+    url_id = url_with_clicks
+    resp = await client.get(f"/api/urls/{url_id}/stats")
     data = resp.json()
     assert len(data["clicks_by_date"]) >= 1
 
 async def test_stats_forbidden_for_non_owner(client, url_with_clicks):
-    url_id, _ = url_with_clicks
+    url_id = url_with_clicks
     await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
-    login = await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
-    other_token = login.json()["access_token"]
-    resp = await client.get(f"/api/urls/{url_id}/stats", headers={"Authorization": f"Bearer {other_token}"})
-    assert resp.status_code == 403
+    await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
+    resp = await client.get(f"/api/urls/{url_id}/stats")
+    assert resp.status_code == 404
