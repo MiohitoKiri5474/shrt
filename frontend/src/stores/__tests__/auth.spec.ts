@@ -8,6 +8,7 @@ vi.mock('../../api/auth', () => ({
     login: vi.fn(),
     me: vi.fn(),
     register: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -27,10 +28,10 @@ describe('auth store', () => {
     expect(store.isAuthenticated).toBe(true)
   })
 
-  it('logout clears user', () => {
+  it('logout clears user', async () => {
     const store = useAuthStore()
     store.$patch({ user: { email: 'a@b.com', created_at: '' } })
-    store.logout()
+    await store.logout()
     expect(store.user).toBeNull()
     expect(store.isAuthenticated).toBe(false)
   })

@@ -42,4 +42,7 @@ export const authApi = {
     const { data } = await apiClient.post<UserOut>('/api/auth/users', { email, password })
     return data
   },
+  async logout(): Promise<void> {
+    await apiClient.post('/api/auth/logout')
+  },
 }
