@@ -47,9 +47,10 @@ async def test_stats_by_date(client, url_with_clicks):
     data = resp.json()
     assert len(data["clicks_by_date"]) >= 1
 
-async def test_stats_forbidden_for_non_owner(client, url_with_clicks):
+async def test_stats_forbidden_for_non_owner(url_with_clicks):
     url_id = url_with_clicks
-    await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
-    await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
-    resp = await client.get(f"/api/urls/{url_id}/stats")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as other_client:
+        await other_client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
+        await other_client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
+        resp = await other_client.get(f"/api/urls/{url_id}/stats")
     assert resp.status_code == 404

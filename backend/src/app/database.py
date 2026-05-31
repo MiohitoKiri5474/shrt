@@ -26,7 +26,8 @@ async def _migrate_schema(conn) -> None:  # pragma: no cover
         result = await conn.execute(
             text(
                 "SELECT column_name FROM information_schema.columns "
-                "WHERE table_name = 'users' AND column_name = 'is_admin'"
+                "WHERE table_name = 'users' AND column_name = 'is_admin' "
+                "AND table_schema = 'public'"
             )
         )
         if not result.fetchone():

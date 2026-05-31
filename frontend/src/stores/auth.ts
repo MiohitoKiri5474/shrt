@@ -15,6 +15,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authApi.logout()
     } finally {
+      // Always clear local state even if the backend call fails,
+      // so the UI never shows a stale authenticated session.
       user.value = null
     }
   }
