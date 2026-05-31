@@ -24,6 +24,8 @@ coverage/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 
 # Docker
 .dockerignore
@@ -34,3 +36,4 @@ coverage/
 *.swp
 
 worktree/
+worktrees/

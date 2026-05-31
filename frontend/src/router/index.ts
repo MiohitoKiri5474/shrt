@@ -5,7 +5,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', redirect: '/dashboard' },
-    { path: '/login', component: () => import('../views/LoginView.vue') },
+    { path: '/login', name: 'login', component: () => import('../views/LoginView.vue') },
     {
       path: '/dashboard',
       component: () => import('../views/DashboardView.vue'),
@@ -16,7 +16,7 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
-  if (!auth.isAuthenticated) {
+  if (!auth.isAuthenticated && to.name !== 'login') {
     await auth.restore()
   }
   if (to.meta.requiresAuth && !auth.isAuthenticated) {

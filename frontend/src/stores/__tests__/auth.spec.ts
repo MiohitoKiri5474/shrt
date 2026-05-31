@@ -8,6 +8,7 @@ vi.mock('../../api/auth', () => ({
     login: vi.fn(),
     me: vi.fn(),
     register: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -18,22 +19,19 @@ describe('auth store', () => {
     vi.clearAllMocks()
   })
 
-  it('login stores token and sets user', async () => {
-    vi.mocked(authApiModule.authApi.login).mockResolvedValue({ access_token: 'tok123', token_type: 'bearer' })
-    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ id: 1, email: 'a@b.com', created_at: '' })
+  it('login calls me() and sets user', async () => {
+    vi.mocked(authApiModule.authApi.login).mockResolvedValue({ token_type: 'bearer' })
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '' })
     const store = useAuthStore()
     await store.login('a@b.com', 'pass')
-    expect(localStorage.getItem('access_token')).toBe('tok123')
     expect(store.user?.email).toBe('a@b.com')
     expect(store.isAuthenticated).toBe(true)
   })
 
-  it('logout clears token and user', () => {
+  it('logout clears user', async () => {
     const store = useAuthStore()
-    store.$patch({ user: { id: 1, email: 'a@b.com', created_at: '' } })
-    localStorage.setItem('access_token', 'tok')
-    store.logout()
-    expect(localStorage.getItem('access_token')).toBeNull()
+    store.$patch({ user: { email: 'a@b.com', created_at: '' } })
+    await store.logout()
     expect(store.user).toBeNull()
     expect(store.isAuthenticated).toBe(false)
   })
@@ -42,5 +40,21 @@ describe('auth store', () => {
     vi.mocked(authApiModule.authApi.login).mockRejectedValue(new Error('401'))
     const store = useAuthStore()
     await expect(store.login('bad@b.com', 'wrong')).rejects.toThrow()
+  })
+
+  it('restore sets user when me() succeeds', async () => {
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '' })
+    const store = useAuthStore()
+    await store.restore()
+    expect(store.user?.email).toBe('a@b.com')
+    expect(store.isAuthenticated).toBe(true)
+  })
+
+  it('restore logs out when API throws', async () => {
+    vi.mocked(authApiModule.authApi.me).mockRejectedValue(new Error('401'))
+    const store = useAuthStore()
+    await store.restore()
+    expect(store.user).toBeNull()
+    expect(store.isAuthenticated).toBe(false)
   })
 })

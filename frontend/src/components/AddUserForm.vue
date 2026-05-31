@@ -1,0 +1,266 @@
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { authApi } from '../api/auth'
+
+const emit = defineEmits<{ close: [] }>()
+
+const email = ref('')
+const password = ref('')
+const loading = ref(false)
+const error = ref('')
+const successEmail = ref('')
+const emailInput = ref<HTMLInputElement | null>(null)
+const modalEl = ref<HTMLDivElement | null>(null)
+
+let triggerEl: HTMLElement | null = null
+
+onMounted(() => {
+  triggerEl = document.activeElement as HTMLElement
+  emailInput.value?.focus()
+  document.addEventListener('keydown', trapFocus)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', trapFocus)
+  triggerEl?.focus()
+})
+
+function trapFocus(e: KeyboardEvent) {
+  if (e.key !== 'Tab' || !modalEl.value) return
+  const focusable = modalEl.value.querySelectorAll<HTMLElement>(
+    'button, input, [tabindex]:not([tabindex="-1"])'
+  )
+  if (!focusable.length) return
+  const first = focusable[0]!
+  const last = focusable[focusable.length - 1]!
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus() }
+  } else {
+    if (document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+}
+
+async function handleSubmit() {
+  error.value = ''
+  successEmail.value = ''
+  if (password.value.length < 12) {
+    error.value = 'Password must be at least 12 characters.'
+    return
+  }
+  if (password.value.length > 128) {
+    error.value = 'Password must be at most 128 characters.'
+    return
+  }
+  loading.value = true
+  try {
+    const user = await authApi.addUser(email.value, password.value)
+    successEmail.value = user.email
+    email.value = ''
+    password.value = ''
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 409) {
+      error.value = 'Email is already taken.'
+    } else {
+      error.value = 'Failed to create user.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleClose() {
+  email.value = ''
+  password.value = ''
+  error.value = ''
+  successEmail.value = ''
+  emit('close')
+}
+</script>
+
+<template>
+  <div class="modal-overlay" @click.self="handleClose">
+    <div ref="modalEl" class="modal" role="dialog" aria-modal="true" aria-labelledby="add-user-title">
+      <header class="modal-header">
+        <h2 id="add-user-title">Add User</h2>
+        <button class="close-btn" aria-label="Close" @click="handleClose">&times;</button>
+      </header>
+
+      <form class="add-user-form" @submit.prevent="handleSubmit">
+        <div class="field">
+          <label for="new-user-email">Email</label>
+          <input
+            id="new-user-email"
+            ref="emailInput"
+            v-model="email"
+            type="email"
+            placeholder="user@example.com"
+            required
+            autocomplete="email"
+          />
+        </div>
+        <div class="field">
+          <label for="new-user-password">Password</label>
+          <input
+            id="new-user-password"
+            v-model="password"
+            type="password"
+            placeholder="••••••••"
+            required
+            minlength="12"
+            maxlength="128"
+            autocomplete="new-password"
+          />
+        </div>
+
+        <p v-if="error" class="error" role="alert">{{ error }}</p>
+        <p v-if="successEmail" class="success" role="status">
+          User <strong>{{ successEmail }}</strong> created successfully.
+        </p>
+
+        <div class="actions">
+          <button type="button" class="btn-secondary" @click="handleClose">Cancel</button>
+          <button type="submit" class="btn-primary" :disabled="loading">
+            {{ loading ? 'Creating…' : 'Create User' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--color-heading);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text);
+  opacity: 0.6;
+  padding: 0.25rem;
+  transition: opacity 0.2s;
+}
+
+.close-btn:hover {
+  opacity: 1;
+}
+
+.add-user-form .field {
+  margin-bottom: 1rem;
+}
+
+.add-user-form .field label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.add-user-form .field input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 0.9375rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  transition: background 0.35s ease, border-color 0.2s, color 0.35s ease;
+}
+
+.add-user-form .field input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-color: var(--color-accent);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.success {
+  color: var(--color-success);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.btn-primary {
+  padding: 0.5rem 1.1rem;
+  background: var(--color-accent);
+  color: var(--color-background);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  transition: opacity 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1.1rem;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--color-background-mute);
+}
+</style>

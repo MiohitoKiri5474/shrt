@@ -1,53 +1,70 @@
-/* color palette from <https://github.com/vuejs/theme> */
+/*
+ * 日本の伝統色 — Traditional colors of Japan
+ * Sourced from nipponcolors.com
+ *
+ * Light palette (昼 / Day):
+ *   白磁 Hakuji    #F8ECD1  porcelain white  → background
+ *   卵色 Tamagoiro #F3DDB3  egg cream        → surface
+ *   砂色 Sunairo   #EDD9A3  sand             → muted surface
+ *   墨   Sumi      #1C1C1C  ink black        → text
+ *   紺青 Konjou    #003171  deep navy        → accent / primary
+ *
+ * Night palette (夜 / Night):
+ *   漆黒 Shikkoku  #1A1210  lacquer black    → background
+ *   墨   Sumi      #1C1C1C  ink              → surface
+ *   白磁 Hakuji    #F8ECD1  porcelain cream  → text
+ *   胡粉 Gofun     #FFFFFB  calcium white    → heading
+ *   撫子 Nadeshiko #EEA9B8  pink             → accent / primary
+ */
+
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
-
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
-
-  --vt-c-indigo: #2c3e50;
-
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
-
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  --nippon-hakuji:    #F8ECD1;
+  --nippon-tamagoiro: #F3DDB3;
+  --nippon-sunairo:   #EDD9A3;
+  --nippon-sumi:      #1C1C1C;
+  --nippon-konjou:    #003171;
+  --nippon-gofun:     #FFFFFB;
+  --nippon-shikkoku:  #1A1210;
+  --nippon-nadeshiko: #EEA9B8;
+  --nippon-nibiiro:   #727171;
 }
 
-/* semantic color variables for this project */
+/* ── Light mode (default) ── */
 :root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
+  --color-background:      var(--nippon-hakuji);
+  --color-background-soft: var(--nippon-tamagoiro);
+  --color-background-mute: var(--nippon-sunairo);
 
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
+  --color-border:          rgba(28, 28, 28, 0.12);
+  --color-border-hover:    rgba(28, 28, 28, 0.29);
 
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
+  --color-heading: var(--nippon-sumi);
+  --color-text:    var(--nippon-sumi);
+  --color-accent:  var(--nippon-konjou);
+  --color-success: #16a34a;
+  --color-error:   #b52626;
+  --color-link:    var(--nippon-konjou);
+  --color-code:    #374151;
 
   --section-gap: 160px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
+/* ── Night mode — toggled via .dark on <html> ── */
+:root.dark {
+  --color-background:      var(--nippon-shikkoku);
+  --color-background-soft: var(--nippon-sumi);
+  --color-background-mute: #242020;
 
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
+  --color-border:          rgba(248, 236, 209, 0.16);
+  --color-border-hover:    rgba(248, 236, 209, 0.32);
 
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
-  }
+  --color-heading: var(--nippon-gofun);
+  --color-text:    var(--nippon-hakuji);
+  --color-accent:  var(--nippon-nadeshiko);
+  --color-success: #4ade80;
+  --color-error:   #f87171;
+  --color-link:    #93b8e8;
+  --color-code:    var(--nippon-hakuji);
 }
 
 *,
@@ -63,8 +80,8 @@ body {
   color: var(--color-text);
   background: var(--color-background);
   transition:
-    color 0.5s,
-    background-color 0.5s;
+    color 0.35s ease,
+    background-color 0.35s ease;
   line-height: 1.6;
   font-family:
     Inter,

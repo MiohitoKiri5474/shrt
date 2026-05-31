@@ -26,43 +26,41 @@ async def client():
         yield c
 
 @pytest.fixture
-async def auth_headers(client):
-    await client.post("/api/auth/register", json={"email": "owner@b.com", "password": "pass1234"})
-    resp = await client.post("/api/auth/login", data={"username": "owner@b.com", "password": "pass1234"})
-    token = resp.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+async def auth_client(client):
+    await client.post("/api/auth/register", json={"email": "owner@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "owner@b.com", "password": "pass12345678"})
+    return client
 
-async def test_create_url(client, auth_headers):
-    resp = await client.post("/api/urls", json={"original_url": "https://example.com"}, headers=auth_headers)
+async def test_create_url(auth_client):
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://example.com"})
     assert resp.status_code == 201
     data = resp.json()
     assert data["original_url"] == "https://example.com"
     assert len(data["short_code"]) == 8
 
-async def test_list_urls(client, auth_headers):
-    await client.post("/api/urls", json={"original_url": "https://a.com"}, headers=auth_headers)
-    await client.post("/api/urls", json={"original_url": "https://b.com"}, headers=auth_headers)
-    resp = await client.get("/api/urls", headers=auth_headers)
+async def test_list_urls(auth_client):
+    await auth_client.post("/api/urls", json={"original_url": "https://a.com"})
+    await auth_client.post("/api/urls", json={"original_url": "https://b.com"})
+    resp = await auth_client.get("/api/urls")
     assert resp.status_code == 200
     assert len(resp.json()) == 2
 
-async def test_delete_url(client, auth_headers):
-    create = await client.post("/api/urls", json={"original_url": "https://del.com"}, headers=auth_headers)
+async def test_delete_url(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://del.com"})
     url_id = create.json()["id"]
-    resp = await client.delete(f"/api/urls/{url_id}", headers=auth_headers)
+    resp = await auth_client.delete(f"/api/urls/{url_id}")
     assert resp.status_code == 204
 
-async def test_delete_url_not_owner(client, auth_headers):
-    create = await client.post("/api/urls", json={"original_url": "https://priv.com"}, headers=auth_headers)
+async def test_delete_url_not_owner(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://priv.com"})
     url_id = create.json()["id"]
-    await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass1234"})
-    other_login = await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass1234"})
-    other_token = other_login.json()["access_token"]
-    resp = await client.delete(f"/api/urls/{url_id}", headers={"Authorization": f"Bearer {other_token}"})
-    assert resp.status_code == 403
+    await client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
+    resp = await client.delete(f"/api/urls/{url_id}")
+    assert resp.status_code == 404
 
-async def test_redirect(client, auth_headers):
-    create = await client.post("/api/urls", json={"original_url": "https://redirect.com"}, headers=auth_headers)
+async def test_redirect(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://redirect.com"})
     code = create.json()["short_code"]
     resp = await client.get(f"/{code}", follow_redirects=False)
     assert resp.status_code == 302
@@ -72,20 +70,20 @@ async def test_redirect_not_found(client):
     resp = await client.get("/nonexistent-short-code", follow_redirects=False)
     assert resp.status_code == 404
 
-async def test_create_url_custom_code(client, auth_headers):
-    resp = await client.post("/api/urls", json={"original_url": "https://custom.com", "custom_code": "mycode1"}, headers=auth_headers)
+async def test_create_url_custom_code(auth_client):
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://custom.com", "custom_code": "mycode1"})
     assert resp.status_code == 201
     assert resp.json()["short_code"] == "mycode1"
 
-async def test_create_url_custom_code_conflict(client, auth_headers):
-    await client.post("/api/urls", json={"original_url": "https://a.com", "custom_code": "taken123"}, headers=auth_headers)
-    resp = await client.post("/api/urls", json={"original_url": "https://b.com", "custom_code": "taken123"}, headers=auth_headers)
+async def test_create_url_custom_code_conflict(auth_client):
+    await auth_client.post("/api/urls", json={"original_url": "https://a.com", "custom_code": "taken123"})
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://b.com", "custom_code": "taken123"})
     assert resp.status_code == 409
 
-async def test_delete_url_not_found(client, auth_headers):
-    resp = await client.delete("/api/urls/99999", headers=auth_headers)
+async def test_delete_url_not_found(auth_client):
+    resp = await auth_client.delete("/api/urls/99999")
     assert resp.status_code == 404
 
-async def test_stats_not_found(client, auth_headers):
-    resp = await client.get("/api/urls/99999/stats", headers=auth_headers)
+async def test_stats_not_found(auth_client):
+    resp = await auth_client.get("/api/urls/99999/stats")
     assert resp.status_code == 404

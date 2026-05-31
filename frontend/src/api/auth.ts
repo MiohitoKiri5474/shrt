@@ -1,13 +1,24 @@
+/**
+ * CSRF Security Note
+ * ------------------
+ * Authentication tokens are stored in HttpOnly cookies set by the backend.
+ * The browser sends these cookies automatically on same-origin requests.
+ *
+ * CSRF mitigation relies on the SameSite=Strict cookie attribute
+ * set by the server. Cross-origin non-safe requests (POST, PUT, DELETE) that
+ * would carry SameSite=Strict cookies are blocked by modern browsers, preventing
+ * CSRF for state-changing endpoints.
+ *
+ * See /SECURITY.md for a broader discussion of the project's security posture.
+ */
 import { apiClient } from './client'
 
 export interface UserOut {
-  id: number
   email: string
   created_at: string
 }
 
 export interface Token {
-  access_token: string
   token_type: string
 }
 
@@ -26,5 +37,12 @@ export const authApi = {
   async me(): Promise<UserOut> {
     const { data } = await apiClient.get<UserOut>('/api/auth/me')
     return data
+  },
+  async addUser(email: string, password: string): Promise<UserOut> {
+    const { data } = await apiClient.post<UserOut>('/api/auth/users', { email, password })
+    return data
+  },
+  async logout(): Promise<void> {
+    await apiClient.post('/api/auth/logout')
   },
 }
