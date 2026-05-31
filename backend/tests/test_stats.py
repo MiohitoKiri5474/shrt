@@ -26,6 +26,11 @@ async def client():
         yield c
 
 @pytest.fixture
+async def other_client():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        yield c
+
+@pytest.fixture
 async def url_with_clicks(client):
     await client.post("/api/auth/register", json={"email": "s@b.com", "password": "pass12345678"})
     await client.post("/api/auth/login", data={"username": "s@b.com", "password": "pass12345678"})
@@ -47,10 +52,9 @@ async def test_stats_by_date(client, url_with_clicks):
     data = resp.json()
     assert len(data["clicks_by_date"]) >= 1
 
-async def test_stats_forbidden_for_non_owner(url_with_clicks):
+async def test_stats_forbidden_for_non_owner(other_client, url_with_clicks):
     url_id = url_with_clicks
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as other_client:
-        await other_client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
-        await other_client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
-        resp = await other_client.get(f"/api/urls/{url_id}/stats")
+    await other_client.post("/api/auth/register", json={"email": "other@b.com", "password": "pass12345678"})
+    await other_client.post("/api/auth/login", data={"username": "other@b.com", "password": "pass12345678"})
+    resp = await other_client.get(f"/api/urls/{url_id}/stats")
     assert resp.status_code == 404
