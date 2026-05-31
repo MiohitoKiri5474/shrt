@@ -4,9 +4,9 @@
  * Authentication tokens are stored in HttpOnly cookies set by the backend.
  * The browser sends these cookies automatically on same-origin requests.
  *
- * CSRF mitigation relies on the SameSite=Lax (or Strict) cookie attribute
+ * CSRF mitigation relies on the SameSite=Strict cookie attribute
  * set by the server. Cross-origin non-safe requests (POST, PUT, DELETE) that
- * would carry SameSite=Lax cookies are blocked by modern browsers, preventing
+ * would carry SameSite=Strict cookies are blocked by modern browsers, preventing
  * CSRF for state-changing endpoints.
  *
  * See /SECURITY.md for a broader discussion of the project's security posture.
