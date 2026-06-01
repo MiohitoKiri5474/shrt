@@ -14,8 +14,8 @@ services:
       - DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
     volumes:
       - ./backend-data:/app/data
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

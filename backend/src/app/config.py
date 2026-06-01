@@ -4,6 +4,11 @@ from typing import Final
 SECRET_KEY = os.environ["SECRET_KEY"]  # KeyError if missing — intentional
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY must not be empty")
+if len(SECRET_KEY) < 32:
+    raise ValueError(
+        "SECRET_KEY must be at least 32 characters long. "
+        "Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
 ALGORITHM: Final = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 DATABASE_URL: str = os.environ["DATABASE_URL"]
