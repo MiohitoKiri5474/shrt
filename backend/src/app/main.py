@@ -85,7 +85,7 @@ async def seed_default_user():
     password = os.getenv("DEFAULT_USER_PASSWORD")
     if not email or not password:
         return
-    if password in _WEAK_PASSWORDS:
+    if password.lower() in _WEAK_PASSWORDS:
         msg = (
             "DEFAULT_USER_PASSWORD is set to a known weak password. "
             "Update it to a strong unique value before deploying."

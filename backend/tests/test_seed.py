@@ -38,6 +38,16 @@ async def test_seed_idempotent(session_factory, monkeypatch):
         assert len(result.scalars().all()) == 1
 
 
+async def test_seed_rejects_mixed_case_weak_password(session_factory, monkeypatch):
+    monkeypatch.setenv("DEFAULT_USER_EMAIL", "seed@test.com")
+    for weak in ("Password", "ADMIN", "Changeme1234"):
+        monkeypatch.setenv("DEFAULT_USER_PASSWORD", weak)
+        with patch("app.main.AsyncSessionLocal", session_factory), \
+             patch("app.main._APP_ENV", "production"):
+            with pytest.raises(RuntimeError, match="weak password"):
+                await seed_default_user()
+
+
 async def test_seed_skips_without_env(session_factory, monkeypatch):
     monkeypatch.delenv("DEFAULT_USER_EMAIL", raising=False)
     monkeypatch.delenv("DEFAULT_USER_PASSWORD", raising=False)
