@@ -17,6 +17,11 @@ from app.routers import auth, urls, redirect
 
 logger = logging.getLogger(__name__)
 
+_WEAK_PASSWORDS = frozenset({
+    "changeme1234", "password", "admin", "changeme",
+    "123456", "test", "qwerty", "letmein",
+})
+
 _APP_ENV = os.getenv("APP_ENV", "production").lower()
 _is_dev = _APP_ENV in {"development", "dev"}
 
@@ -80,6 +85,14 @@ async def seed_default_user():
     password = os.getenv("DEFAULT_USER_PASSWORD")
     if not email or not password:
         return
+    if password.lower() in _WEAK_PASSWORDS:
+        msg = (
+            "DEFAULT_USER_PASSWORD is set to a known weak password. "
+            "Update it to a strong unique value before deploying."
+        )
+        if _APP_ENV in {"production", "prod"}:
+            raise RuntimeError(msg)
+        logger.critical(msg)
     try:
         UserCreate(email=email, password=password)
     except ValidationError:

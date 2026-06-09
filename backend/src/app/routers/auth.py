@@ -78,7 +78,10 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
     if not user:
-        verify_password("dummy", "$2b$12$" + "a" * 53)
+        # Constant-time dummy check to prevent user enumeration via timing.
+        # Pre-computed valid bcrypt hash; the cost factor matches real password hashes.
+        _DUMMY_HASH = "$2b$12$RpzQzS49HHi/fOepHrovVOmBk1bVx5BDBK/zqSvOyJpglJpw8tjA2"
+        verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -95,7 +98,13 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.delete_cookie(
+        "access_token",
+        httponly=True,
+        samesite="strict",
+        secure=_COOKIE_SECURE,
+        path="/",
+    )
     return {"message": "Logged out"}
 
 @router.get("/me", response_model=UserOut)

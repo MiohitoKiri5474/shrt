@@ -1,24 +1,17 @@
 /**
  * CSRF Security Note
  * ------------------
- * CSRF attacks are currently mitigated by this module's use of the Authorization
- * header to carry Bearer tokens (set by the Axios request interceptor in client.ts).
+ * CSRF is mitigated by the HttpOnly, SameSite=Strict cookie strategy.
  *
- * Why this works: the browser's Same-Origin Policy prevents cross-origin pages from
- * setting custom request headers such as `Authorization`. A malicious third-party site
- * therefore cannot craft a request that includes a valid Bearer token, so every
- * authenticated request arriving at the backend must have originated from JavaScript
- * running on the same origin as the frontend.
+ * The backend sets `access_token` as an HttpOnly, SameSite=Strict cookie on login.
+ * The frontend sends all requests with `withCredentials: true` (see client.ts).
+ * Because the cookie is SameSite=Strict, the browser will not attach it to any
+ * cross-origin request — a malicious page on another origin cannot trigger
+ * authenticated state-changing requests.
  *
- * IMPORTANT — Migration warning: this CSRF mitigation is tightly coupled to the current
- * token-storage strategy of keeping the access token in localStorage and sending it via
- * the Authorization header. If token storage is ever migrated to HttpOnly cookies (which
- * the browser sends automatically, including cross-origin), the Authorization-header
- * defense no longer applies and explicit CSRF protection (e.g., a CSRF token in a
- * custom header, or the SameSite=Strict/Lax cookie attribute) MUST be implemented
- * before or at the same time as that migration.
+ * No Authorization header or localStorage token is used.
  *
- * See /SECURITY.md for a broader discussion of the project's security posture.
+ * See /SECURITY.md for a full discussion of the project's security posture.
  */
 import { apiClient } from './client'
 
