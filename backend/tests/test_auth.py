@@ -52,7 +52,12 @@ async def test_register(client):
 async def test_register_duplicate(client):
     await client.post("/api/auth/register", json={"email": "dup@b.com", "password": "secret123456"})
     resp = await client.post("/api/auth/register", json={"email": "dup@b.com", "password": "other12345678"})
-    assert resp.status_code == 409
+    assert resp.status_code == 200
+
+async def test_register_when_disabled(client, monkeypatch):
+    monkeypatch.delenv("ALLOW_REGISTRATION", raising=False)
+    resp = await client.post("/api/auth/register", json={"email": "d@b.com", "password": "secret123456"})
+    assert resp.status_code == 403
 
 async def test_login_success(client):
     await client.post("/api/auth/register", json={"email": "login@b.com", "password": "pass12345678"})

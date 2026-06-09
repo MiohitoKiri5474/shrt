@@ -60,7 +60,15 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
 @router.post("/register", response_model=UserOut, status_code=201)
 @limiter.limit("5/minute")
 async def register(request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)):
-    return await _create_user(data, db)
+    if os.getenv("ALLOW_REGISTRATION", "false").lower() not in {"1", "true", "yes", "on"}:
+        raise HTTPException(status_code=403, detail="Registration is disabled.")
+    try:
+        return await _create_user(data, db)
+    except HTTPException as exc:
+        if exc.status_code == 409:
+            # Return 200 to prevent email enumeration
+            return Response(status_code=200)
+        raise
 
 @router.post("/login")
 @limiter.limit("5/minute")
