@@ -9,13 +9,22 @@ class SSRFDNSError(ValueError):
     """DNS resolution failed during SSRF check — transient, not a client error."""
 
 
+class SSRFBlockedError(ValueError):
+    """URL resolved to a blocked address. Carries blocked_addr for server-side logging
+    without leaking the IP in the public error message."""
+
+    def __init__(self, addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> None:
+        super().__init__("URL resolves to a blocked or internal address")
+        self.blocked_addr = addr
+
+
 def validate_no_ssrf(url: str) -> None:
     """Resolve hostname and block private/internal/reserved/multicast targets.
 
     Call at both URL-creation time and redirect-serve time to prevent DNS rebinding.
     Uses getaddrinfo to check all resolved IPs, preventing multi-A-record SSRF bypass.
 
-    Raises SSRFDNSError for transient DNS failures, ValueError for blocked addresses.
+    Raises SSRFDNSError for transient DNS failures, SSRFBlockedError for blocked addresses.
     """
     try:
         host = urlparse(url).hostname
@@ -36,7 +45,7 @@ def validate_no_ssrf(url: str) -> None:
             or addr.is_reserved
             or addr.is_multicast
         ):
-            raise ValueError(f"URL resolves to a blocked or internal address: {addr}")
+            raise SSRFBlockedError(addr)
 
 
 class UserCreate(BaseModel):

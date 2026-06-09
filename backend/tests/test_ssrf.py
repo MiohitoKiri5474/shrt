@@ -88,10 +88,14 @@ class TestRouterSSRFBehaviour:
         assert issubclass(SSRFDNSError, ValueError)
 
     def test_private_ip_raises_value_error_not_ssrf_dns_error(self):
-        """Blocked addresses must raise plain ValueError (not SSRFDNSError)
-        so the router returns 422 with structured detail, not 503."""
+        """Blocked addresses must raise SSRFBlockedError (a ValueError subclass, not SSRFDNSError)
+        so the router returns 422 with structured detail, not 503. The IP must be on
+        blocked_addr (not in str(e)) to avoid leaking it in the HTTP response."""
+        from app.schemas import SSRFBlockedError
         with patch("socket.getaddrinfo", return_value=[_addr("192.168.1.1")]):
-            with pytest.raises(ValueError) as exc_info:
+            with pytest.raises(SSRFBlockedError) as exc_info:
                 validate_no_ssrf("http://internal.example.com/")
-            assert type(exc_info.value) is ValueError
+            assert isinstance(exc_info.value, ValueError)
             assert "blocked" in str(exc_info.value)
+            assert "192.168.1.1" not in str(exc_info.value)
+            assert str(exc_info.value.blocked_addr) == "192.168.1.1"
