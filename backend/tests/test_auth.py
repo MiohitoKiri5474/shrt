@@ -52,7 +52,10 @@ async def test_register(client):
 async def test_register_duplicate(client):
     await client.post("/api/auth/register", json={"email": "dup@b.com", "password": "secret123456"})
     resp = await client.post("/api/auth/register", json={"email": "dup@b.com", "password": "other12345678"})
-    assert resp.status_code == 200
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["email"] == "dup@b.com"
+    assert "created_at" in body
 
 async def test_register_when_disabled(client, monkeypatch):
     monkeypatch.delenv("ALLOW_REGISTRATION", raising=False)

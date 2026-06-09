@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,8 +67,9 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
         return await _create_user(data, db)
     except HTTPException as exc:
         if exc.status_code == 409:
-            # Return 200 to prevent email enumeration
-            return Response(status_code=200)
+            # Return 201 + UserOut-shaped body — same status and shape as success,
+            # so duplicate vs new registration is indistinguishable to the caller.
+            return {"email": data.email, "created_at": datetime.now(timezone.utc)}
         raise
 
 @router.post("/login")
