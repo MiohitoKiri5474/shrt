@@ -36,7 +36,7 @@ def validate_no_ssrf(url: str) -> None:
             or addr.is_reserved
             or addr.is_multicast
         ):
-            raise ValueError("URL resolves to a blocked or internal address")
+            raise ValueError(f"URL resolves to a blocked or internal address: {addr}")
 
 
 class UserCreate(BaseModel):
