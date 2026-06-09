@@ -42,6 +42,46 @@ browser refuses to attach `SameSite=Strict` cookies to cross-origin requests.
 
 ---
 
+## JWT Token Lifecycle and Logout Invalidation
+
+### Current Behaviour
+
+Access tokens are short-lived JWTs (15-minute expiry) stored in an **HttpOnly, SameSite=Strict
+cookie**. On logout (`POST /api/auth/logout`), the backend calls `response.delete_cookie()`,
+which instructs the browser to remove the cookie. No server-side token revocation takes place.
+
+### Accepted Tradeoff
+
+This means a token that has been "logged out" of the browser remains cryptographically valid
+for up to 15 minutes. An attacker who obtained a copy of the token (e.g., via a server-side
+log leak before the HttpOnly flag was enforced) could use it within that window.
+
+We accept this tradeoff because:
+
+- The 15-minute window is short enough for the current threat model.
+- HttpOnly cookies prevent JavaScript-based token theft (XSS), which is the most common
+  credential-theft vector in web apps.
+- Implementing full revocation requires either an in-memory blacklist (lost on restart;
+  does not work across multiple processes) or a database / Redis lookup on every
+  authenticated request (latency cost, new infrastructure dependency).
+
+### Path to Full Revocation
+
+If the threat model changes (e.g., the app runs behind a load balancer with multiple
+replicas, or compliance requirements mandate immediate revocation), add:
+
+1. A `jti` (JWT ID) claim to every issued token (`uuid.uuid4()`).
+2. A `revoked_tokens` table (or Redis `SET`) keyed on `jti` with TTL equal to token expiry.
+3. A check in `get_current_user` that rejects tokens whose `jti` appears in the revoked set.
+4. On logout, insert the token's `jti` into the revoked set.
+
+### Relevant Files
+
+- `backend/src/app/services/auth.py` — `create_access_token()` and `decode_token()`
+- `backend/src/app/routers/auth.py` — `logout` endpoint
+
+---
+
 ## Password Policy
 
 Passwords are required to be between 12 and 128 characters (enforced at registration).
