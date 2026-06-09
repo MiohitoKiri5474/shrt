@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -10,6 +11,7 @@ from app.routers.auth import get_current_user
 from app.rate_limiter import limiter
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("", response_model=URLOut, status_code=201)
 @limiter.limit("20/minute")
@@ -25,6 +27,7 @@ async def create_url(
     except SSRFDNSError:
         raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except ValueError as e:
+        logger.warning("SSRF check blocked URL for user %s: %s", current_user.id, str(e))
         raise HTTPException(
             status_code=422,
             detail=[{"loc": ["body", "original_url"], "msg": str(e), "type": "value_error"}],
