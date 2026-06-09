@@ -85,7 +85,13 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.delete_cookie(
+        "access_token",
+        httponly=True,
+        samesite="strict",
+        secure=_COOKIE_SECURE,
+        path="/",
+    )
     return {"message": "Logged out"}
 
 @router.get("/me", response_model=UserOut)
