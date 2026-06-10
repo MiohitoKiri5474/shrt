@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,7 +61,17 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
 @router.post("/register", response_model=UserOut, status_code=201)
 @limiter.limit("5/minute")
 async def register(request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)):
-    return await _create_user(data, db)
+    if os.getenv("ALLOW_REGISTRATION", "false").lower() not in {"1", "true", "yes", "on"}:
+        raise HTTPException(status_code=403, detail="Registration is disabled.")
+    try:
+        return await _create_user(data, db)
+    except HTTPException as exc:
+        if exc.status_code == 409:
+            # Equalize latency so duplicate vs new registration is indistinguishable
+            # by timing (bcrypt would run on a real registration).
+            hash_password(data.password)
+            return {"email": data.email, "created_at": datetime.now(timezone.utc)}
+        raise
 
 @router.post("/login")
 @limiter.limit("5/minute")
@@ -68,7 +79,10 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
     if not user:
-        verify_password("dummy", "$2b$12$" + "a" * 53)
+        # Constant-time dummy check to prevent user enumeration via timing.
+        # Pre-computed valid bcrypt hash; the cost factor matches real password hashes.
+        _DUMMY_HASH = "$2b$12$RpzQzS49HHi/fOepHrovVOmBk1bVx5BDBK/zqSvOyJpglJpw8tjA2"
+        verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -85,7 +99,13 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.delete_cookie(
+        "access_token",
+        httponly=True,
+        samesite="strict",
+        secure=_COOKIE_SECURE,
+        path="/",
+    )
     return {"message": "Logged out"}
 
 @router.get("/me", response_model=UserOut)
