@@ -67,8 +67,9 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
         return await _create_user(data, db)
     except HTTPException as exc:
         if exc.status_code == 409:
-            # Return 201 + UserOut-shaped body — same status and shape as success,
-            # so duplicate vs new registration is indistinguishable to the caller.
+            # Equalize latency so duplicate vs new registration is indistinguishable
+            # by timing (bcrypt would run on a real registration).
+            hash_password(data.password)
             return {"email": data.email, "created_at": datetime.now(timezone.utc)}
         raise
 
