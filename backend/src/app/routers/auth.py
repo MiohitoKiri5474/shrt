@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,7 +61,17 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
 @router.post("/register", response_model=UserOut, status_code=201)
 @limiter.limit("5/minute")
 async def register(request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)):
-    return await _create_user(data, db)
+    if os.getenv("ALLOW_REGISTRATION", "false").lower() not in {"1", "true", "yes", "on"}:
+        raise HTTPException(status_code=403, detail="Registration is disabled.")
+    try:
+        return await _create_user(data, db)
+    except HTTPException as exc:
+        if exc.status_code == 409:
+            # Equalize latency so duplicate vs new registration is indistinguishable
+            # by timing (bcrypt would run on a real registration).
+            hash_password(data.password)
+            return {"email": data.email, "created_at": datetime.now(timezone.utc)}
+        raise
 
 @router.post("/login")
 @limiter.limit("5/minute")

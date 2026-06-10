@@ -10,6 +10,13 @@ os.environ.setdefault("APP_ENV", "development")
 
 
 @pytest.fixture(autouse=True)
+def enable_registration(monkeypatch):
+    """Enable /register for all tests. Tests that need it disabled can call
+    monkeypatch.delenv('ALLOW_REGISTRATION', raising=False) in the test body."""
+    monkeypatch.setenv("ALLOW_REGISTRATION", "true")
+
+
+@pytest.fixture(autouse=True)
 def reset_rate_limiter():
     """Reset in-memory rate limiter storage between tests so limits don't accumulate."""
     from app.rate_limiter import limiter
