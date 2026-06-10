@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.responses import RedirectResponse
@@ -8,7 +9,9 @@ from app.database import get_db
 from app.models import URL, Click
 from app.utils import anonymize_ip
 from app.rate_limiter import limiter
-from app.schemas import SSRFDNSError, validate_no_ssrf
+from app.schemas import SSRFBlockedError, SSRFDNSError, validate_no_ssrf
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -28,6 +31,9 @@ async def redirect(
         await loop.run_in_executor(None, validate_no_ssrf, str(url.original_url))
     except SSRFDNSError:
         raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
+    except SSRFBlockedError as e:
+        logger.warning("SSRF check blocked redirect for short_code %s: %s", short_code, e.blocked_addr)
+        raise HTTPException(status_code=400, detail="URL destination is no longer valid")
     except ValueError:
         raise HTTPException(status_code=400, detail="URL destination is no longer valid")
     raw_ip = request.client.host if request.client else None
