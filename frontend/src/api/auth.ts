@@ -16,6 +16,7 @@ import { apiClient } from './client'
 export interface UserOut {
   email: string
   created_at: string
+  is_admin: boolean
 }
 
 export interface Token {

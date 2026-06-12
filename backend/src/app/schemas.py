@@ -64,6 +64,7 @@ class UserCreate(BaseModel):
 class UserOut(BaseModel):
     email: str
     created_at: datetime
+    is_admin: bool = False
     model_config = {"from_attributes": True}
 
 class Token(BaseModel):
@@ -72,6 +73,13 @@ class Token(BaseModel):
 class URLCreate(BaseModel):
     original_url: AnyHttpUrl
     custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+
+    @field_validator("original_url")
+    @classmethod
+    def url_max_length(cls, v: AnyHttpUrl) -> AnyHttpUrl:
+        if len(str(v)) > 2048:
+            raise ValueError("URL must not exceed 2048 characters")
+        return v
 
 
 

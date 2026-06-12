@@ -73,7 +73,7 @@ function cancelDelete() {
       <h1>URL Shortener</h1>
       <nav class="dash-nav">
         <span class="user-email">{{ authStore.user?.email }}</span>
-        <button class="btn-add-user" @click="showAddUser = true">Add User</button>
+        <button v-if="authStore.user?.is_admin" class="btn-add-user" @click="showAddUser = true">Add User</button>
         <button
           class="theme-toggle"
           :aria-label="themeStore.isDark ? '昼モードに切り替え' : '夜モードに切り替え'"
