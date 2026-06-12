@@ -4,9 +4,9 @@ from typing import Final
 SECRET_KEY = os.environ["SECRET_KEY"]  # KeyError if missing — intentional
 if not SECRET_KEY:
     raise ValueError("SECRET_KEY must not be empty")
-if len(SECRET_KEY) < 32:
+if len(SECRET_KEY) < 64:
     raise ValueError(
-        "SECRET_KEY must be at least 32 characters long. "
+        "SECRET_KEY must be at least 64 characters long. "
         "Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
     )
 ALGORITHM: Final = "HS256"
