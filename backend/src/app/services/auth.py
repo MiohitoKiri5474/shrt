@@ -1,3 +1,4 @@
+import hashlib
 import secrets
 import string
 import bcrypt
@@ -10,11 +11,17 @@ from app.models import URL
 from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
+def _prehash(password: str) -> bytes:
+    # SHA-256 prehash prevents bcrypt's silent 72-byte truncation so all
+    # password bytes contribute to the hash regardless of length.
+    return hashlib.sha256(password.encode()).digest()
+
+
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+    return bcrypt.hashpw(_prehash(password), bcrypt.gensalt(rounds=12)).decode()
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
+    return bcrypt.checkpw(_prehash(plain), hashed.encode())
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
