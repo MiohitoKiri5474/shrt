@@ -22,6 +22,24 @@ async def _migrate_schema(conn) -> None:  # pragma: no cover
             await conn.execute(
                 text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
             )
+
+        # Migrate original_url column from TEXT to VARCHAR(2048) if needed
+        result = await conn.execute(text("PRAGMA table_info(urls)"))
+        urls_columns = {row[1]: row[2] for row in result.fetchall()}
+        if urls_columns.get("original_url", "").upper() == "TEXT":
+            try:
+                await conn.execute(
+                    text("ALTER TABLE urls RENAME COLUMN original_url TO original_url_old")
+                )
+                await conn.execute(
+                    text("ALTER TABLE urls ADD COLUMN original_url VARCHAR(2048)")
+                )
+                await conn.execute(
+                    text("UPDATE urls SET original_url = SUBSTR(original_url_old, 1, 2048)")
+                )
+                await conn.execute(text("ALTER TABLE urls DROP COLUMN original_url_old"))
+            except Exception:
+                pass  # column already migrated or different DB
     else:
         result = await conn.execute(
             text(
@@ -33,6 +51,23 @@ async def _migrate_schema(conn) -> None:  # pragma: no cover
         if not result.fetchone():
             await conn.execute(
                 text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE")
+            )
+
+        # Migrate original_url column from TEXT to VARCHAR(2048) if needed
+        result = await conn.execute(
+            text(
+                "SELECT data_type FROM information_schema.columns "
+                "WHERE table_name = 'urls' AND column_name = 'original_url' "
+                "AND table_schema = 'public'"
+            )
+        )
+        row = result.fetchone()
+        if row and row[0].upper() == "TEXT":
+            await conn.execute(
+                text(
+                    "ALTER TABLE urls ALTER COLUMN original_url TYPE VARCHAR(2048) "
+                    "USING SUBSTR(original_url, 1, 2048)"
+                )
             )
 
 

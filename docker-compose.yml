@@ -1,6 +1,29 @@
-version: "3.9"
-
 services:
+  redis:
+    image: redis:7-alpine
+    # Persistence disabled intentionally: rate-limit counters need not survive Redis restarts.
+    # Multi-worker consistency is achieved by all workers sharing this Redis instance.
+    command: redis-server --save "" --appendonly no --requirepass ${REDIS_PASSWORD:-changeme} --maxmemory 100mb --maxmemory-policy allkeys-lru
+    expose:
+      - "6379"
+    networks:
+      - app-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "--no-auth-warning", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
   backend:
     build:
       context: ./backend
@@ -12,10 +35,27 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost}
       - DEFAULT_USER_EMAIL=${DEFAULT_USER_EMAIL}
       - DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      - TRUSTED_PROXY_CIDRS=${TRUSTED_PROXY_CIDRS:-172.17.0.0/16}
     volumes:
-      - ./backend-data:/app/data
+      - backend-data:/app/data
     expose:
       - "8000"
+    networks:
+      - app-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -28,8 +68,30 @@ services:
       dockerfile: Dockerfile
     ports:
       - "80:80"
+    networks:
+      - app-net
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
 
 volumes:
+  # UPGRADE NOTE: Changed from bind mount (./backend-data) to named volume.
+  # Before upgrading, copy existing data:
+  #   cp -r ./backend-data/. $(docker volume inspect url-shortener-fullstack_backend-data --format '{{.Mountpoint}}')
   backend-data:
+
+networks:
+  app-net:
+    driver: bridge
