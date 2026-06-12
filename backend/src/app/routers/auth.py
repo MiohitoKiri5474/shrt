@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timezone
+import bcrypt as _bcrypt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,7 +90,18 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        # Legacy fallback: hashes created before the SHA-256 prehash scheme
+        # were produced with plain bcrypt(password). Try raw bcrypt verification;
+        # on success transparently re-hash to the current scheme.
+        try:
+            legacy_ok = _bcrypt.checkpw(form.password.encode(), user.password_hash.encode())
+        except Exception:
+            legacy_ok = False
+        if not legacy_ok:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        # Upgrade the stored hash to the new SHA-256 prehash scheme.
+        user.password_hash = hash_password(form.password)
+        await db.commit()
     token = create_access_token({"sub": str(user.id)})
     response.set_cookie(
         key="access_token",

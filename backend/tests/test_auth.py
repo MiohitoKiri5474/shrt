@@ -184,3 +184,49 @@ async def test_register_rejects_129_char_password(client):
         json={"email": "toolong@b.com", "password": pw129},
     )
     assert resp.status_code == 422
+
+
+# --- Legacy bcrypt migration path tests ---
+
+async def test_legacy_bcrypt_hash_can_login_and_rehash(client):
+    """A user with a legacy plain-bcrypt hash (no SHA-256 prehash) must be able
+    to log in; after successful login the stored hash must be upgraded to the
+    new SHA-256 prehash scheme.
+    """
+    import bcrypt as _bcrypt
+    from app.services.auth import verify_password as new_verify
+
+    password = "legacypassword123"
+
+    # Build a legacy hash: raw bcrypt without SHA-256 prehash.
+    legacy_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt(rounds=12)).decode()
+
+    # Insert the user directly with the legacy hash.
+    async with _AsyncTestSession() as session:
+        user = User(email="legacy@b.com", password_hash=legacy_hash)
+        session.add(user)
+        await session.commit()
+
+    # Login should succeed even though the stored hash is legacy-scheme.
+    resp = await client.post(
+        "/api/auth/login",
+        data={"username": "legacy@b.com", "password": password},
+    )
+    assert resp.status_code == 200, f"Expected 200, got {resp.status_code}: {resp.text}"
+
+    # After login the stored hash must have been upgraded to the new scheme.
+    async with _AsyncTestSession() as session:
+        from sqlalchemy import select as _select
+        result = await session.execute(_select(User).where(User.email == "legacy@b.com"))
+        updated_user = result.scalar_one()
+
+    # The hash must have changed (no longer the legacy one).
+    assert updated_user.password_hash != legacy_hash, (
+        "Password hash was not upgraded after legacy login"
+    )
+    # The new hash must verify correctly with the new (SHA-256 prehash) scheme.
+    assert new_verify(password, updated_user.password_hash) is True, (
+        "Upgraded hash does not verify with new scheme"
+    )
+    # The legacy hash must NOT verify with the new scheme (different inputs).
+    assert new_verify(password + "extra", updated_user.password_hash) is False
