@@ -1,6 +1,6 @@
 import logging
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.rate_limiter import limiter
@@ -49,10 +49,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
-        if not _is_dev:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+        # HSTS must be set by the TLS-terminating reverse proxy or CDN, not here.
+        # This server only handles HTTP; browsers ignore HSTS on non-HTTPS responses.
         return response
 
 
@@ -72,7 +70,8 @@ app.add_middleware(
 )
 
 @app.get("/health")
-async def health():
+@limiter.limit("30/minute")
+async def health(request: Request):
     return {"status": "ok"}
 
 @app.on_event("startup")
