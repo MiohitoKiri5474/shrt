@@ -35,4 +35,5 @@ def get_real_ip(request: Request) -> str:
     return direct_ip
 
 
-limiter = Limiter(key_func=get_real_ip)
+_redis_url = os.getenv("REDIS_URL", "memory://")
+limiter = Limiter(key_func=get_real_ip, storage_uri=_redis_url)
