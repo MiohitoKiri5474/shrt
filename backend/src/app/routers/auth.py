@@ -70,7 +70,7 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
             # Equalize latency so duplicate vs new registration is indistinguishable
             # by timing (bcrypt would run on a real registration).
             hash_password(data.password)
-            return {"email": data.email, "created_at": datetime.now(timezone.utc)}
+            return {"email": data.email, "created_at": datetime.now(timezone.utc), "is_admin": False}
         raise
 
 @router.post("/login")
