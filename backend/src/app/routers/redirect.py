@@ -28,7 +28,12 @@ async def redirect(
         raise HTTPException(status_code=404, detail="Short URL not found")
     loop = asyncio.get_running_loop()
     try:
-        await loop.run_in_executor(None, validate_no_ssrf, str(url.original_url))
+        await asyncio.wait_for(
+            loop.run_in_executor(None, validate_no_ssrf, str(url.original_url)),
+            timeout=5.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except SSRFDNSError:
         raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except SSRFBlockedError as e:
