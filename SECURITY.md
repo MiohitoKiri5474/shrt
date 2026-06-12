@@ -104,10 +104,19 @@ prevent excessively long strings from being stored in the database.
 expose two risks:
 
 1. **Enumeration** — an authenticated user can infer how many users or URLs exist by
-   observing their own ID, and can attempt to access resources by guessing adjacent IDs
-   (mitigated for most endpoints by ownership checks, but information leakage remains).
-2. **Scraping** — a crawler iterating `GET /<short_code>` or similar endpoints learns the
-   approximate row count from the highest valid ID.
+   observing their own ID returned in responses (e.g. `URLOut.id` is present in every
+   `GET /api/urls` response), and can probe adjacent integer IDs via endpoints such as
+   `DELETE /api/urls/{url_id}` and `GET /api/urls/{url_id}/stats`. Ownership checks
+   prevent unauthorised access to content, but the IDs themselves are returned directly
+   in responses — not merely inferable — so count metadata and ID space are exposed to
+   any authenticated user.
+2. **Scraping** — authenticated API endpoints expose integer PKs directly: `URLOut.id`
+   is returned in list and create responses, `StatsOut.url_id` is returned in stats
+   responses, and path parameters on `DELETE /api/urls/{url_id}` and
+   `GET /api/urls/{url_id}/stats` accept sequential integer IDs. An authenticated user
+   can infer the approximate total URL count from their own URL IDs and probe adjacent
+   IDs to confirm existence. (`GET /<short_code>` uses random alphanumeric codes and
+   does not expose integer IDs.)
 
 ### Accepted State / Planned Migration
 
@@ -119,15 +128,24 @@ Replacing integer PKs with UUIDs (or ULID/KSUID) is the correct long-term fix bu
   JWT `sub` claim currently carries the integer user ID).
 
 This is a **planned migration** and not an emergency fix. The ownership checks on
-authenticated endpoints provide the primary access-control boundary; integer PKs only
-leak count metadata, not content. The migration will be tracked separately.
+authenticated endpoints provide the primary access-control boundary and prevent
+unauthorised access to content. However, integer PKs are returned directly in API
+responses (`URLOut.id`, `StatsOut.url_id`) and accepted in path parameters, so any
+authenticated user can observe ID values and infer approximate row counts. The migration
+will be tracked separately.
 
 ### Path to UUID PKs
 
-1. Add `uuid` default to `User.id` and `URL.id` in `models.py`.
+1. Add `uuid` default to `User.id`, `URL.id`, and `Click.id` in `models.py`.
 2. Write an Alembic migration that alters PK and FK columns and backfills UUIDs.
 3. Update `get_current_user` to decode a UUID `sub` from JWT tokens.
-4. Rotate all active sessions after deployment.
+4. **Invalidate** all existing sessions after deployment — do not just rotate them.
+   Existing tokens carry an integer `sub` claim and `get_current_user` currently calls
+   `int(payload.get("sub"))`, so any token issued before the migration will be
+   incompatible. Recommended cut-over approaches: add a `token_version` claim to JWTs
+   and increment the version in the user record on migration (any token with the old
+   version is rejected), or maintain a short-lived `revoked_tokens` blacklist keyed on
+   `jti` covering the token expiry window surrounding the migration.
 
 ### Relevant Files
 
