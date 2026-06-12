@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import os
 from fastapi import Request
 from slowapi import Limiter
@@ -15,7 +16,7 @@ for _cidr in os.getenv("TRUSTED_PROXY_CIDRS", "").split(","):
         try:
             _trusted_proxy_nets.append(ipaddress.ip_network(_cidr, strict=False))
         except ValueError:
-            pass
+            logging.warning("TRUSTED_PROXY_CIDRS: invalid CIDR %r ignored", _cidr)
 
 # TRUSTED_PROXY_IPS: comma-separated individual IPs for proxies that don't fit
 # neatly into a CIDR (e.g. a fixed load-balancer VIP).
