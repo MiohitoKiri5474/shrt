@@ -7,7 +7,7 @@ if not SECRET_KEY:
 if len(SECRET_KEY) < 64:
     raise ValueError(
         "SECRET_KEY must be at least 64 characters long. "
-        "Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        "Generate a secure key with: python -c \"import secrets; print(secrets.token_hex(48))\""
     )
 ALGORITHM: Final = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
