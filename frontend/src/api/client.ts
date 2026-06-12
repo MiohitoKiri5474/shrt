@@ -21,7 +21,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       if (_router) {
-        _router.push({ name: 'login', query: { redirect: _router.currentRoute.value.fullPath } })
+        _router.push({ name: 'login' })
       } else {
         window.location.href = '/login'
       }

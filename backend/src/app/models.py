@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, String, Integer, DateTime, ForeignKey, Text
+from sqlalchemy import Boolean, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -21,7 +21,7 @@ class URL(Base):
     __tablename__ = "urls"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    original_url: Mapped[str] = mapped_column(Text, nullable=False)
+    original_url: Mapped[str] = mapped_column(String(2048), nullable=False)
     short_code: Mapped[str] = mapped_column(String(16), unique=True, index=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     user: Mapped["User"] = relationship("User", back_populates="urls")

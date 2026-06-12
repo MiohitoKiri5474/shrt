@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timezone
+import bcrypt as _bcrypt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,10 @@ from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+# Pre-computed bcrypt hash used for constant-time dummy verification.
+# Prevents timing side-channels when rejecting unknown users or over-length passwords.
+_DUMMY_HASH = "$2b$12$RpzQzS49HHi/fOepHrovVOmBk1bVx5BDBK/zqSvOyJpglJpw8tjA2"
 
 _APP_ENV = os.getenv("APP_ENV", "production").lower()
 _COOKIE_SECURE = _APP_ENV not in {"development", "dev"}
@@ -61,6 +66,8 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
 @router.post("/register", response_model=UserOut, status_code=201)
 @limiter.limit("5/minute")
 async def register(request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)):
+    if len(data.password) > 128:
+        raise HTTPException(status_code=422, detail="Password too long")
     if os.getenv("ALLOW_REGISTRATION", "false").lower() not in {"1", "true", "yes", "on"}:
         raise HTTPException(status_code=403, detail="Registration is disabled.")
     try:
@@ -70,22 +77,37 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
             # Equalize latency so duplicate vs new registration is indistinguishable
             # by timing (bcrypt would run on a real registration).
             hash_password(data.password)
-            return {"email": data.email, "created_at": datetime.now(timezone.utc)}
+            return {"email": data.email, "created_at": datetime.now(timezone.utc), "is_admin": False}
         raise
 
 @router.post("/login")
 @limiter.limit("5/minute")
 async def login(request: Request, response: Response, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    if len(form.password) > 128:
+        # Run a dummy bcrypt check to normalize response time — a bare 401 returns
+        # in microseconds while a normal failed login takes ~100ms for bcrypt,
+        # letting an attacker distinguish "too long" from "wrong password" by timing.
+        verify_password("dummy", _DUMMY_HASH)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
     if not user:
         # Constant-time dummy check to prevent user enumeration via timing.
-        # Pre-computed valid bcrypt hash; the cost factor matches real password hashes.
-        _DUMMY_HASH = "$2b$12$RpzQzS49HHi/fOepHrovVOmBk1bVx5BDBK/zqSvOyJpglJpw8tjA2"
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        # Legacy fallback: hashes created before the SHA-256 prehash scheme
+        # were produced with plain bcrypt(password). Try raw bcrypt verification;
+        # on success transparently re-hash to the current scheme.
+        try:
+            legacy_ok = _bcrypt.checkpw(form.password.encode(), user.password_hash.encode())
+        except Exception:
+            legacy_ok = False
+        if not legacy_ok:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        # Upgrade the stored hash to the new SHA-256 prehash scheme.
+        user.password_hash = hash_password(form.password)
+        await db.commit()
     token = create_access_token({"sub": str(user.id)})
     response.set_cookie(
         key="access_token",
