@@ -4,14 +4,32 @@ from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-_trusted_proxies_env = os.getenv("TRUSTED_PROXY_IPS", "")
-_trusted_proxies = {s.strip() for s in _trusted_proxies_env.split(",") if s.strip()}
+# TRUSTED_PROXY_CIDRS: comma-separated CIDR ranges for known reverse proxies.
+# Set to the Docker bridge/overlay network used by nginx (e.g. "172.16.0.0/12").
+# Trusting all private IPs is too broad; any container on the host would be
+# treated as a trusted proxy and could inject a forged X-Forwarded-For prefix.
+_trusted_proxy_nets: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+for _cidr in os.getenv("TRUSTED_PROXY_CIDRS", "").split(","):
+    _cidr = _cidr.strip()
+    if _cidr:
+        try:
+            _trusted_proxy_nets.append(ipaddress.ip_network(_cidr, strict=False))
+        except ValueError:
+            pass
+
+# TRUSTED_PROXY_IPS: comma-separated individual IPs for proxies that don't fit
+# neatly into a CIDR (e.g. a fixed load-balancer VIP).
+_trusted_proxies = {
+    s.strip()
+    for s in os.getenv("TRUSTED_PROXY_IPS", "").split(",")
+    if s.strip()
+}
 
 
 def _is_trusted_proxy(ip: str) -> bool:
     try:
         addr = ipaddress.ip_address(ip)
-        return addr.is_private or ip in _trusted_proxies
+        return any(addr in net for net in _trusted_proxy_nets) or ip in _trusted_proxies
     except ValueError:
         return False
 
@@ -19,9 +37,9 @@ def _is_trusted_proxy(ip: str) -> bool:
 def get_real_ip(request: Request) -> str:
     """Return real client IP.
 
-    Only trusts X-Forwarded-For when the direct connection is from a private
-    network or an IP listed in TRUSTED_PROXY_IPS. Prevents IP spoofing via
-    forged XFF headers bypassing per-IP rate limits (H-7).
+    Only trusts X-Forwarded-For when the direct connection originates from an
+    IP within TRUSTED_PROXY_CIDRS or TRUSTED_PROXY_IPS. Prevents IP spoofing
+    via forged XFF headers that bypass per-IP rate limits.
     """
     direct_ip = get_remote_address(request)
     if _is_trusted_proxy(direct_ip):
