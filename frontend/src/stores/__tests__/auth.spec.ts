@@ -21,7 +21,7 @@ describe('auth store', () => {
 
   it('login calls me() and sets user', async () => {
     vi.mocked(authApiModule.authApi.login).mockResolvedValue({ token_type: 'bearer' })
-    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '' })
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '', is_admin: false })
     const store = useAuthStore()
     await store.login('a@b.com', 'pass')
     expect(store.user?.email).toBe('a@b.com')
@@ -30,7 +30,7 @@ describe('auth store', () => {
 
   it('logout clears user', async () => {
     const store = useAuthStore()
-    store.$patch({ user: { email: 'a@b.com', created_at: '' } })
+    store.$patch({ user: { email: 'a@b.com', created_at: '', is_admin: false } })
     await store.logout()
     expect(store.user).toBeNull()
     expect(store.isAuthenticated).toBe(false)
@@ -43,7 +43,7 @@ describe('auth store', () => {
   })
 
   it('restore sets user when me() succeeds', async () => {
-    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '' })
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '', is_admin: false })
     const store = useAuthStore()
     await store.restore()
     expect(store.user?.email).toBe('a@b.com')
