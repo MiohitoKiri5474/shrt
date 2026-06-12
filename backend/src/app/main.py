@@ -76,6 +76,12 @@ async def health(request: Request):
 
 @app.on_event("startup")
 async def startup():  # pragma: no cover
+    if _APP_ENV not in {"development", "dev", "test", "testing"}:
+        logger.warning(
+            "HSTS is not set at the application layer. "
+            "Ensure the TLS-terminating proxy sets: "
+            "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+        )
     await create_tables()
     await seed_default_user()
 
