@@ -54,4 +54,11 @@ def get_real_ip(request: Request) -> str:
     return direct_ip
 
 
-limiter = Limiter(key_func=get_real_ip)
+_redis_url = os.getenv("REDIS_URL")
+if not _redis_url:
+    import logging
+    logging.getLogger(__name__).warning(
+        "REDIS_URL not set — using in-memory rate limiter (not suitable for production)"
+    )
+    _redis_url = "memory://"
+limiter = Limiter(key_func=get_real_ip, storage_uri=_redis_url)
