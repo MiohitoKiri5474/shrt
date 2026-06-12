@@ -17,6 +17,10 @@ from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
+# Pre-computed bcrypt hash used for constant-time dummy verification.
+# Prevents timing side-channels when rejecting unknown users or over-length passwords.
+_DUMMY_HASH = "$2b$12$RpzQzS49HHi/fOepHrovVOmBk1bVx5BDBK/zqSvOyJpglJpw8tjA2"
+
 _APP_ENV = os.getenv("APP_ENV", "production").lower()
 _COOKIE_SECURE = _APP_ENV not in {"development", "dev"}
 
@@ -80,13 +84,15 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
 @limiter.limit("5/minute")
 async def login(request: Request, response: Response, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     if len(form.password) > 128:
+        # Run a dummy bcrypt check to normalize response time — a bare 401 returns
+        # in microseconds while a normal failed login takes ~100ms for bcrypt,
+        # letting an attacker distinguish "too long" from "wrong password" by timing.
+        verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
     if not user:
         # Constant-time dummy check to prevent user enumeration via timing.
-        # Pre-computed valid bcrypt hash; the cost factor matches real password hashes.
-        _DUMMY_HASH = "$2b$12$RpzQzS49HHi/fOepHrovVOmBk1bVx5BDBK/zqSvOyJpglJpw8tjA2"
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
