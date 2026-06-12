@@ -61,6 +61,8 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
 @router.post("/register", response_model=UserOut, status_code=201)
 @limiter.limit("5/minute")
 async def register(request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)):
+    if len(data.password) > 128:
+        raise HTTPException(status_code=422, detail="Password too long")
     if os.getenv("ALLOW_REGISTRATION", "false").lower() not in {"1", "true", "yes", "on"}:
         raise HTTPException(status_code=403, detail="Registration is disabled.")
     try:

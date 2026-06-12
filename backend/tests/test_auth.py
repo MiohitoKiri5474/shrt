@@ -134,3 +134,53 @@ async def test_create_user_short_password(client, admin_token):
         cookies=admin_token,
     )
     assert resp.status_code == 422
+
+
+# --- SHA-256 prehash regression and length-guard tests ---
+
+async def test_prehash_72_vs_73_char_passwords_do_not_match():
+    """Regression guard for bcrypt's silent 72-byte truncation bug.
+
+    Before the SHA-256 prehash fix, bcrypt truncated input at byte 72, so a
+    72-char password and a 73-char password that shared the first 72 bytes
+    would hash to effectively the same value.  With prehash in place the full
+    SHA-256 digest is fed to bcrypt, so the two passwords must NOT verify
+    against each other's hash.
+    """
+    from app.services.auth import hash_password, verify_password
+
+    pw72 = "a" * 72
+    pw73 = "a" * 72 + "b"  # same first 72 bytes, one extra byte
+
+    hash72 = hash_password(pw72)
+    hash73 = hash_password(pw73)
+
+    # Each password must only verify against its own hash
+    assert verify_password(pw72, hash72) is True
+    assert verify_password(pw73, hash73) is True
+
+    # Cross-verification must fail (this is what the truncation bug broke)
+    assert verify_password(pw73, hash72) is False, (
+        "73-char password verified against 72-char hash — prehash may be missing"
+    )
+    assert verify_password(pw72, hash73) is False
+
+
+async def test_prehash_128_char_password_round_trip():
+    """A 128-char password (the maximum allowed) must hash and verify correctly."""
+    from app.services.auth import hash_password, verify_password
+
+    pw128 = "x" * 128
+    hashed = hash_password(pw128)
+    assert verify_password(pw128, hashed) is True
+    assert verify_password(pw128 + "y", hashed) is False
+
+
+async def test_register_rejects_129_char_password(client):
+    """Passwords longer than 128 characters must be rejected with 422."""
+    pw129 = "a" * 129
+    resp = await client.post(
+        "/api/auth/register",
+        json={"email": "toolong@b.com", "password": pw129},
+    )
+    assert resp.status_code == 422
