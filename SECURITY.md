@@ -96,6 +96,46 @@ prevent excessively long strings from being stored in the database.
 
 ---
 
+## Sequential Integer Primary Keys and Row-Count Leakage
+
+### Current State
+
+`User` and `URL` rows use auto-increment integer primary keys (`id: int`). Sequential IDs
+expose two risks:
+
+1. **Enumeration** — an authenticated user can infer how many users or URLs exist by
+   observing their own ID, and can attempt to access resources by guessing adjacent IDs
+   (mitigated for most endpoints by ownership checks, but information leakage remains).
+2. **Scraping** — a crawler iterating `GET /<short_code>` or similar endpoints learns the
+   approximate row count from the highest valid ID.
+
+### Accepted State / Planned Migration
+
+Replacing integer PKs with UUIDs (or ULID/KSUID) is the correct long-term fix but requires:
+
+- A database migration that changes the PK column type and regenerates all existing IDs.
+- Updates to every foreign key referencing those columns (`URL.user_id`, `Click.url_id`).
+- Coordination with any running sessions or cached tokens that embed the numeric ID (the
+  JWT `sub` claim currently carries the integer user ID).
+
+This is a **planned migration** and not an emergency fix. The ownership checks on
+authenticated endpoints provide the primary access-control boundary; integer PKs only
+leak count metadata, not content. The migration will be tracked separately.
+
+### Path to UUID PKs
+
+1. Add `uuid` default to `User.id` and `URL.id` in `models.py`.
+2. Write an Alembic migration that alters PK and FK columns and backfills UUIDs.
+3. Update `get_current_user` to decode a UUID `sub` from JWT tokens.
+4. Rotate all active sessions after deployment.
+
+### Relevant Files
+
+- `backend/src/app/models.py` — `User` and `URL` model definitions
+- `backend/src/app/routers/auth.py` — `get_current_user` decodes `sub` as int
+
+---
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability, please open a GitHub issue marked
