@@ -87,6 +87,9 @@ services:
           memory: 128M
 
 volumes:
+  # UPGRADE NOTE: Changed from bind mount (./backend-data) to named volume.
+  # Before upgrading, copy existing data:
+  #   cp -r ./backend-data/. $(docker volume inspect url-shortener-fullstack_backend-data --format '{{.Mountpoint}}')
   backend-data:
 
 networks:
