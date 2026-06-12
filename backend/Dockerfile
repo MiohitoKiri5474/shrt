@@ -10,7 +10,6 @@ RUN uv sync --frozen --no-dev
 COPY src/ ./src/
 
 ENV PYTHONPATH=/app/src
-ENV DATABASE_URL=sqlite+aiosqlite:///./data/shortener.db
 
 RUN mkdir -p /app/data
 
