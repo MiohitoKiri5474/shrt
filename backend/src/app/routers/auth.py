@@ -76,6 +76,8 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
 @router.post("/login")
 @limiter.limit("5/minute")
 async def login(request: Request, response: Response, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    if len(form.password) > 128:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     result = await db.execute(select(User).where(User.email == form.username))
     user = result.scalar_one_or_none()
     if not user:
