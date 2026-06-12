@@ -39,7 +39,7 @@ describe('auth store', () => {
   it('login throws on API error', async () => {
     vi.mocked(authApiModule.authApi.login).mockRejectedValue(new Error('401'))
     const store = useAuthStore()
-    await expect(store.login('bad@b.com', 'wrong')).rejects.toThrow()
+    await expect(store.login('bad@b.com', 'wrong')).rejects.toThrow('401')
   })
 
   it('restore sets user when me() succeeds', async () => {
