@@ -9,7 +9,8 @@ RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
 
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app/src \
+    UV_NO_CACHE=1
 
 RUN mkdir -p /app/data
 
