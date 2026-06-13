@@ -20,3 +20,10 @@ if DATABASE_URL.startswith("sqlite") and _APP_ENV not in {"development", "dev", 
         "Set DATABASE_URL to a PostgreSQL connection string, "
         "or set APP_ENV=development to allow SQLite locally."
     )
+
+_REDIS_URL = os.getenv("REDIS_URL", "")
+if _APP_ENV not in {"development", "dev", "test", "testing"} and "changeme" in _REDIS_URL:
+    raise ValueError(
+        "REDIS_URL contains the default password 'changeme'. "
+        "Set REDIS_PASSWORD to a strong value with: openssl rand -hex 32"
+    )
