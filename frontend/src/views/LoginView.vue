@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
 
-const email = ref('')
+const identifier = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
@@ -49,7 +49,7 @@ async function handleSubmit() {
   error.value = ''
   loading.value = true
   try {
-    await authStore.login(email.value, password.value)
+    await authStore.login(identifier.value, password.value)
     failureCount.value = 0
     router.push('/dashboard')
   } catch {
@@ -82,8 +82,8 @@ async function handleSubmit() {
       <h1>URL Shortener</h1>
       <form @submit.prevent="handleSubmit" data-testid="login-form">
         <div class="field">
-          <label for="email">Email</label>
-          <input id="email" v-model="email" type="email" required autocomplete="email" />
+          <label for="identifier">Email or Username</label>
+          <input id="identifier" v-model="identifier" type="text" required autocomplete="username" />
         </div>
         <div class="field">
           <label for="password">Password</label>

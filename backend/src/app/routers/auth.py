@@ -89,7 +89,11 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         # letting an attacker distinguish "too long" from "wrong password" by timing.
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    result = await db.execute(select(User).where(User.email == form.username))
+    identifier = form.username
+    if "@" in identifier:
+        result = await db.execute(select(User).where(User.email == identifier))
+    else:
+        result = await db.execute(select(User).where(User.username == identifier))
     user = result.scalar_one_or_none()
     if not user:
         # Constant-time dummy check to prevent user enumeration via timing.
