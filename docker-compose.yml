@@ -67,6 +67,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    user: nginx
     ports:
       - "80:80"
     networks:
