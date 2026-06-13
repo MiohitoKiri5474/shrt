@@ -54,6 +54,14 @@ def get_real_ip(request: Request) -> str:
     return direct_ip
 
 
+if not _trusted_proxy_nets and not _trusted_proxies:
+    logging.warning(
+        "TRUSTED_PROXY_CIDRS is empty — per-IP rate limiting disabled; "
+        "all requests will share one rate-limit bucket. "
+        "Set TRUSTED_PROXY_CIDRS to your Docker bridge subnet: "
+        "docker network inspect <project>_app-net --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'"
+    )
+
 _redis_url = os.getenv("REDIS_URL")
 if not _redis_url:
     import logging
