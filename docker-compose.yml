@@ -58,7 +58,7 @@ services:
           cpus: "1.0"
           memory: 512M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,6 +67,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    user: nginx
     ports:
       - "80:80"
     networks:
