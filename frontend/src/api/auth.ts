@@ -17,6 +17,7 @@ export interface UserOut {
   email: string
   created_at: string
   is_admin: boolean
+  username: string | null
 }
 
 export interface Token {
@@ -41,6 +42,10 @@ export const authApi = {
   },
   async addUser(email: string, password: string): Promise<UserOut> {
     const { data } = await apiClient.post<UserOut>('/api/auth/users', { email, password })
+    return data
+  },
+  async updateUsername(username: string): Promise<UserOut> {
+    const { data } = await apiClient.patch<UserOut>('/api/auth/me', { username })
     return data
   },
   async logout(): Promise<void> {
