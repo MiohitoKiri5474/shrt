@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.database import get_db
 from app.models import URL, Click
 from app.utils import anonymize_ip
-from app.rate_limiter import limiter
+from app.rate_limiter import limiter, get_real_ip
 from app.schemas import SSRFBlockedError, SSRFDNSError, validate_no_ssrf
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ async def redirect(
         raise HTTPException(status_code=400, detail="URL destination is no longer valid")
     except ValueError:
         raise HTTPException(status_code=400, detail="URL destination is no longer valid")
-    raw_ip = request.client.host if request.client else None
+    raw_ip = get_real_ip(request)
     client_ip = anonymize_ip(raw_ip)
     _ua = request.headers.get("user-agent")
     user_agent = re.sub(r'[^\x20-\x7E]', '', _ua)[:512] if _ua else None
