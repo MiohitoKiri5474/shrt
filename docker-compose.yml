@@ -3,6 +3,7 @@ services:
     image: redis:7-alpine
     # Persistence disabled intentionally: rate-limit counters need not survive Redis restarts.
     # Multi-worker consistency is achieved by all workers sharing this Redis instance.
+    user: redis
     command: redis-server --save "" --appendonly no --requirepass ${REDIS_PASSWORD:-changeme} --maxmemory 100mb --maxmemory-policy allkeys-lru
     expose:
       - "6379"
