@@ -10,7 +10,7 @@ from jwt import PyJWTError as JWTError
 from app.database import get_db
 from app.rate_limiter import limiter
 from app.models import User
-from app.schemas import UserCreate, UserOut, Token
+from app.schemas import UserCreate, UserOut, UserUpdate, Token
 from app.services.auth import hash_password, verify_password, create_access_token, decode_token
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -133,6 +133,29 @@ async def logout(response: Response):
 @router.get("/me", response_model=UserOut)
 @limiter.limit("60/minute")
 async def me(request: Request, current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.patch("/me", response_model=UserOut)
+@limiter.limit("10/minute")
+async def update_me(
+    request: Request,
+    data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Check uniqueness (exclude self)
+    result = await db.execute(
+        select(User).where(User.username == data.username, User.id != current_user.id)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Username already taken")
+    current_user.username = data.username
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Username already taken")
+    await db.refresh(current_user)
     return current_user
 
 @router.post("/users", response_model=UserOut, status_code=201)

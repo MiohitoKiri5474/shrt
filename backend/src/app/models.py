@@ -13,6 +13,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False, nullable=False)
+    username: Mapped[str | None] = mapped_column(String(50), nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     urls: Mapped[list["URL"]] = relationship("URL", back_populates="user", cascade="all, delete")
 

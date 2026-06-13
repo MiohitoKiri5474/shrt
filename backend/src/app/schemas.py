@@ -65,7 +65,11 @@ class UserOut(BaseModel):
     email: str
     created_at: datetime
     is_admin: bool
+    username: str | None = None
     model_config = {"from_attributes": True}
+
+class UserUpdate(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
 
 class Token(BaseModel):
     token_type: str = "bearer"
