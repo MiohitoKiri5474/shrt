@@ -96,7 +96,10 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         result = await db.execute(select(User).where(User.username == identifier))
     user = result.scalar_one_or_none()
     if not user:
-        # Constant-time dummy check to prevent user enumeration via timing.
+        # Three dummy bcrypt ops to match the worst-case wrong-password path:
+        # verify_password (op 1) + _bcrypt.checkpw (op 2) + dummy (op 3).
+        verify_password("dummy", _DUMMY_HASH)
+        verify_password("dummy", _DUMMY_HASH)
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
@@ -108,8 +111,8 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         except Exception:
             legacy_ok = False
         if not legacy_ok:
-            # Equalize timing: unknown-user path ran one dummy bcrypt op above;
-            # legacy-hash path ran two real bcrypt ops, so run one more dummy here.
+            # One extra dummy to reach 3 total ops:
+            # verify_password (op 1) + _bcrypt.checkpw (op 2) + this dummy (op 3).
             verify_password("dummy", _DUMMY_HASH)
             raise HTTPException(status_code=401, detail="Invalid credentials")
         # Upgrade the stored hash to the new SHA-256 prehash scheme.
