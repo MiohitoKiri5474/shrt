@@ -3,6 +3,7 @@ services:
     image: redis:7-alpine
     # Persistence disabled intentionally: rate-limit counters need not survive Redis restarts.
     # Multi-worker consistency is achieved by all workers sharing this Redis instance.
+    user: redis
     command: redis-server --save "" --appendonly no --requirepass ${REDIS_PASSWORD:-changeme} --maxmemory 100mb --maxmemory-policy allkeys-lru
     expose:
       - "6379"
@@ -57,7 +58,7 @@ services:
           cpus: "1.0"
           memory: 512M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
