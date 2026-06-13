@@ -77,7 +77,7 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
             # Equalize latency so duplicate vs new registration is indistinguishable
             # by timing (bcrypt would run on a real registration).
             hash_password(data.password)
-            return {"email": data.email, "created_at": datetime.now(timezone.utc), "is_admin": False}
+            raise HTTPException(status_code=409, detail="Email already registered")
         raise
 
 @router.post("/login")
@@ -96,7 +96,10 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         result = await db.execute(select(User).where(User.username == identifier))
     user = result.scalar_one_or_none()
     if not user:
-        # Constant-time dummy check to prevent user enumeration via timing.
+        # Three dummy bcrypt ops to match the worst-case wrong-password path:
+        # verify_password (op 1) + _bcrypt.checkpw (op 2) + dummy (op 3).
+        verify_password("dummy", _DUMMY_HASH)
+        verify_password("dummy", _DUMMY_HASH)
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
@@ -108,6 +111,9 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         except Exception:
             legacy_ok = False
         if not legacy_ok:
+            # One extra dummy to reach 3 total ops:
+            # verify_password (op 1) + _bcrypt.checkpw (op 2) + this dummy (op 3).
+            verify_password("dummy", _DUMMY_HASH)
             raise HTTPException(status_code=401, detail="Invalid credentials")
         # Upgrade the stored hash to the new SHA-256 prehash scheme.
         user.password_hash = hash_password(form.password)
