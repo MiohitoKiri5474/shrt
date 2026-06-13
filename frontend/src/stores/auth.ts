@@ -25,7 +25,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       user.value = await authApi.me()
     } catch {
-      await logout()
+      // Do not call logout() here — that would POST to /api/auth/logout and
+      // invalidate a valid session cookie (e.g. on page reload while logged in).
+      // Just clear local state so the guard redirects to /login.
+      user.value = null
     }
   }
 
