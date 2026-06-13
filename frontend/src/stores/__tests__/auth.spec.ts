@@ -9,6 +9,8 @@ vi.mock('../../api/auth', () => ({
     me: vi.fn(),
     register: vi.fn(),
     logout: vi.fn().mockResolvedValue(undefined),
+    updateUsername: vi.fn(),
+    addUser: vi.fn(),
   },
 }))
 
@@ -21,7 +23,7 @@ describe('auth store', () => {
 
   it('login calls me() and sets user', async () => {
     vi.mocked(authApiModule.authApi.login).mockResolvedValue({ token_type: 'bearer' })
-    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '', is_admin: false })
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '', is_admin: false, username: null })
     const store = useAuthStore()
     await store.login('a@b.com', 'pass')
     expect(store.user?.email).toBe('a@b.com')
@@ -30,7 +32,7 @@ describe('auth store', () => {
 
   it('logout clears user', async () => {
     const store = useAuthStore()
-    store.$patch({ user: { email: 'a@b.com', created_at: '', is_admin: false } })
+    store.$patch({ user: { email: 'a@b.com', created_at: '', is_admin: false, username: null } })
     await store.logout()
     expect(store.user).toBeNull()
     expect(store.isAuthenticated).toBe(false)
@@ -43,7 +45,7 @@ describe('auth store', () => {
   })
 
   it('restore sets user when me() succeeds', async () => {
-    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '', is_admin: false })
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({ email: 'a@b.com', created_at: '', is_admin: false, username: null })
     const store = useAuthStore()
     await store.restore()
     expect(store.user?.email).toBe('a@b.com')
