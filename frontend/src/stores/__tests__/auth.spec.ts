@@ -50,11 +50,12 @@ describe('auth store', () => {
     expect(store.isAuthenticated).toBe(true)
   })
 
-  it('restore logs out when API throws', async () => {
+  it('restore clears user without calling logout when me() fails', async () => {
     vi.mocked(authApiModule.authApi.me).mockRejectedValue(new Error('401'))
     const store = useAuthStore()
     await store.restore()
     expect(store.user).toBeNull()
     expect(store.isAuthenticated).toBe(false)
+    expect(authApiModule.authApi.logout).not.toHaveBeenCalled()
   })
 })
