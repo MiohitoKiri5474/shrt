@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useURLsStore } from '../stores/urls'
 import { useThemeStore } from '../stores/theme'
@@ -9,6 +10,7 @@ import AddUserForm from '../components/AddUserForm.vue'
 import type { StatsOut } from '../api/urls'
 const BASE_URL = window.location.origin
 
+const router = useRouter()
 const authStore = useAuthStore()
 const urlsStore = useURLsStore()
 const themeStore = useThemeStore()
@@ -84,6 +86,11 @@ async function confirmDelete() {
 function cancelDelete() {
   pendingDeleteId.value = null
 }
+
+async function handleLogout() {
+  await authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -121,7 +128,7 @@ function cancelDelete() {
         >
           <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
         </button>
-        <button class="btn-signout" @click="authStore.logout()">Sign out</button>
+        <button class="btn-signout" @click="handleLogout">Sign out</button>
       </nav>
     </header>
     <main class="dash-content">
