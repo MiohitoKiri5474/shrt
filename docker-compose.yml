@@ -3,7 +3,7 @@ services:
     image: redis:7-alpine
     # Persistence disabled intentionally: rate-limit counters need not survive Redis restarts.
     # Multi-worker consistency is achieved by all workers sharing this Redis instance.
-    user: redis
+    user: "999:1000"
     command: redis-server --save "" --appendonly no --requirepass ${REDIS_PASSWORD} --maxmemory 100mb --maxmemory-policy allkeys-lru
     expose:
       - "6379"
@@ -81,7 +81,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    user: nginx
+    user: "101:101"
     ports:
       - "80:80"
     networks:
