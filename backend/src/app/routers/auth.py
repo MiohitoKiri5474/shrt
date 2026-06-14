@@ -10,7 +10,7 @@ from jwt import PyJWTError as JWTError
 from app.database import get_db
 from app.rate_limiter import limiter
 from app.models import User
-from app.schemas import UserCreate, UserOut, Token
+from app.schemas import UserCreate, UserOut, UserUpdate, Token
 from app.services.auth import hash_password, verify_password, create_access_token, decode_token
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -77,7 +77,7 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
             # Equalize latency so duplicate vs new registration is indistinguishable
             # by timing (bcrypt would run on a real registration).
             hash_password(data.password)
-            return {"email": data.email, "created_at": datetime.now(timezone.utc), "is_admin": False}
+            raise HTTPException(status_code=409, detail="Email already registered")
         raise
 
 @router.post("/login")
@@ -89,10 +89,17 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         # letting an attacker distinguish "too long" from "wrong password" by timing.
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    result = await db.execute(select(User).where(User.email == form.username))
+    identifier = form.username
+    if "@" in identifier:
+        result = await db.execute(select(User).where(User.email == identifier))
+    else:
+        result = await db.execute(select(User).where(User.username == identifier))
     user = result.scalar_one_or_none()
     if not user:
-        # Constant-time dummy check to prevent user enumeration via timing.
+        # Three dummy bcrypt ops to match the worst-case wrong-password path:
+        # verify_password (op 1) + _bcrypt.checkpw (op 2) + dummy (op 3).
+        verify_password("dummy", _DUMMY_HASH)
+        verify_password("dummy", _DUMMY_HASH)
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not verify_password(form.password, user.password_hash):
@@ -104,6 +111,9 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         except Exception:
             legacy_ok = False
         if not legacy_ok:
+            # One extra dummy to reach 3 total ops:
+            # verify_password (op 1) + _bcrypt.checkpw (op 2) + this dummy (op 3).
+            verify_password("dummy", _DUMMY_HASH)
             raise HTTPException(status_code=401, detail="Invalid credentials")
         # Upgrade the stored hash to the new SHA-256 prehash scheme.
         user.password_hash = hash_password(form.password)
@@ -133,6 +143,29 @@ async def logout(response: Response):
 @router.get("/me", response_model=UserOut)
 @limiter.limit("60/minute")
 async def me(request: Request, current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.patch("/me", response_model=UserOut)
+@limiter.limit("10/minute")
+async def update_me(
+    request: Request,
+    data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Check uniqueness (exclude self)
+    result = await db.execute(
+        select(User).where(User.username == data.username, User.id != current_user.id)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Username already taken")
+    current_user.username = data.username
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Username already taken")
+    await db.refresh(current_user)
     return current_user
 
 @router.post("/users", response_model=UserOut, status_code=201)

@@ -22,6 +22,14 @@ async def _migrate_schema(conn) -> None:  # pragma: no cover
             await conn.execute(
                 text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
             )
+        if "username" not in existing:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN username VARCHAR(50)"))
+            await conn.execute(
+                text(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_username "
+                    "ON users (username) WHERE username IS NOT NULL"
+                )
+            )
 
         # Migrate original_url column from TEXT to VARCHAR(2048) if needed
         result = await conn.execute(text("PRAGMA table_info(urls)"))
@@ -51,6 +59,17 @@ async def _migrate_schema(conn) -> None:  # pragma: no cover
         if not result.fetchone():
             await conn.execute(
                 text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE")
+            )
+        result = await conn.execute(
+            text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'users' AND column_name = 'username' "
+                "AND table_schema = 'public'"
+            )
+        )
+        if not result.fetchone():
+            await conn.execute(
+                text("ALTER TABLE users ADD COLUMN username VARCHAR(50) UNIQUE")
             )
 
         # Migrate original_url column from TEXT to VARCHAR(2048) if needed

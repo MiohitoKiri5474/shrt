@@ -19,6 +19,25 @@ const loadError = ref('')
 const showAddUser = ref(false)
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
+const editingUsername = ref(false)
+const usernameInput = ref('')
+const usernameError = ref('')
+
+function startEditUsername() {
+  usernameInput.value = authStore.user?.username ?? ''
+  usernameError.value = ''
+  editingUsername.value = true
+}
+
+async function saveUsername() {
+  usernameError.value = ''
+  try {
+    await authStore.updateUsername(usernameInput.value)
+    editingUsername.value = false
+  } catch {
+    usernameError.value = 'Failed to update username'
+  }
+}
 
 onMounted(() => {
   loadError.value = ''
@@ -72,7 +91,27 @@ function cancelDelete() {
     <header class="dash-header">
       <h1>URL Shortener</h1>
       <nav class="dash-nav">
-        <span class="user-email">{{ authStore.user?.email }}</span>
+        <template v-if="editingUsername">
+          <input
+            v-model="usernameInput"
+            class="username-input"
+            placeholder="username"
+            maxlength="50"
+            @keyup.enter="saveUsername"
+            @keyup.escape="editingUsername = false"
+          />
+          <button class="btn-save-username" @click="saveUsername">Save</button>
+          <button class="btn-cancel-username" @click="editingUsername = false">Cancel</button>
+          <span v-if="usernameError" class="error">{{ usernameError }}</span>
+        </template>
+        <template v-else>
+          <span
+            class="user-email"
+            :title="authStore.user?.email"
+            style="cursor: pointer"
+            @click="startEditUsername"
+          >{{ authStore.user?.username ?? authStore.user?.email }}</span>
+        </template>
         <button v-if="authStore.user?.is_admin" class="btn-add-user" @click="showAddUser = true">Add User</button>
         <button
           class="theme-toggle"
@@ -172,6 +211,38 @@ function cancelDelete() {
   font-size: 0.875rem;
   color: var(--color-text);
   opacity: 0.75;
+}
+
+.username-input {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text);
+  width: 10rem;
+}
+
+.username-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.btn-save-username,
+.btn-cancel-username {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  transition: background 0.2s;
+}
+
+.btn-save-username:hover,
+.btn-cancel-username:hover {
+  background: var(--color-border);
 }
 
 .theme-toggle {

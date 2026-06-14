@@ -25,9 +25,16 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       user.value = await authApi.me()
     } catch {
-      await logout()
+      // Do not call logout() here — that would POST to /api/auth/logout and
+      // invalidate a valid session cookie (e.g. on page reload while logged in).
+      // Just clear local state so the guard redirects to /login.
+      user.value = null
     }
   }
 
-  return { user, isAuthenticated, login, logout, restore }
+  async function updateUsername(username: string) {
+    user.value = await authApi.updateUsername(username)
+  }
+
+  return { user, isAuthenticated, login, logout, restore, updateUsername }
 })

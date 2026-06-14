@@ -27,9 +27,6 @@ coverage/
 .env.production
 .env.staging
 
-# Docker
-.dockerignore
-
 # IDE
 .vscode/
 .idea/
