@@ -83,7 +83,7 @@ services:
       dockerfile: Dockerfile
     user: nginx
     ports:
-      - "80:80"
+      - "${HOST_PORT:-80}:80"
     networks:
       - app-net
     depends_on:
