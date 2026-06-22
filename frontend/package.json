@@ -41,13 +41,14 @@
     "vite": "^8.0.16",
     "vite-plugin-vue-devtools": "^8.1.1",
     "vitest": "^4.1.4",
-    "vue-tsc": "^3.2.6"
+    "vue-tsc": "^3.3.5"
   },
   "overrides": {
     "shell-quote": "1.8.4",
     "form-data": "^4.0.6",
     "vite": "^8.0.16",
-    "@babel/core": "^7.29.7"
+    "@babel/core": "^7.29.7",
+    "undici": "7.28.0"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
