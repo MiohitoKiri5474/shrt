@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, Request
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from app.rate_limiter import limiter
+from app.rate_limiter import limiter, _trusted_proxy_nets, _trusted_proxies
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import select
@@ -24,6 +24,7 @@ _WEAK_PASSWORDS = frozenset({
 
 _APP_ENV = os.getenv("APP_ENV", "production").lower()
 _is_dev = _APP_ENV in {"development", "dev"}
+_is_non_prod = _APP_ENV in {"development", "dev", "test", "testing"}
 
 app = FastAPI(
     title="URL Shortener API",
@@ -60,6 +61,17 @@ _cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS")
 if not _is_dev and not _cors_origins_env:
     raise ValueError("CORS_ALLOWED_ORIGINS must be set in production")
 origins = [o.strip() for o in (_cors_origins_env or "http://localhost:5173,http://localhost:80").split(",") if o.strip()]
+
+# Fail fast in production when no trusted proxies are configured. Without this,
+# the real client IP behind nginx can't be determined, so every request shares
+# one rate-limit bucket and a single user can exhaust limits for everyone.
+if not _is_non_prod and not _trusted_proxy_nets and not _trusted_proxies:
+    raise ValueError(
+        "TRUSTED_PROXY_CIDRS must be set in production to enable per-IP rate limiting. "
+        "Find your Docker bridge CIDR with: "
+        "docker network inspect <project>_app-net "
+        "--format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'"
+    )
 
 app.add_middleware(
     CORSMiddleware,
