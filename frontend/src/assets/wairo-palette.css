@@ -1,0 +1,1503 @@
+:root {
+  --color-nadeshiko: #DC9FB4;
+  --color-kohbai: #E16B8C;
+  --color-suoh: #8E354A;
+  --color-taikoh: #F8C3CD;
+  --color-ikkonzome: #F4A7B9;
+  --color-kuwazome: #64363C;
+  --color-momo: #F596AA;
+  --color-ichigo: #B5495B;
+  --color-usubeni: #E87A90;
+  --color-imayoh: #D05A6E;
+  --color-nakabeni: #DB4D6D;
+  --color-sakura: #FEDFE1;
+  --color-umenezumi: #9E7A7A;
+  --color-karakurenai: #D0104C;
+  --color-enji: #9F353A;
+  --color-kurenai: #CB1B45;
+  --color-toki: #EEA9A9;
+  --color-cyohsyun: #BF6766;
+  --color-kokiake: #86473F;
+  --color-sakuranezumi: #B19693;
+  --color-jinzamomi: #EB7A77;
+  --color-azuki: #954A45;
+  --color-suohkoh: #A96360;
+  --color-akabeni: #CB4042;
+  --color-shinsyu: #AB3B3A;
+  --color-haizakura: #D7C4BB;
+  --color-kuriume: #904840;
+  --color-ebicha: #734338;
+  --color-ginsyu: #C73E3A;
+  --color-kurotobi: #554236;
+  --color-benitobi: #994639;
+  --color-akebono: #F19483;
+  --color-benikaba: #B54434;
+  --color-mizugaki: #B9887D;
+  --color-sangosyu: #F17C67;
+  --color-benihiwada: #884C3A;
+  --color-syojyohi: #E83015;
+  --color-entan: #D75455;
+  --color-shikancha: #B55D4C;
+  --color-hiwada: #854836;
+  --color-kakishibu: #A35E47;
+  --color-ake: #CC543A;
+  --color-tobi: #724832;
+  --color-benihi: #F75C2F;
+  --color-kurikawacha: #6A4028;
+  --color-bengara: #9A5034;
+  --color-terigaki: #C46243;
+  --color-edocha: #AF5F3C;
+  --color-araisyu: #FB966E;
+  --color-momoshiocha: #724938;
+  --color-karacha: #B47157;
+  --color-tokigaracha: #DB8E71;
+  --color-ohni: #F05E1C;
+  --color-sohi: #ED784A;
+  --color-ensyucha: #CA7853;
+  --color-kabacha: #B35C37;
+  --color-kogecha: #563F2E;
+  --color-akakoh: #E3916E;
+  --color-suzumecha: #8F5A3C;
+  --color-shishi: #F0A986;
+  --color-sodenkaracha: #A0674B;
+  --color-kaba: #C1693C;
+  --color-kokikuchinashi: #FB9966;
+  --color-kurumi: #947A6D;
+  --color-taisya: #A36336;
+  --color-araigaki: #E79460;
+  --color-kohrozen: #7D532C;
+  --color-akakuchiba: #C78550;
+  --color-tonocha: #985F2A;
+  --color-akashirotsurubami: #E1A679;
+  --color-sencha: #855B32;
+  --color-kanzo: #FC9F4D;
+  --color-sharegaki: #FFBA84;
+  --color-beniukon: #E98B2A;
+  --color-umezome: #E9A368;
+  --color-biwacha: #B17844;
+  --color-chojicha: #96632E;
+  --color-kenpohzome: #43341B;
+  --color-kohaku: #CA7A2C;
+  --color-usugaki: #ECB88A;
+  --color-kyara: #78552B;
+  --color-chojizome: #B07736;
+  --color-fushizome: #967249;
+  --color-kuchiba: #E2943B;
+  --color-kincha: #C7802D;
+  --color-kitsune: #9B6E23;
+  --color-susutake: #6E552F;
+  --color-usukoh: #EBB471;
+  --color-tonoko: #D7B98E;
+  --color-ginsusutake: #82663A;
+  --color-ohdo: #B68E55;
+  --color-shiracha: #BC9F77;
+  --color-kobicha: #876633;
+  --color-kigaracha: #C18A26;
+  --color-yamabuki: #FFB11B;
+  --color-yamabukicha: #D19826;
+  --color-hajizome: #DDA52D;
+  --color-kuwacha: #C99833;
+  --color-tamago: #F9BF45;
+  --color-shirotsurubami: #DCB879;
+  --color-kitsurubami: #BA9132;
+  --color-tamamorokoshi: #E8B647;
+  --color-hanaba: #F7C242;
+  --color-namakabe: #7D6C46;
+  --color-torinoko: #DAC9A6;
+  --color-usuki: #FAD689;
+  --color-kikuchiba: #D9AB42;
+  --color-kuchinashi: #F6C555;
+  --color-tohoh: #FFC408;
+  --color-ukon: #EFBB24;
+  --color-karashi: #CAAD5F;
+  --color-higosusutake: #8D742A;
+  --color-rikyushiracha: #B4A582;
+  --color-aku: #877F6C;
+  --color-rikyucha: #897D55;
+  --color-rokohcha: #74673E;
+  --color-nataneyu: #A28C37;
+  --color-uguisucha: #6C6024;
+  --color-kimirucha: #867835;
+  --color-mirucha: #62592C;
+  --color-kariyasu: #E9CD4C;
+  --color-nanohana: #F7D94C;
+  --color-kihada: #FBE251;
+  --color-mushikuri: #D9CD90;
+  --color-aokuchiba: #ADA142;
+  --color-ominaeshi: #DDD23B;
+  --color-hiwacha: #A5A051;
+  --color-hiwa: #BEC23F;
+  --color-uguisu: #6C6A2D;
+  --color-yanagicha: #939650;
+  --color-koke: #838A2D;
+  --color-kikujin: #B1B479;
+  --color-rikancha: #616138;
+  --color-aikobicha: #4B4E2A;
+  --color-miru: #5B622E;
+  --color-sensaicha: #4D5139;
+  --color-baikocha: #89916B;
+  --color-hiwamoegi: #90B44B;
+  --color-yanagizome: #91AD70;
+  --color-urayanagi: #B5CAA0;
+  --color-iwaicha: #646A58;
+  --color-moegi: #7BA23F;
+  --color-nae: #86C166;
+  --color-yanagisusutake: #4A593D;
+  --color-matsuba: #42602D;
+  --color-aoni: #516E41;
+  --color-usuao: #91B493;
+  --color-yanaginezumi: #808F7C;
+  --color-tokiwa: #1B813E;
+  --color-wakatake: #5DAC81;
+  --color-chitosemidori: #36563C;
+  --color-midori: #227D51;
+  --color-byakuroku: #A8D8B9;
+  --color-oitake: #6A8372;
+  --color-tokusa: #2D6D4B;
+  --color-onandocha: #465D4C;
+  --color-rokusyoh: #24936E;
+  --color-sabiseiji: #86A697;
+  --color-aotake: #00896C;
+  --color-veludo: #096148;
+  --color-mushiao: #20604F;
+  --color-aimirucha: #0F4C3A;
+  --color-tonocha2: #4F726C;
+  --color-aomidori: #00AA90;
+  --color-seiji: #69B0AC;
+  --color-tetsu: #26453D;
+  --color-mizuasagi: #66BAB7;
+  --color-seiheki: #268785;
+  --color-sabitetsuonando: #405B55;
+  --color-korainando: #305A56;
+  --color-byakugun: #78C2C4;
+  --color-omeshicha: #376B6D;
+  --color-kamenozoki: #A5DEE4;
+  --color-fukagawanezumi: #77969A;
+  --color-sabiasagi: #6699A1;
+  --color-mizu: #81C7D4;
+  --color-asagi: #33A6B8;
+  --color-onando: #0C4842;
+  --color-ai: #0D5661;
+  --color-shinbashi: #0089A7;
+  --color-sabionando: #336774;
+  --color-tetsuonando: #255359;
+  --color-hanaasagi: #1E88A8;
+  --color-ainezumi: #566C73;
+  --color-masuhana: #577C8A;
+  --color-sora: #58B2DC;
+  --color-noshimehana: #2B5F75;
+  --color-chigusa: #3A8FB7;
+  --color-omeshionando: #2E5C6E;
+  --color-hanada: #006284;
+  --color-wasurenagusa: #7DB9DE;
+  --color-gunjyo: #51A8DD;
+  --color-tsuyukusa: #2EA9DF;
+  --color-kurotsurubami: #0B1013;
+  --color-kon: #0F2540;
+  --color-kachi: #08192D;
+  --color-ruri: #005CAF;
+  --color-rurikon: #0B346E;
+  --color-benimidori: #7B90D2;
+  --color-fujinezumi: #6E75A4;
+  --color-tetsukon: #261E47;
+  --color-konjyo: #113285;
+  --color-benikakehana: #4E4F97;
+  --color-konkikyo: #211E55;
+  --color-fuji: #8B81C3;
+  --color-futaai: #70649A;
+  --color-ouchi: #9B90C2;
+  --color-fujimurasaki: #8A6BBE;
+  --color-kikyo: #6A4C9C;
+  --color-shion: #8F77B5;
+  --color-messhi: #533D5B;
+  --color-usu: #B28FCE;
+  --color-hashita: #986DB2;
+  --color-edomurasaki: #77428D;
+  --color-shikon: #3C2F41;
+  --color-kokimurasaki: #4A225D;
+  --color-sumire: #66327C;
+  --color-murasaki: #592C63;
+  --color-ayame: #6F3381;
+  --color-fujisusutake: #574C57;
+  --color-benifuji: #B481BB;
+  --color-kurobeni: #3F2B36;
+  --color-nasukon: #572A3F;
+  --color-budohnezumi: #5E3D50;
+  --color-hatobanezumi: #72636E;
+  --color-kakitsubata: #622954;
+  --color-ebizome: #6D2E5B;
+  --color-botan: #C1328E;
+  --color-umemurasaki: #A8497A;
+  --color-nisemurasaki: #562E37;
+  --color-tsutsuji: #E03C8A;
+  --color-murasakitobi: #60373E;
+  --color-shironeri: #FCFAF2;
+  --color-gofun: #FFFFFB;
+  --color-shironezumi: #BDC0BA;
+  --color-ginnezumi: #91989F;
+  --color-namari: #787878;
+  --color-hai: #828282;
+  --color-sunezumi: #787D7B;
+  --color-rikyunezumi: #707C74;
+  --color-nibi: #656765;
+  --color-aonibi: #535953;
+  --color-dobunezumi: #4F4F48;
+  --color-benikeshinezumi: #52433D;
+  --color-aisumicha: #373C38;
+  --color-binrojizome: #3A3226;
+  --color-keshizumi: #434343;
+  --color-sumi: #1C1C1C;
+  --color-kuro: #080808;
+  --color-ro: #0C0C0C;
+}
+
+.text-nadeshiko { color: #DC9FB4; }
+.bg-nadeshiko { background-color: #DC9FB4; }
+.border-nadeshiko { border-color: #DC9FB4; }
+.fill-nadeshiko { fill: #DC9FB4; }
+.stroke-nadeshiko { stroke: #DC9FB4; }
+.text-kohbai { color: #E16B8C; }
+.bg-kohbai { background-color: #E16B8C; }
+.border-kohbai { border-color: #E16B8C; }
+.fill-kohbai { fill: #E16B8C; }
+.stroke-kohbai { stroke: #E16B8C; }
+.text-suoh { color: #8E354A; }
+.bg-suoh { background-color: #8E354A; }
+.border-suoh { border-color: #8E354A; }
+.fill-suoh { fill: #8E354A; }
+.stroke-suoh { stroke: #8E354A; }
+.text-taikoh { color: #F8C3CD; }
+.bg-taikoh { background-color: #F8C3CD; }
+.border-taikoh { border-color: #F8C3CD; }
+.fill-taikoh { fill: #F8C3CD; }
+.stroke-taikoh { stroke: #F8C3CD; }
+.text-ikkonzome { color: #F4A7B9; }
+.bg-ikkonzome { background-color: #F4A7B9; }
+.border-ikkonzome { border-color: #F4A7B9; }
+.fill-ikkonzome { fill: #F4A7B9; }
+.stroke-ikkonzome { stroke: #F4A7B9; }
+.text-kuwazome { color: #64363C; }
+.bg-kuwazome { background-color: #64363C; }
+.border-kuwazome { border-color: #64363C; }
+.fill-kuwazome { fill: #64363C; }
+.stroke-kuwazome { stroke: #64363C; }
+.text-momo { color: #F596AA; }
+.bg-momo { background-color: #F596AA; }
+.border-momo { border-color: #F596AA; }
+.fill-momo { fill: #F596AA; }
+.stroke-momo { stroke: #F596AA; }
+.text-ichigo { color: #B5495B; }
+.bg-ichigo { background-color: #B5495B; }
+.border-ichigo { border-color: #B5495B; }
+.fill-ichigo { fill: #B5495B; }
+.stroke-ichigo { stroke: #B5495B; }
+.text-usubeni { color: #E87A90; }
+.bg-usubeni { background-color: #E87A90; }
+.border-usubeni { border-color: #E87A90; }
+.fill-usubeni { fill: #E87A90; }
+.stroke-usubeni { stroke: #E87A90; }
+.text-imayoh { color: #D05A6E; }
+.bg-imayoh { background-color: #D05A6E; }
+.border-imayoh { border-color: #D05A6E; }
+.fill-imayoh { fill: #D05A6E; }
+.stroke-imayoh { stroke: #D05A6E; }
+.text-nakabeni { color: #DB4D6D; }
+.bg-nakabeni { background-color: #DB4D6D; }
+.border-nakabeni { border-color: #DB4D6D; }
+.fill-nakabeni { fill: #DB4D6D; }
+.stroke-nakabeni { stroke: #DB4D6D; }
+.text-sakura { color: #FEDFE1; }
+.bg-sakura { background-color: #FEDFE1; }
+.border-sakura { border-color: #FEDFE1; }
+.fill-sakura { fill: #FEDFE1; }
+.stroke-sakura { stroke: #FEDFE1; }
+.text-umenezumi { color: #9E7A7A; }
+.bg-umenezumi { background-color: #9E7A7A; }
+.border-umenezumi { border-color: #9E7A7A; }
+.fill-umenezumi { fill: #9E7A7A; }
+.stroke-umenezumi { stroke: #9E7A7A; }
+.text-karakurenai { color: #D0104C; }
+.bg-karakurenai { background-color: #D0104C; }
+.border-karakurenai { border-color: #D0104C; }
+.fill-karakurenai { fill: #D0104C; }
+.stroke-karakurenai { stroke: #D0104C; }
+.text-enji { color: #9F353A; }
+.bg-enji { background-color: #9F353A; }
+.border-enji { border-color: #9F353A; }
+.fill-enji { fill: #9F353A; }
+.stroke-enji { stroke: #9F353A; }
+.text-kurenai { color: #CB1B45; }
+.bg-kurenai { background-color: #CB1B45; }
+.border-kurenai { border-color: #CB1B45; }
+.fill-kurenai { fill: #CB1B45; }
+.stroke-kurenai { stroke: #CB1B45; }
+.text-toki { color: #EEA9A9; }
+.bg-toki { background-color: #EEA9A9; }
+.border-toki { border-color: #EEA9A9; }
+.fill-toki { fill: #EEA9A9; }
+.stroke-toki { stroke: #EEA9A9; }
+.text-cyohsyun { color: #BF6766; }
+.bg-cyohsyun { background-color: #BF6766; }
+.border-cyohsyun { border-color: #BF6766; }
+.fill-cyohsyun { fill: #BF6766; }
+.stroke-cyohsyun { stroke: #BF6766; }
+.text-kokiake { color: #86473F; }
+.bg-kokiake { background-color: #86473F; }
+.border-kokiake { border-color: #86473F; }
+.fill-kokiake { fill: #86473F; }
+.stroke-kokiake { stroke: #86473F; }
+.text-sakuranezumi { color: #B19693; }
+.bg-sakuranezumi { background-color: #B19693; }
+.border-sakuranezumi { border-color: #B19693; }
+.fill-sakuranezumi { fill: #B19693; }
+.stroke-sakuranezumi { stroke: #B19693; }
+.text-jinzamomi { color: #EB7A77; }
+.bg-jinzamomi { background-color: #EB7A77; }
+.border-jinzamomi { border-color: #EB7A77; }
+.fill-jinzamomi { fill: #EB7A77; }
+.stroke-jinzamomi { stroke: #EB7A77; }
+.text-azuki { color: #954A45; }
+.bg-azuki { background-color: #954A45; }
+.border-azuki { border-color: #954A45; }
+.fill-azuki { fill: #954A45; }
+.stroke-azuki { stroke: #954A45; }
+.text-suohkoh { color: #A96360; }
+.bg-suohkoh { background-color: #A96360; }
+.border-suohkoh { border-color: #A96360; }
+.fill-suohkoh { fill: #A96360; }
+.stroke-suohkoh { stroke: #A96360; }
+.text-akabeni { color: #CB4042; }
+.bg-akabeni { background-color: #CB4042; }
+.border-akabeni { border-color: #CB4042; }
+.fill-akabeni { fill: #CB4042; }
+.stroke-akabeni { stroke: #CB4042; }
+.text-shinsyu { color: #AB3B3A; }
+.bg-shinsyu { background-color: #AB3B3A; }
+.border-shinsyu { border-color: #AB3B3A; }
+.fill-shinsyu { fill: #AB3B3A; }
+.stroke-shinsyu { stroke: #AB3B3A; }
+.text-haizakura { color: #D7C4BB; }
+.bg-haizakura { background-color: #D7C4BB; }
+.border-haizakura { border-color: #D7C4BB; }
+.fill-haizakura { fill: #D7C4BB; }
+.stroke-haizakura { stroke: #D7C4BB; }
+.text-kuriume { color: #904840; }
+.bg-kuriume { background-color: #904840; }
+.border-kuriume { border-color: #904840; }
+.fill-kuriume { fill: #904840; }
+.stroke-kuriume { stroke: #904840; }
+.text-ebicha { color: #734338; }
+.bg-ebicha { background-color: #734338; }
+.border-ebicha { border-color: #734338; }
+.fill-ebicha { fill: #734338; }
+.stroke-ebicha { stroke: #734338; }
+.text-ginsyu { color: #C73E3A; }
+.bg-ginsyu { background-color: #C73E3A; }
+.border-ginsyu { border-color: #C73E3A; }
+.fill-ginsyu { fill: #C73E3A; }
+.stroke-ginsyu { stroke: #C73E3A; }
+.text-kurotobi { color: #554236; }
+.bg-kurotobi { background-color: #554236; }
+.border-kurotobi { border-color: #554236; }
+.fill-kurotobi { fill: #554236; }
+.stroke-kurotobi { stroke: #554236; }
+.text-benitobi { color: #994639; }
+.bg-benitobi { background-color: #994639; }
+.border-benitobi { border-color: #994639; }
+.fill-benitobi { fill: #994639; }
+.stroke-benitobi { stroke: #994639; }
+.text-akebono { color: #F19483; }
+.bg-akebono { background-color: #F19483; }
+.border-akebono { border-color: #F19483; }
+.fill-akebono { fill: #F19483; }
+.stroke-akebono { stroke: #F19483; }
+.text-benikaba { color: #B54434; }
+.bg-benikaba { background-color: #B54434; }
+.border-benikaba { border-color: #B54434; }
+.fill-benikaba { fill: #B54434; }
+.stroke-benikaba { stroke: #B54434; }
+.text-mizugaki { color: #B9887D; }
+.bg-mizugaki { background-color: #B9887D; }
+.border-mizugaki { border-color: #B9887D; }
+.fill-mizugaki { fill: #B9887D; }
+.stroke-mizugaki { stroke: #B9887D; }
+.text-sangosyu { color: #F17C67; }
+.bg-sangosyu { background-color: #F17C67; }
+.border-sangosyu { border-color: #F17C67; }
+.fill-sangosyu { fill: #F17C67; }
+.stroke-sangosyu { stroke: #F17C67; }
+.text-benihiwada { color: #884C3A; }
+.bg-benihiwada { background-color: #884C3A; }
+.border-benihiwada { border-color: #884C3A; }
+.fill-benihiwada { fill: #884C3A; }
+.stroke-benihiwada { stroke: #884C3A; }
+.text-syojyohi { color: #E83015; }
+.bg-syojyohi { background-color: #E83015; }
+.border-syojyohi { border-color: #E83015; }
+.fill-syojyohi { fill: #E83015; }
+.stroke-syojyohi { stroke: #E83015; }
+.text-entan { color: #D75455; }
+.bg-entan { background-color: #D75455; }
+.border-entan { border-color: #D75455; }
+.fill-entan { fill: #D75455; }
+.stroke-entan { stroke: #D75455; }
+.text-shikancha { color: #B55D4C; }
+.bg-shikancha { background-color: #B55D4C; }
+.border-shikancha { border-color: #B55D4C; }
+.fill-shikancha { fill: #B55D4C; }
+.stroke-shikancha { stroke: #B55D4C; }
+.text-hiwada { color: #854836; }
+.bg-hiwada { background-color: #854836; }
+.border-hiwada { border-color: #854836; }
+.fill-hiwada { fill: #854836; }
+.stroke-hiwada { stroke: #854836; }
+.text-kakishibu { color: #A35E47; }
+.bg-kakishibu { background-color: #A35E47; }
+.border-kakishibu { border-color: #A35E47; }
+.fill-kakishibu { fill: #A35E47; }
+.stroke-kakishibu { stroke: #A35E47; }
+.text-ake { color: #CC543A; }
+.bg-ake { background-color: #CC543A; }
+.border-ake { border-color: #CC543A; }
+.fill-ake { fill: #CC543A; }
+.stroke-ake { stroke: #CC543A; }
+.text-tobi { color: #724832; }
+.bg-tobi { background-color: #724832; }
+.border-tobi { border-color: #724832; }
+.fill-tobi { fill: #724832; }
+.stroke-tobi { stroke: #724832; }
+.text-benihi { color: #F75C2F; }
+.bg-benihi { background-color: #F75C2F; }
+.border-benihi { border-color: #F75C2F; }
+.fill-benihi { fill: #F75C2F; }
+.stroke-benihi { stroke: #F75C2F; }
+.text-kurikawacha { color: #6A4028; }
+.bg-kurikawacha { background-color: #6A4028; }
+.border-kurikawacha { border-color: #6A4028; }
+.fill-kurikawacha { fill: #6A4028; }
+.stroke-kurikawacha { stroke: #6A4028; }
+.text-bengara { color: #9A5034; }
+.bg-bengara { background-color: #9A5034; }
+.border-bengara { border-color: #9A5034; }
+.fill-bengara { fill: #9A5034; }
+.stroke-bengara { stroke: #9A5034; }
+.text-terigaki { color: #C46243; }
+.bg-terigaki { background-color: #C46243; }
+.border-terigaki { border-color: #C46243; }
+.fill-terigaki { fill: #C46243; }
+.stroke-terigaki { stroke: #C46243; }
+.text-edocha { color: #AF5F3C; }
+.bg-edocha { background-color: #AF5F3C; }
+.border-edocha { border-color: #AF5F3C; }
+.fill-edocha { fill: #AF5F3C; }
+.stroke-edocha { stroke: #AF5F3C; }
+.text-araisyu { color: #FB966E; }
+.bg-araisyu { background-color: #FB966E; }
+.border-araisyu { border-color: #FB966E; }
+.fill-araisyu { fill: #FB966E; }
+.stroke-araisyu { stroke: #FB966E; }
+.text-momoshiocha { color: #724938; }
+.bg-momoshiocha { background-color: #724938; }
+.border-momoshiocha { border-color: #724938; }
+.fill-momoshiocha { fill: #724938; }
+.stroke-momoshiocha { stroke: #724938; }
+.text-karacha { color: #B47157; }
+.bg-karacha { background-color: #B47157; }
+.border-karacha { border-color: #B47157; }
+.fill-karacha { fill: #B47157; }
+.stroke-karacha { stroke: #B47157; }
+.text-tokigaracha { color: #DB8E71; }
+.bg-tokigaracha { background-color: #DB8E71; }
+.border-tokigaracha { border-color: #DB8E71; }
+.fill-tokigaracha { fill: #DB8E71; }
+.stroke-tokigaracha { stroke: #DB8E71; }
+.text-ohni { color: #F05E1C; }
+.bg-ohni { background-color: #F05E1C; }
+.border-ohni { border-color: #F05E1C; }
+.fill-ohni { fill: #F05E1C; }
+.stroke-ohni { stroke: #F05E1C; }
+.text-sohi { color: #ED784A; }
+.bg-sohi { background-color: #ED784A; }
+.border-sohi { border-color: #ED784A; }
+.fill-sohi { fill: #ED784A; }
+.stroke-sohi { stroke: #ED784A; }
+.text-ensyucha { color: #CA7853; }
+.bg-ensyucha { background-color: #CA7853; }
+.border-ensyucha { border-color: #CA7853; }
+.fill-ensyucha { fill: #CA7853; }
+.stroke-ensyucha { stroke: #CA7853; }
+.text-kabacha { color: #B35C37; }
+.bg-kabacha { background-color: #B35C37; }
+.border-kabacha { border-color: #B35C37; }
+.fill-kabacha { fill: #B35C37; }
+.stroke-kabacha { stroke: #B35C37; }
+.text-kogecha { color: #563F2E; }
+.bg-kogecha { background-color: #563F2E; }
+.border-kogecha { border-color: #563F2E; }
+.fill-kogecha { fill: #563F2E; }
+.stroke-kogecha { stroke: #563F2E; }
+.text-akakoh { color: #E3916E; }
+.bg-akakoh { background-color: #E3916E; }
+.border-akakoh { border-color: #E3916E; }
+.fill-akakoh { fill: #E3916E; }
+.stroke-akakoh { stroke: #E3916E; }
+.text-suzumecha { color: #8F5A3C; }
+.bg-suzumecha { background-color: #8F5A3C; }
+.border-suzumecha { border-color: #8F5A3C; }
+.fill-suzumecha { fill: #8F5A3C; }
+.stroke-suzumecha { stroke: #8F5A3C; }
+.text-shishi { color: #F0A986; }
+.bg-shishi { background-color: #F0A986; }
+.border-shishi { border-color: #F0A986; }
+.fill-shishi { fill: #F0A986; }
+.stroke-shishi { stroke: #F0A986; }
+.text-sodenkaracha { color: #A0674B; }
+.bg-sodenkaracha { background-color: #A0674B; }
+.border-sodenkaracha { border-color: #A0674B; }
+.fill-sodenkaracha { fill: #A0674B; }
+.stroke-sodenkaracha { stroke: #A0674B; }
+.text-kaba { color: #C1693C; }
+.bg-kaba { background-color: #C1693C; }
+.border-kaba { border-color: #C1693C; }
+.fill-kaba { fill: #C1693C; }
+.stroke-kaba { stroke: #C1693C; }
+.text-kokikuchinashi { color: #FB9966; }
+.bg-kokikuchinashi { background-color: #FB9966; }
+.border-kokikuchinashi { border-color: #FB9966; }
+.fill-kokikuchinashi { fill: #FB9966; }
+.stroke-kokikuchinashi { stroke: #FB9966; }
+.text-kurumi { color: #947A6D; }
+.bg-kurumi { background-color: #947A6D; }
+.border-kurumi { border-color: #947A6D; }
+.fill-kurumi { fill: #947A6D; }
+.stroke-kurumi { stroke: #947A6D; }
+.text-taisya { color: #A36336; }
+.bg-taisya { background-color: #A36336; }
+.border-taisya { border-color: #A36336; }
+.fill-taisya { fill: #A36336; }
+.stroke-taisya { stroke: #A36336; }
+.text-araigaki { color: #E79460; }
+.bg-araigaki { background-color: #E79460; }
+.border-araigaki { border-color: #E79460; }
+.fill-araigaki { fill: #E79460; }
+.stroke-araigaki { stroke: #E79460; }
+.text-kohrozen { color: #7D532C; }
+.bg-kohrozen { background-color: #7D532C; }
+.border-kohrozen { border-color: #7D532C; }
+.fill-kohrozen { fill: #7D532C; }
+.stroke-kohrozen { stroke: #7D532C; }
+.text-akakuchiba { color: #C78550; }
+.bg-akakuchiba { background-color: #C78550; }
+.border-akakuchiba { border-color: #C78550; }
+.fill-akakuchiba { fill: #C78550; }
+.stroke-akakuchiba { stroke: #C78550; }
+.text-tonocha { color: #985F2A; }
+.bg-tonocha { background-color: #985F2A; }
+.border-tonocha { border-color: #985F2A; }
+.fill-tonocha { fill: #985F2A; }
+.stroke-tonocha { stroke: #985F2A; }
+.text-akashirotsurubami { color: #E1A679; }
+.bg-akashirotsurubami { background-color: #E1A679; }
+.border-akashirotsurubami { border-color: #E1A679; }
+.fill-akashirotsurubami { fill: #E1A679; }
+.stroke-akashirotsurubami { stroke: #E1A679; }
+.text-sencha { color: #855B32; }
+.bg-sencha { background-color: #855B32; }
+.border-sencha { border-color: #855B32; }
+.fill-sencha { fill: #855B32; }
+.stroke-sencha { stroke: #855B32; }
+.text-kanzo { color: #FC9F4D; }
+.bg-kanzo { background-color: #FC9F4D; }
+.border-kanzo { border-color: #FC9F4D; }
+.fill-kanzo { fill: #FC9F4D; }
+.stroke-kanzo { stroke: #FC9F4D; }
+.text-sharegaki { color: #FFBA84; }
+.bg-sharegaki { background-color: #FFBA84; }
+.border-sharegaki { border-color: #FFBA84; }
+.fill-sharegaki { fill: #FFBA84; }
+.stroke-sharegaki { stroke: #FFBA84; }
+.text-beniukon { color: #E98B2A; }
+.bg-beniukon { background-color: #E98B2A; }
+.border-beniukon { border-color: #E98B2A; }
+.fill-beniukon { fill: #E98B2A; }
+.stroke-beniukon { stroke: #E98B2A; }
+.text-umezome { color: #E9A368; }
+.bg-umezome { background-color: #E9A368; }
+.border-umezome { border-color: #E9A368; }
+.fill-umezome { fill: #E9A368; }
+.stroke-umezome { stroke: #E9A368; }
+.text-biwacha { color: #B17844; }
+.bg-biwacha { background-color: #B17844; }
+.border-biwacha { border-color: #B17844; }
+.fill-biwacha { fill: #B17844; }
+.stroke-biwacha { stroke: #B17844; }
+.text-chojicha { color: #96632E; }
+.bg-chojicha { background-color: #96632E; }
+.border-chojicha { border-color: #96632E; }
+.fill-chojicha { fill: #96632E; }
+.stroke-chojicha { stroke: #96632E; }
+.text-kenpohzome { color: #43341B; }
+.bg-kenpohzome { background-color: #43341B; }
+.border-kenpohzome { border-color: #43341B; }
+.fill-kenpohzome { fill: #43341B; }
+.stroke-kenpohzome { stroke: #43341B; }
+.text-kohaku { color: #CA7A2C; }
+.bg-kohaku { background-color: #CA7A2C; }
+.border-kohaku { border-color: #CA7A2C; }
+.fill-kohaku { fill: #CA7A2C; }
+.stroke-kohaku { stroke: #CA7A2C; }
+.text-usugaki { color: #ECB88A; }
+.bg-usugaki { background-color: #ECB88A; }
+.border-usugaki { border-color: #ECB88A; }
+.fill-usugaki { fill: #ECB88A; }
+.stroke-usugaki { stroke: #ECB88A; }
+.text-kyara { color: #78552B; }
+.bg-kyara { background-color: #78552B; }
+.border-kyara { border-color: #78552B; }
+.fill-kyara { fill: #78552B; }
+.stroke-kyara { stroke: #78552B; }
+.text-chojizome { color: #B07736; }
+.bg-chojizome { background-color: #B07736; }
+.border-chojizome { border-color: #B07736; }
+.fill-chojizome { fill: #B07736; }
+.stroke-chojizome { stroke: #B07736; }
+.text-fushizome { color: #967249; }
+.bg-fushizome { background-color: #967249; }
+.border-fushizome { border-color: #967249; }
+.fill-fushizome { fill: #967249; }
+.stroke-fushizome { stroke: #967249; }
+.text-kuchiba { color: #E2943B; }
+.bg-kuchiba { background-color: #E2943B; }
+.border-kuchiba { border-color: #E2943B; }
+.fill-kuchiba { fill: #E2943B; }
+.stroke-kuchiba { stroke: #E2943B; }
+.text-kincha { color: #C7802D; }
+.bg-kincha { background-color: #C7802D; }
+.border-kincha { border-color: #C7802D; }
+.fill-kincha { fill: #C7802D; }
+.stroke-kincha { stroke: #C7802D; }
+.text-kitsune { color: #9B6E23; }
+.bg-kitsune { background-color: #9B6E23; }
+.border-kitsune { border-color: #9B6E23; }
+.fill-kitsune { fill: #9B6E23; }
+.stroke-kitsune { stroke: #9B6E23; }
+.text-susutake { color: #6E552F; }
+.bg-susutake { background-color: #6E552F; }
+.border-susutake { border-color: #6E552F; }
+.fill-susutake { fill: #6E552F; }
+.stroke-susutake { stroke: #6E552F; }
+.text-usukoh { color: #EBB471; }
+.bg-usukoh { background-color: #EBB471; }
+.border-usukoh { border-color: #EBB471; }
+.fill-usukoh { fill: #EBB471; }
+.stroke-usukoh { stroke: #EBB471; }
+.text-tonoko { color: #D7B98E; }
+.bg-tonoko { background-color: #D7B98E; }
+.border-tonoko { border-color: #D7B98E; }
+.fill-tonoko { fill: #D7B98E; }
+.stroke-tonoko { stroke: #D7B98E; }
+.text-ginsusutake { color: #82663A; }
+.bg-ginsusutake { background-color: #82663A; }
+.border-ginsusutake { border-color: #82663A; }
+.fill-ginsusutake { fill: #82663A; }
+.stroke-ginsusutake { stroke: #82663A; }
+.text-ohdo { color: #B68E55; }
+.bg-ohdo { background-color: #B68E55; }
+.border-ohdo { border-color: #B68E55; }
+.fill-ohdo { fill: #B68E55; }
+.stroke-ohdo { stroke: #B68E55; }
+.text-shiracha { color: #BC9F77; }
+.bg-shiracha { background-color: #BC9F77; }
+.border-shiracha { border-color: #BC9F77; }
+.fill-shiracha { fill: #BC9F77; }
+.stroke-shiracha { stroke: #BC9F77; }
+.text-kobicha { color: #876633; }
+.bg-kobicha { background-color: #876633; }
+.border-kobicha { border-color: #876633; }
+.fill-kobicha { fill: #876633; }
+.stroke-kobicha { stroke: #876633; }
+.text-kigaracha { color: #C18A26; }
+.bg-kigaracha { background-color: #C18A26; }
+.border-kigaracha { border-color: #C18A26; }
+.fill-kigaracha { fill: #C18A26; }
+.stroke-kigaracha { stroke: #C18A26; }
+.text-yamabuki { color: #FFB11B; }
+.bg-yamabuki { background-color: #FFB11B; }
+.border-yamabuki { border-color: #FFB11B; }
+.fill-yamabuki { fill: #FFB11B; }
+.stroke-yamabuki { stroke: #FFB11B; }
+.text-yamabukicha { color: #D19826; }
+.bg-yamabukicha { background-color: #D19826; }
+.border-yamabukicha { border-color: #D19826; }
+.fill-yamabukicha { fill: #D19826; }
+.stroke-yamabukicha { stroke: #D19826; }
+.text-hajizome { color: #DDA52D; }
+.bg-hajizome { background-color: #DDA52D; }
+.border-hajizome { border-color: #DDA52D; }
+.fill-hajizome { fill: #DDA52D; }
+.stroke-hajizome { stroke: #DDA52D; }
+.text-kuwacha { color: #C99833; }
+.bg-kuwacha { background-color: #C99833; }
+.border-kuwacha { border-color: #C99833; }
+.fill-kuwacha { fill: #C99833; }
+.stroke-kuwacha { stroke: #C99833; }
+.text-tamago { color: #F9BF45; }
+.bg-tamago { background-color: #F9BF45; }
+.border-tamago { border-color: #F9BF45; }
+.fill-tamago { fill: #F9BF45; }
+.stroke-tamago { stroke: #F9BF45; }
+.text-shirotsurubami { color: #DCB879; }
+.bg-shirotsurubami { background-color: #DCB879; }
+.border-shirotsurubami { border-color: #DCB879; }
+.fill-shirotsurubami { fill: #DCB879; }
+.stroke-shirotsurubami { stroke: #DCB879; }
+.text-kitsurubami { color: #BA9132; }
+.bg-kitsurubami { background-color: #BA9132; }
+.border-kitsurubami { border-color: #BA9132; }
+.fill-kitsurubami { fill: #BA9132; }
+.stroke-kitsurubami { stroke: #BA9132; }
+.text-tamamorokoshi { color: #E8B647; }
+.bg-tamamorokoshi { background-color: #E8B647; }
+.border-tamamorokoshi { border-color: #E8B647; }
+.fill-tamamorokoshi { fill: #E8B647; }
+.stroke-tamamorokoshi { stroke: #E8B647; }
+.text-hanaba { color: #F7C242; }
+.bg-hanaba { background-color: #F7C242; }
+.border-hanaba { border-color: #F7C242; }
+.fill-hanaba { fill: #F7C242; }
+.stroke-hanaba { stroke: #F7C242; }
+.text-namakabe { color: #7D6C46; }
+.bg-namakabe { background-color: #7D6C46; }
+.border-namakabe { border-color: #7D6C46; }
+.fill-namakabe { fill: #7D6C46; }
+.stroke-namakabe { stroke: #7D6C46; }
+.text-torinoko { color: #DAC9A6; }
+.bg-torinoko { background-color: #DAC9A6; }
+.border-torinoko { border-color: #DAC9A6; }
+.fill-torinoko { fill: #DAC9A6; }
+.stroke-torinoko { stroke: #DAC9A6; }
+.text-usuki { color: #FAD689; }
+.bg-usuki { background-color: #FAD689; }
+.border-usuki { border-color: #FAD689; }
+.fill-usuki { fill: #FAD689; }
+.stroke-usuki { stroke: #FAD689; }
+.text-kikuchiba { color: #D9AB42; }
+.bg-kikuchiba { background-color: #D9AB42; }
+.border-kikuchiba { border-color: #D9AB42; }
+.fill-kikuchiba { fill: #D9AB42; }
+.stroke-kikuchiba { stroke: #D9AB42; }
+.text-kuchinashi { color: #F6C555; }
+.bg-kuchinashi { background-color: #F6C555; }
+.border-kuchinashi { border-color: #F6C555; }
+.fill-kuchinashi { fill: #F6C555; }
+.stroke-kuchinashi { stroke: #F6C555; }
+.text-tohoh { color: #FFC408; }
+.bg-tohoh { background-color: #FFC408; }
+.border-tohoh { border-color: #FFC408; }
+.fill-tohoh { fill: #FFC408; }
+.stroke-tohoh { stroke: #FFC408; }
+.text-ukon { color: #EFBB24; }
+.bg-ukon { background-color: #EFBB24; }
+.border-ukon { border-color: #EFBB24; }
+.fill-ukon { fill: #EFBB24; }
+.stroke-ukon { stroke: #EFBB24; }
+.text-karashi { color: #CAAD5F; }
+.bg-karashi { background-color: #CAAD5F; }
+.border-karashi { border-color: #CAAD5F; }
+.fill-karashi { fill: #CAAD5F; }
+.stroke-karashi { stroke: #CAAD5F; }
+.text-higosusutake { color: #8D742A; }
+.bg-higosusutake { background-color: #8D742A; }
+.border-higosusutake { border-color: #8D742A; }
+.fill-higosusutake { fill: #8D742A; }
+.stroke-higosusutake { stroke: #8D742A; }
+.text-rikyushiracha { color: #B4A582; }
+.bg-rikyushiracha { background-color: #B4A582; }
+.border-rikyushiracha { border-color: #B4A582; }
+.fill-rikyushiracha { fill: #B4A582; }
+.stroke-rikyushiracha { stroke: #B4A582; }
+.text-aku { color: #877F6C; }
+.bg-aku { background-color: #877F6C; }
+.border-aku { border-color: #877F6C; }
+.fill-aku { fill: #877F6C; }
+.stroke-aku { stroke: #877F6C; }
+.text-rikyucha { color: #897D55; }
+.bg-rikyucha { background-color: #897D55; }
+.border-rikyucha { border-color: #897D55; }
+.fill-rikyucha { fill: #897D55; }
+.stroke-rikyucha { stroke: #897D55; }
+.text-rokohcha { color: #74673E; }
+.bg-rokohcha { background-color: #74673E; }
+.border-rokohcha { border-color: #74673E; }
+.fill-rokohcha { fill: #74673E; }
+.stroke-rokohcha { stroke: #74673E; }
+.text-nataneyu { color: #A28C37; }
+.bg-nataneyu { background-color: #A28C37; }
+.border-nataneyu { border-color: #A28C37; }
+.fill-nataneyu { fill: #A28C37; }
+.stroke-nataneyu { stroke: #A28C37; }
+.text-uguisucha { color: #6C6024; }
+.bg-uguisucha { background-color: #6C6024; }
+.border-uguisucha { border-color: #6C6024; }
+.fill-uguisucha { fill: #6C6024; }
+.stroke-uguisucha { stroke: #6C6024; }
+.text-kimirucha { color: #867835; }
+.bg-kimirucha { background-color: #867835; }
+.border-kimirucha { border-color: #867835; }
+.fill-kimirucha { fill: #867835; }
+.stroke-kimirucha { stroke: #867835; }
+.text-mirucha { color: #62592C; }
+.bg-mirucha { background-color: #62592C; }
+.border-mirucha { border-color: #62592C; }
+.fill-mirucha { fill: #62592C; }
+.stroke-mirucha { stroke: #62592C; }
+.text-kariyasu { color: #E9CD4C; }
+.bg-kariyasu { background-color: #E9CD4C; }
+.border-kariyasu { border-color: #E9CD4C; }
+.fill-kariyasu { fill: #E9CD4C; }
+.stroke-kariyasu { stroke: #E9CD4C; }
+.text-nanohana { color: #F7D94C; }
+.bg-nanohana { background-color: #F7D94C; }
+.border-nanohana { border-color: #F7D94C; }
+.fill-nanohana { fill: #F7D94C; }
+.stroke-nanohana { stroke: #F7D94C; }
+.text-kihada { color: #FBE251; }
+.bg-kihada { background-color: #FBE251; }
+.border-kihada { border-color: #FBE251; }
+.fill-kihada { fill: #FBE251; }
+.stroke-kihada { stroke: #FBE251; }
+.text-mushikuri { color: #D9CD90; }
+.bg-mushikuri { background-color: #D9CD90; }
+.border-mushikuri { border-color: #D9CD90; }
+.fill-mushikuri { fill: #D9CD90; }
+.stroke-mushikuri { stroke: #D9CD90; }
+.text-aokuchiba { color: #ADA142; }
+.bg-aokuchiba { background-color: #ADA142; }
+.border-aokuchiba { border-color: #ADA142; }
+.fill-aokuchiba { fill: #ADA142; }
+.stroke-aokuchiba { stroke: #ADA142; }
+.text-ominaeshi { color: #DDD23B; }
+.bg-ominaeshi { background-color: #DDD23B; }
+.border-ominaeshi { border-color: #DDD23B; }
+.fill-ominaeshi { fill: #DDD23B; }
+.stroke-ominaeshi { stroke: #DDD23B; }
+.text-hiwacha { color: #A5A051; }
+.bg-hiwacha { background-color: #A5A051; }
+.border-hiwacha { border-color: #A5A051; }
+.fill-hiwacha { fill: #A5A051; }
+.stroke-hiwacha { stroke: #A5A051; }
+.text-hiwa { color: #BEC23F; }
+.bg-hiwa { background-color: #BEC23F; }
+.border-hiwa { border-color: #BEC23F; }
+.fill-hiwa { fill: #BEC23F; }
+.stroke-hiwa { stroke: #BEC23F; }
+.text-uguisu { color: #6C6A2D; }
+.bg-uguisu { background-color: #6C6A2D; }
+.border-uguisu { border-color: #6C6A2D; }
+.fill-uguisu { fill: #6C6A2D; }
+.stroke-uguisu { stroke: #6C6A2D; }
+.text-yanagicha { color: #939650; }
+.bg-yanagicha { background-color: #939650; }
+.border-yanagicha { border-color: #939650; }
+.fill-yanagicha { fill: #939650; }
+.stroke-yanagicha { stroke: #939650; }
+.text-koke { color: #838A2D; }
+.bg-koke { background-color: #838A2D; }
+.border-koke { border-color: #838A2D; }
+.fill-koke { fill: #838A2D; }
+.stroke-koke { stroke: #838A2D; }
+.text-kikujin { color: #B1B479; }
+.bg-kikujin { background-color: #B1B479; }
+.border-kikujin { border-color: #B1B479; }
+.fill-kikujin { fill: #B1B479; }
+.stroke-kikujin { stroke: #B1B479; }
+.text-rikancha { color: #616138; }
+.bg-rikancha { background-color: #616138; }
+.border-rikancha { border-color: #616138; }
+.fill-rikancha { fill: #616138; }
+.stroke-rikancha { stroke: #616138; }
+.text-aikobicha { color: #4B4E2A; }
+.bg-aikobicha { background-color: #4B4E2A; }
+.border-aikobicha { border-color: #4B4E2A; }
+.fill-aikobicha { fill: #4B4E2A; }
+.stroke-aikobicha { stroke: #4B4E2A; }
+.text-miru { color: #5B622E; }
+.bg-miru { background-color: #5B622E; }
+.border-miru { border-color: #5B622E; }
+.fill-miru { fill: #5B622E; }
+.stroke-miru { stroke: #5B622E; }
+.text-sensaicha { color: #4D5139; }
+.bg-sensaicha { background-color: #4D5139; }
+.border-sensaicha { border-color: #4D5139; }
+.fill-sensaicha { fill: #4D5139; }
+.stroke-sensaicha { stroke: #4D5139; }
+.text-baikocha { color: #89916B; }
+.bg-baikocha { background-color: #89916B; }
+.border-baikocha { border-color: #89916B; }
+.fill-baikocha { fill: #89916B; }
+.stroke-baikocha { stroke: #89916B; }
+.text-hiwamoegi { color: #90B44B; }
+.bg-hiwamoegi { background-color: #90B44B; }
+.border-hiwamoegi { border-color: #90B44B; }
+.fill-hiwamoegi { fill: #90B44B; }
+.stroke-hiwamoegi { stroke: #90B44B; }
+.text-yanagizome { color: #91AD70; }
+.bg-yanagizome { background-color: #91AD70; }
+.border-yanagizome { border-color: #91AD70; }
+.fill-yanagizome { fill: #91AD70; }
+.stroke-yanagizome { stroke: #91AD70; }
+.text-urayanagi { color: #B5CAA0; }
+.bg-urayanagi { background-color: #B5CAA0; }
+.border-urayanagi { border-color: #B5CAA0; }
+.fill-urayanagi { fill: #B5CAA0; }
+.stroke-urayanagi { stroke: #B5CAA0; }
+.text-iwaicha { color: #646A58; }
+.bg-iwaicha { background-color: #646A58; }
+.border-iwaicha { border-color: #646A58; }
+.fill-iwaicha { fill: #646A58; }
+.stroke-iwaicha { stroke: #646A58; }
+.text-moegi { color: #7BA23F; }
+.bg-moegi { background-color: #7BA23F; }
+.border-moegi { border-color: #7BA23F; }
+.fill-moegi { fill: #7BA23F; }
+.stroke-moegi { stroke: #7BA23F; }
+.text-nae { color: #86C166; }
+.bg-nae { background-color: #86C166; }
+.border-nae { border-color: #86C166; }
+.fill-nae { fill: #86C166; }
+.stroke-nae { stroke: #86C166; }
+.text-yanagisusutake { color: #4A593D; }
+.bg-yanagisusutake { background-color: #4A593D; }
+.border-yanagisusutake { border-color: #4A593D; }
+.fill-yanagisusutake { fill: #4A593D; }
+.stroke-yanagisusutake { stroke: #4A593D; }
+.text-matsuba { color: #42602D; }
+.bg-matsuba { background-color: #42602D; }
+.border-matsuba { border-color: #42602D; }
+.fill-matsuba { fill: #42602D; }
+.stroke-matsuba { stroke: #42602D; }
+.text-aoni { color: #516E41; }
+.bg-aoni { background-color: #516E41; }
+.border-aoni { border-color: #516E41; }
+.fill-aoni { fill: #516E41; }
+.stroke-aoni { stroke: #516E41; }
+.text-usuao { color: #91B493; }
+.bg-usuao { background-color: #91B493; }
+.border-usuao { border-color: #91B493; }
+.fill-usuao { fill: #91B493; }
+.stroke-usuao { stroke: #91B493; }
+.text-yanaginezumi { color: #808F7C; }
+.bg-yanaginezumi { background-color: #808F7C; }
+.border-yanaginezumi { border-color: #808F7C; }
+.fill-yanaginezumi { fill: #808F7C; }
+.stroke-yanaginezumi { stroke: #808F7C; }
+.text-tokiwa { color: #1B813E; }
+.bg-tokiwa { background-color: #1B813E; }
+.border-tokiwa { border-color: #1B813E; }
+.fill-tokiwa { fill: #1B813E; }
+.stroke-tokiwa { stroke: #1B813E; }
+.text-wakatake { color: #5DAC81; }
+.bg-wakatake { background-color: #5DAC81; }
+.border-wakatake { border-color: #5DAC81; }
+.fill-wakatake { fill: #5DAC81; }
+.stroke-wakatake { stroke: #5DAC81; }
+.text-chitosemidori { color: #36563C; }
+.bg-chitosemidori { background-color: #36563C; }
+.border-chitosemidori { border-color: #36563C; }
+.fill-chitosemidori { fill: #36563C; }
+.stroke-chitosemidori { stroke: #36563C; }
+.text-midori { color: #227D51; }
+.bg-midori { background-color: #227D51; }
+.border-midori { border-color: #227D51; }
+.fill-midori { fill: #227D51; }
+.stroke-midori { stroke: #227D51; }
+.text-byakuroku { color: #A8D8B9; }
+.bg-byakuroku { background-color: #A8D8B9; }
+.border-byakuroku { border-color: #A8D8B9; }
+.fill-byakuroku { fill: #A8D8B9; }
+.stroke-byakuroku { stroke: #A8D8B9; }
+.text-oitake { color: #6A8372; }
+.bg-oitake { background-color: #6A8372; }
+.border-oitake { border-color: #6A8372; }
+.fill-oitake { fill: #6A8372; }
+.stroke-oitake { stroke: #6A8372; }
+.text-tokusa { color: #2D6D4B; }
+.bg-tokusa { background-color: #2D6D4B; }
+.border-tokusa { border-color: #2D6D4B; }
+.fill-tokusa { fill: #2D6D4B; }
+.stroke-tokusa { stroke: #2D6D4B; }
+.text-onandocha { color: #465D4C; }
+.bg-onandocha { background-color: #465D4C; }
+.border-onandocha { border-color: #465D4C; }
+.fill-onandocha { fill: #465D4C; }
+.stroke-onandocha { stroke: #465D4C; }
+.text-rokusyoh { color: #24936E; }
+.bg-rokusyoh { background-color: #24936E; }
+.border-rokusyoh { border-color: #24936E; }
+.fill-rokusyoh { fill: #24936E; }
+.stroke-rokusyoh { stroke: #24936E; }
+.text-sabiseiji { color: #86A697; }
+.bg-sabiseiji { background-color: #86A697; }
+.border-sabiseiji { border-color: #86A697; }
+.fill-sabiseiji { fill: #86A697; }
+.stroke-sabiseiji { stroke: #86A697; }
+.text-aotake { color: #00896C; }
+.bg-aotake { background-color: #00896C; }
+.border-aotake { border-color: #00896C; }
+.fill-aotake { fill: #00896C; }
+.stroke-aotake { stroke: #00896C; }
+.text-veludo { color: #096148; }
+.bg-veludo { background-color: #096148; }
+.border-veludo { border-color: #096148; }
+.fill-veludo { fill: #096148; }
+.stroke-veludo { stroke: #096148; }
+.text-mushiao { color: #20604F; }
+.bg-mushiao { background-color: #20604F; }
+.border-mushiao { border-color: #20604F; }
+.fill-mushiao { fill: #20604F; }
+.stroke-mushiao { stroke: #20604F; }
+.text-aimirucha { color: #0F4C3A; }
+.bg-aimirucha { background-color: #0F4C3A; }
+.border-aimirucha { border-color: #0F4C3A; }
+.fill-aimirucha { fill: #0F4C3A; }
+.stroke-aimirucha { stroke: #0F4C3A; }
+.text-tonocha2 { color: #4F726C; }
+.bg-tonocha2 { background-color: #4F726C; }
+.border-tonocha2 { border-color: #4F726C; }
+.fill-tonocha2 { fill: #4F726C; }
+.stroke-tonocha2 { stroke: #4F726C; }
+.text-aomidori { color: #00AA90; }
+.bg-aomidori { background-color: #00AA90; }
+.border-aomidori { border-color: #00AA90; }
+.fill-aomidori { fill: #00AA90; }
+.stroke-aomidori { stroke: #00AA90; }
+.text-seiji { color: #69B0AC; }
+.bg-seiji { background-color: #69B0AC; }
+.border-seiji { border-color: #69B0AC; }
+.fill-seiji { fill: #69B0AC; }
+.stroke-seiji { stroke: #69B0AC; }
+.text-tetsu { color: #26453D; }
+.bg-tetsu { background-color: #26453D; }
+.border-tetsu { border-color: #26453D; }
+.fill-tetsu { fill: #26453D; }
+.stroke-tetsu { stroke: #26453D; }
+.text-mizuasagi { color: #66BAB7; }
+.bg-mizuasagi { background-color: #66BAB7; }
+.border-mizuasagi { border-color: #66BAB7; }
+.fill-mizuasagi { fill: #66BAB7; }
+.stroke-mizuasagi { stroke: #66BAB7; }
+.text-seiheki { color: #268785; }
+.bg-seiheki { background-color: #268785; }
+.border-seiheki { border-color: #268785; }
+.fill-seiheki { fill: #268785; }
+.stroke-seiheki { stroke: #268785; }
+.text-sabitetsuonando { color: #405B55; }
+.bg-sabitetsuonando { background-color: #405B55; }
+.border-sabitetsuonando { border-color: #405B55; }
+.fill-sabitetsuonando { fill: #405B55; }
+.stroke-sabitetsuonando { stroke: #405B55; }
+.text-korainando { color: #305A56; }
+.bg-korainando { background-color: #305A56; }
+.border-korainando { border-color: #305A56; }
+.fill-korainando { fill: #305A56; }
+.stroke-korainando { stroke: #305A56; }
+.text-byakugun { color: #78C2C4; }
+.bg-byakugun { background-color: #78C2C4; }
+.border-byakugun { border-color: #78C2C4; }
+.fill-byakugun { fill: #78C2C4; }
+.stroke-byakugun { stroke: #78C2C4; }
+.text-omeshicha { color: #376B6D; }
+.bg-omeshicha { background-color: #376B6D; }
+.border-omeshicha { border-color: #376B6D; }
+.fill-omeshicha { fill: #376B6D; }
+.stroke-omeshicha { stroke: #376B6D; }
+.text-kamenozoki { color: #A5DEE4; }
+.bg-kamenozoki { background-color: #A5DEE4; }
+.border-kamenozoki { border-color: #A5DEE4; }
+.fill-kamenozoki { fill: #A5DEE4; }
+.stroke-kamenozoki { stroke: #A5DEE4; }
+.text-fukagawanezumi { color: #77969A; }
+.bg-fukagawanezumi { background-color: #77969A; }
+.border-fukagawanezumi { border-color: #77969A; }
+.fill-fukagawanezumi { fill: #77969A; }
+.stroke-fukagawanezumi { stroke: #77969A; }
+.text-sabiasagi { color: #6699A1; }
+.bg-sabiasagi { background-color: #6699A1; }
+.border-sabiasagi { border-color: #6699A1; }
+.fill-sabiasagi { fill: #6699A1; }
+.stroke-sabiasagi { stroke: #6699A1; }
+.text-mizu { color: #81C7D4; }
+.bg-mizu { background-color: #81C7D4; }
+.border-mizu { border-color: #81C7D4; }
+.fill-mizu { fill: #81C7D4; }
+.stroke-mizu { stroke: #81C7D4; }
+.text-asagi { color: #33A6B8; }
+.bg-asagi { background-color: #33A6B8; }
+.border-asagi { border-color: #33A6B8; }
+.fill-asagi { fill: #33A6B8; }
+.stroke-asagi { stroke: #33A6B8; }
+.text-onando { color: #0C4842; }
+.bg-onando { background-color: #0C4842; }
+.border-onando { border-color: #0C4842; }
+.fill-onando { fill: #0C4842; }
+.stroke-onando { stroke: #0C4842; }
+.text-ai { color: #0D5661; }
+.bg-ai { background-color: #0D5661; }
+.border-ai { border-color: #0D5661; }
+.fill-ai { fill: #0D5661; }
+.stroke-ai { stroke: #0D5661; }
+.text-shinbashi { color: #0089A7; }
+.bg-shinbashi { background-color: #0089A7; }
+.border-shinbashi { border-color: #0089A7; }
+.fill-shinbashi { fill: #0089A7; }
+.stroke-shinbashi { stroke: #0089A7; }
+.text-sabionando { color: #336774; }
+.bg-sabionando { background-color: #336774; }
+.border-sabionando { border-color: #336774; }
+.fill-sabionando { fill: #336774; }
+.stroke-sabionando { stroke: #336774; }
+.text-tetsuonando { color: #255359; }
+.bg-tetsuonando { background-color: #255359; }
+.border-tetsuonando { border-color: #255359; }
+.fill-tetsuonando { fill: #255359; }
+.stroke-tetsuonando { stroke: #255359; }
+.text-hanaasagi { color: #1E88A8; }
+.bg-hanaasagi { background-color: #1E88A8; }
+.border-hanaasagi { border-color: #1E88A8; }
+.fill-hanaasagi { fill: #1E88A8; }
+.stroke-hanaasagi { stroke: #1E88A8; }
+.text-ainezumi { color: #566C73; }
+.bg-ainezumi { background-color: #566C73; }
+.border-ainezumi { border-color: #566C73; }
+.fill-ainezumi { fill: #566C73; }
+.stroke-ainezumi { stroke: #566C73; }
+.text-masuhana { color: #577C8A; }
+.bg-masuhana { background-color: #577C8A; }
+.border-masuhana { border-color: #577C8A; }
+.fill-masuhana { fill: #577C8A; }
+.stroke-masuhana { stroke: #577C8A; }
+.text-sora { color: #58B2DC; }
+.bg-sora { background-color: #58B2DC; }
+.border-sora { border-color: #58B2DC; }
+.fill-sora { fill: #58B2DC; }
+.stroke-sora { stroke: #58B2DC; }
+.text-noshimehana { color: #2B5F75; }
+.bg-noshimehana { background-color: #2B5F75; }
+.border-noshimehana { border-color: #2B5F75; }
+.fill-noshimehana { fill: #2B5F75; }
+.stroke-noshimehana { stroke: #2B5F75; }
+.text-chigusa { color: #3A8FB7; }
+.bg-chigusa { background-color: #3A8FB7; }
+.border-chigusa { border-color: #3A8FB7; }
+.fill-chigusa { fill: #3A8FB7; }
+.stroke-chigusa { stroke: #3A8FB7; }
+.text-omeshionando { color: #2E5C6E; }
+.bg-omeshionando { background-color: #2E5C6E; }
+.border-omeshionando { border-color: #2E5C6E; }
+.fill-omeshionando { fill: #2E5C6E; }
+.stroke-omeshionando { stroke: #2E5C6E; }
+.text-hanada { color: #006284; }
+.bg-hanada { background-color: #006284; }
+.border-hanada { border-color: #006284; }
+.fill-hanada { fill: #006284; }
+.stroke-hanada { stroke: #006284; }
+.text-wasurenagusa { color: #7DB9DE; }
+.bg-wasurenagusa { background-color: #7DB9DE; }
+.border-wasurenagusa { border-color: #7DB9DE; }
+.fill-wasurenagusa { fill: #7DB9DE; }
+.stroke-wasurenagusa { stroke: #7DB9DE; }
+.text-gunjyo { color: #51A8DD; }
+.bg-gunjyo { background-color: #51A8DD; }
+.border-gunjyo { border-color: #51A8DD; }
+.fill-gunjyo { fill: #51A8DD; }
+.stroke-gunjyo { stroke: #51A8DD; }
+.text-tsuyukusa { color: #2EA9DF; }
+.bg-tsuyukusa { background-color: #2EA9DF; }
+.border-tsuyukusa { border-color: #2EA9DF; }
+.fill-tsuyukusa { fill: #2EA9DF; }
+.stroke-tsuyukusa { stroke: #2EA9DF; }
+.text-kurotsurubami { color: #0B1013; }
+.bg-kurotsurubami { background-color: #0B1013; }
+.border-kurotsurubami { border-color: #0B1013; }
+.fill-kurotsurubami { fill: #0B1013; }
+.stroke-kurotsurubami { stroke: #0B1013; }
+.text-kon { color: #0F2540; }
+.bg-kon { background-color: #0F2540; }
+.border-kon { border-color: #0F2540; }
+.fill-kon { fill: #0F2540; }
+.stroke-kon { stroke: #0F2540; }
+.text-kachi { color: #08192D; }
+.bg-kachi { background-color: #08192D; }
+.border-kachi { border-color: #08192D; }
+.fill-kachi { fill: #08192D; }
+.stroke-kachi { stroke: #08192D; }
+.text-ruri { color: #005CAF; }
+.bg-ruri { background-color: #005CAF; }
+.border-ruri { border-color: #005CAF; }
+.fill-ruri { fill: #005CAF; }
+.stroke-ruri { stroke: #005CAF; }
+.text-rurikon { color: #0B346E; }
+.bg-rurikon { background-color: #0B346E; }
+.border-rurikon { border-color: #0B346E; }
+.fill-rurikon { fill: #0B346E; }
+.stroke-rurikon { stroke: #0B346E; }
+.text-benimidori { color: #7B90D2; }
+.bg-benimidori { background-color: #7B90D2; }
+.border-benimidori { border-color: #7B90D2; }
+.fill-benimidori { fill: #7B90D2; }
+.stroke-benimidori { stroke: #7B90D2; }
+.text-fujinezumi { color: #6E75A4; }
+.bg-fujinezumi { background-color: #6E75A4; }
+.border-fujinezumi { border-color: #6E75A4; }
+.fill-fujinezumi { fill: #6E75A4; }
+.stroke-fujinezumi { stroke: #6E75A4; }
+.text-tetsukon { color: #261E47; }
+.bg-tetsukon { background-color: #261E47; }
+.border-tetsukon { border-color: #261E47; }
+.fill-tetsukon { fill: #261E47; }
+.stroke-tetsukon { stroke: #261E47; }
+.text-konjyo { color: #113285; }
+.bg-konjyo { background-color: #113285; }
+.border-konjyo { border-color: #113285; }
+.fill-konjyo { fill: #113285; }
+.stroke-konjyo { stroke: #113285; }
+.text-benikakehana { color: #4E4F97; }
+.bg-benikakehana { background-color: #4E4F97; }
+.border-benikakehana { border-color: #4E4F97; }
+.fill-benikakehana { fill: #4E4F97; }
+.stroke-benikakehana { stroke: #4E4F97; }
+.text-konkikyo { color: #211E55; }
+.bg-konkikyo { background-color: #211E55; }
+.border-konkikyo { border-color: #211E55; }
+.fill-konkikyo { fill: #211E55; }
+.stroke-konkikyo { stroke: #211E55; }
+.text-fuji { color: #8B81C3; }
+.bg-fuji { background-color: #8B81C3; }
+.border-fuji { border-color: #8B81C3; }
+.fill-fuji { fill: #8B81C3; }
+.stroke-fuji { stroke: #8B81C3; }
+.text-futaai { color: #70649A; }
+.bg-futaai { background-color: #70649A; }
+.border-futaai { border-color: #70649A; }
+.fill-futaai { fill: #70649A; }
+.stroke-futaai { stroke: #70649A; }
+.text-ouchi { color: #9B90C2; }
+.bg-ouchi { background-color: #9B90C2; }
+.border-ouchi { border-color: #9B90C2; }
+.fill-ouchi { fill: #9B90C2; }
+.stroke-ouchi { stroke: #9B90C2; }
+.text-fujimurasaki { color: #8A6BBE; }
+.bg-fujimurasaki { background-color: #8A6BBE; }
+.border-fujimurasaki { border-color: #8A6BBE; }
+.fill-fujimurasaki { fill: #8A6BBE; }
+.stroke-fujimurasaki { stroke: #8A6BBE; }
+.text-kikyo { color: #6A4C9C; }
+.bg-kikyo { background-color: #6A4C9C; }
+.border-kikyo { border-color: #6A4C9C; }
+.fill-kikyo { fill: #6A4C9C; }
+.stroke-kikyo { stroke: #6A4C9C; }
+.text-shion { color: #8F77B5; }
+.bg-shion { background-color: #8F77B5; }
+.border-shion { border-color: #8F77B5; }
+.fill-shion { fill: #8F77B5; }
+.stroke-shion { stroke: #8F77B5; }
+.text-messhi { color: #533D5B; }
+.bg-messhi { background-color: #533D5B; }
+.border-messhi { border-color: #533D5B; }
+.fill-messhi { fill: #533D5B; }
+.stroke-messhi { stroke: #533D5B; }
+.text-usu { color: #B28FCE; }
+.bg-usu { background-color: #B28FCE; }
+.border-usu { border-color: #B28FCE; }
+.fill-usu { fill: #B28FCE; }
+.stroke-usu { stroke: #B28FCE; }
+.text-hashita { color: #986DB2; }
+.bg-hashita { background-color: #986DB2; }
+.border-hashita { border-color: #986DB2; }
+.fill-hashita { fill: #986DB2; }
+.stroke-hashita { stroke: #986DB2; }
+.text-edomurasaki { color: #77428D; }
+.bg-edomurasaki { background-color: #77428D; }
+.border-edomurasaki { border-color: #77428D; }
+.fill-edomurasaki { fill: #77428D; }
+.stroke-edomurasaki { stroke: #77428D; }
+.text-shikon { color: #3C2F41; }
+.bg-shikon { background-color: #3C2F41; }
+.border-shikon { border-color: #3C2F41; }
+.fill-shikon { fill: #3C2F41; }
+.stroke-shikon { stroke: #3C2F41; }
+.text-kokimurasaki { color: #4A225D; }
+.bg-kokimurasaki { background-color: #4A225D; }
+.border-kokimurasaki { border-color: #4A225D; }
+.fill-kokimurasaki { fill: #4A225D; }
+.stroke-kokimurasaki { stroke: #4A225D; }
+.text-sumire { color: #66327C; }
+.bg-sumire { background-color: #66327C; }
+.border-sumire { border-color: #66327C; }
+.fill-sumire { fill: #66327C; }
+.stroke-sumire { stroke: #66327C; }
+.text-murasaki { color: #592C63; }
+.bg-murasaki { background-color: #592C63; }
+.border-murasaki { border-color: #592C63; }
+.fill-murasaki { fill: #592C63; }
+.stroke-murasaki { stroke: #592C63; }
+.text-ayame { color: #6F3381; }
+.bg-ayame { background-color: #6F3381; }
+.border-ayame { border-color: #6F3381; }
+.fill-ayame { fill: #6F3381; }
+.stroke-ayame { stroke: #6F3381; }
+.text-fujisusutake { color: #574C57; }
+.bg-fujisusutake { background-color: #574C57; }
+.border-fujisusutake { border-color: #574C57; }
+.fill-fujisusutake { fill: #574C57; }
+.stroke-fujisusutake { stroke: #574C57; }
+.text-benifuji { color: #B481BB; }
+.bg-benifuji { background-color: #B481BB; }
+.border-benifuji { border-color: #B481BB; }
+.fill-benifuji { fill: #B481BB; }
+.stroke-benifuji { stroke: #B481BB; }
+.text-kurobeni { color: #3F2B36; }
+.bg-kurobeni { background-color: #3F2B36; }
+.border-kurobeni { border-color: #3F2B36; }
+.fill-kurobeni { fill: #3F2B36; }
+.stroke-kurobeni { stroke: #3F2B36; }
+.text-nasukon { color: #572A3F; }
+.bg-nasukon { background-color: #572A3F; }
+.border-nasukon { border-color: #572A3F; }
+.fill-nasukon { fill: #572A3F; }
+.stroke-nasukon { stroke: #572A3F; }
+.text-budohnezumi { color: #5E3D50; }
+.bg-budohnezumi { background-color: #5E3D50; }
+.border-budohnezumi { border-color: #5E3D50; }
+.fill-budohnezumi { fill: #5E3D50; }
+.stroke-budohnezumi { stroke: #5E3D50; }
+.text-hatobanezumi { color: #72636E; }
+.bg-hatobanezumi { background-color: #72636E; }
+.border-hatobanezumi { border-color: #72636E; }
+.fill-hatobanezumi { fill: #72636E; }
+.stroke-hatobanezumi { stroke: #72636E; }
+.text-kakitsubata { color: #622954; }
+.bg-kakitsubata { background-color: #622954; }
+.border-kakitsubata { border-color: #622954; }
+.fill-kakitsubata { fill: #622954; }
+.stroke-kakitsubata { stroke: #622954; }
+.text-ebizome { color: #6D2E5B; }
+.bg-ebizome { background-color: #6D2E5B; }
+.border-ebizome { border-color: #6D2E5B; }
+.fill-ebizome { fill: #6D2E5B; }
+.stroke-ebizome { stroke: #6D2E5B; }
+.text-botan { color: #C1328E; }
+.bg-botan { background-color: #C1328E; }
+.border-botan { border-color: #C1328E; }
+.fill-botan { fill: #C1328E; }
+.stroke-botan { stroke: #C1328E; }
+.text-umemurasaki { color: #A8497A; }
+.bg-umemurasaki { background-color: #A8497A; }
+.border-umemurasaki { border-color: #A8497A; }
+.fill-umemurasaki { fill: #A8497A; }
+.stroke-umemurasaki { stroke: #A8497A; }
+.text-nisemurasaki { color: #562E37; }
+.bg-nisemurasaki { background-color: #562E37; }
+.border-nisemurasaki { border-color: #562E37; }
+.fill-nisemurasaki { fill: #562E37; }
+.stroke-nisemurasaki { stroke: #562E37; }
+.text-tsutsuji { color: #E03C8A; }
+.bg-tsutsuji { background-color: #E03C8A; }
+.border-tsutsuji { border-color: #E03C8A; }
+.fill-tsutsuji { fill: #E03C8A; }
+.stroke-tsutsuji { stroke: #E03C8A; }
+.text-murasakitobi { color: #60373E; }
+.bg-murasakitobi { background-color: #60373E; }
+.border-murasakitobi { border-color: #60373E; }
+.fill-murasakitobi { fill: #60373E; }
+.stroke-murasakitobi { stroke: #60373E; }
+.text-shironeri { color: #FCFAF2; }
+.bg-shironeri { background-color: #FCFAF2; }
+.border-shironeri { border-color: #FCFAF2; }
+.fill-shironeri { fill: #FCFAF2; }
+.stroke-shironeri { stroke: #FCFAF2; }
+.text-gofun { color: #FFFFFB; }
+.bg-gofun { background-color: #FFFFFB; }
+.border-gofun { border-color: #FFFFFB; }
+.fill-gofun { fill: #FFFFFB; }
+.stroke-gofun { stroke: #FFFFFB; }
+.text-shironezumi { color: #BDC0BA; }
+.bg-shironezumi { background-color: #BDC0BA; }
+.border-shironezumi { border-color: #BDC0BA; }
+.fill-shironezumi { fill: #BDC0BA; }
+.stroke-shironezumi { stroke: #BDC0BA; }
+.text-ginnezumi { color: #91989F; }
+.bg-ginnezumi { background-color: #91989F; }
+.border-ginnezumi { border-color: #91989F; }
+.fill-ginnezumi { fill: #91989F; }
+.stroke-ginnezumi { stroke: #91989F; }
+.text-namari { color: #787878; }
+.bg-namari { background-color: #787878; }
+.border-namari { border-color: #787878; }
+.fill-namari { fill: #787878; }
+.stroke-namari { stroke: #787878; }
+.text-hai { color: #828282; }
+.bg-hai { background-color: #828282; }
+.border-hai { border-color: #828282; }
+.fill-hai { fill: #828282; }
+.stroke-hai { stroke: #828282; }
+.text-sunezumi { color: #787D7B; }
+.bg-sunezumi { background-color: #787D7B; }
+.border-sunezumi { border-color: #787D7B; }
+.fill-sunezumi { fill: #787D7B; }
+.stroke-sunezumi { stroke: #787D7B; }
+.text-rikyunezumi { color: #707C74; }
+.bg-rikyunezumi { background-color: #707C74; }
+.border-rikyunezumi { border-color: #707C74; }
+.fill-rikyunezumi { fill: #707C74; }
+.stroke-rikyunezumi { stroke: #707C74; }
+.text-nibi { color: #656765; }
+.bg-nibi { background-color: #656765; }
+.border-nibi { border-color: #656765; }
+.fill-nibi { fill: #656765; }
+.stroke-nibi { stroke: #656765; }
+.text-aonibi { color: #535953; }
+.bg-aonibi { background-color: #535953; }
+.border-aonibi { border-color: #535953; }
+.fill-aonibi { fill: #535953; }
+.stroke-aonibi { stroke: #535953; }
+.text-dobunezumi { color: #4F4F48; }
+.bg-dobunezumi { background-color: #4F4F48; }
+.border-dobunezumi { border-color: #4F4F48; }
+.fill-dobunezumi { fill: #4F4F48; }
+.stroke-dobunezumi { stroke: #4F4F48; }
+.text-benikeshinezumi { color: #52433D; }
+.bg-benikeshinezumi { background-color: #52433D; }
+.border-benikeshinezumi { border-color: #52433D; }
+.fill-benikeshinezumi { fill: #52433D; }
+.stroke-benikeshinezumi { stroke: #52433D; }
+.text-aisumicha { color: #373C38; }
+.bg-aisumicha { background-color: #373C38; }
+.border-aisumicha { border-color: #373C38; }
+.fill-aisumicha { fill: #373C38; }
+.stroke-aisumicha { stroke: #373C38; }
+.text-binrojizome { color: #3A3226; }
+.bg-binrojizome { background-color: #3A3226; }
+.border-binrojizome { border-color: #3A3226; }
+.fill-binrojizome { fill: #3A3226; }
+.stroke-binrojizome { stroke: #3A3226; }
+.text-keshizumi { color: #434343; }
+.bg-keshizumi { background-color: #434343; }
+.border-keshizumi { border-color: #434343; }
+.fill-keshizumi { fill: #434343; }
+.stroke-keshizumi { stroke: #434343; }
+.text-sumi { color: #1C1C1C; }
+.bg-sumi { background-color: #1C1C1C; }
+.border-sumi { border-color: #1C1C1C; }
+.fill-sumi { fill: #1C1C1C; }
+.stroke-sumi { stroke: #1C1C1C; }
+.text-kuro { color: #080808; }
+.bg-kuro { background-color: #080808; }
+.border-kuro { border-color: #080808; }
+.fill-kuro { fill: #080808; }
+.stroke-kuro { stroke: #080808; }
+.text-ro { color: #0C0C0C; }
+.bg-ro { background-color: #0C0C0C; }
+.border-ro { border-color: #0C0C0C; }
+.fill-ro { fill: #0C0C0C; }
+.stroke-ro { stroke: #0C0C0C; }

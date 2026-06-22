@@ -1,49 +1,34 @@
 /*
- * 日本の伝統色 — Traditional colors of Japan
- * Sourced from nipponcolors.com
+ * 日本の伝統色 — wairo-palette (nipponcolors.com, ~250 colors)
  *
  * Light palette (昼 / Day):
- *   白磁 Hakuji    #F8ECD1  porcelain white  → background
- *   卵色 Tamagoiro #F3DDB3  egg cream        → surface
- *   砂色 Sunairo   #EDD9A3  sand             → muted surface
- *   墨   Sumi      #1C1C1C  ink black        → text
- *   紺青 Konjou    #003171  deep navy        → accent / primary
+ *   白練 Shironeri  #FCFAF2  off-white silk   → background
+ *   鳥の子 Torinoko #DAC9A6  warm parchment   → surface / mute
+ *   墨   Sumi       #1C1C1C  ink black        → text
+ *   紺青 Konjyo     #113285  deep navy        → accent / primary
  *
  * Night palette (夜 / Night):
- *   漆黒 Shikkoku  #1A1210  lacquer black    → background
- *   墨   Sumi      #1C1C1C  ink              → surface
- *   白磁 Hakuji    #F8ECD1  porcelain cream  → text
- *   胡粉 Gofun     #FFFFFB  calcium white    → heading
- *   撫子 Nadeshiko #EEA9B8  pink             → accent / primary
+ *   黒鳶 Kurotsurubami #0B1013  lacquer black → background
+ *   墨   Sumi           #1C1C1C  ink           → surface
+ *   胡粉 Gofun          #FFFFFB  calcium white → heading
+ *   撫子 Nadeshiko      #DC9FB4  soft pink     → accent / primary
  */
-
-:root {
-  --nippon-hakuji:    #F8ECD1;
-  --nippon-tamagoiro: #F3DDB3;
-  --nippon-sunairo:   #EDD9A3;
-  --nippon-sumi:      #1C1C1C;
-  --nippon-konjou:    #003171;
-  --nippon-gofun:     #FFFFFB;
-  --nippon-shikkoku:  #1A1210;
-  --nippon-nadeshiko: #EEA9B8;
-  --nippon-nibiiro:   #727171;
-}
 
 /* ── Light mode (default) ── */
 :root {
-  --color-background:      var(--nippon-hakuji);
-  --color-background-soft: var(--nippon-tamagoiro);
-  --color-background-mute: var(--nippon-sunairo);
+  --color-background:      var(--color-shironeri);
+  --color-background-soft: color-mix(in srgb, var(--color-torinoko) 50%, var(--color-shironeri));
+  --color-background-mute: var(--color-torinoko);
 
-  --color-border:          rgba(28, 28, 28, 0.12);
-  --color-border-hover:    rgba(28, 28, 28, 0.29);
+  --color-border:          color-mix(in srgb, var(--color-sumi) 12%, transparent);
+  --color-border-hover:    color-mix(in srgb, var(--color-sumi) 29%, transparent);
 
-  --color-heading: var(--nippon-sumi);
-  --color-text:    var(--nippon-sumi);
-  --color-accent:  var(--nippon-konjou);
+  --color-heading: var(--color-sumi);
+  --color-text:    var(--color-sumi);
+  --color-accent:  var(--color-konjyo);
   --color-success: #16a34a;
   --color-error:   #b52626;
-  --color-link:    var(--nippon-konjou);
+  --color-link:    var(--color-konjyo);
   --color-code:    #374151;
 
   --section-gap: 160px;
@@ -51,20 +36,20 @@
 
 /* ── Night mode — toggled via .dark on <html> ── */
 :root.dark {
-  --color-background:      var(--nippon-shikkoku);
-  --color-background-soft: var(--nippon-sumi);
-  --color-background-mute: #242020;
+  --color-background:      var(--color-kurotsurubami);
+  --color-background-soft: var(--color-sumi);
+  --color-background-mute: color-mix(in srgb, var(--color-sumi) 70%, var(--color-kurotsurubami));
 
-  --color-border:          rgba(248, 236, 209, 0.16);
-  --color-border-hover:    rgba(248, 236, 209, 0.32);
+  --color-border:          color-mix(in srgb, var(--color-shironeri) 16%, transparent);
+  --color-border-hover:    color-mix(in srgb, var(--color-shironeri) 32%, transparent);
 
-  --color-heading: var(--nippon-gofun);
-  --color-text:    var(--nippon-hakuji);
-  --color-accent:  var(--nippon-nadeshiko);
+  --color-heading: var(--color-gofun);
+  --color-text:    var(--color-shironeri);
+  --color-accent:  var(--color-nadeshiko);
   --color-success: #4ade80;
   --color-error:   #f87171;
   --color-link:    #93b8e8;
-  --color-code:    var(--nippon-hakuji);
+  --color-code:    var(--color-shironeri);
 }
 
 *,
