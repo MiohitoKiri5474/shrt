@@ -12,6 +12,7 @@ from app.rate_limiter import limiter
 from app.models import User
 from app.schemas import UserCreate, UserOut, UserUpdate, Token
 from app.services.auth import hash_password, verify_password, create_access_token, decode_token
+from app.services.token_blocklist import TokenBlocklist, get_token_blocklist
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter()
@@ -28,6 +29,7 @@ async def get_current_user(
     token: str | None = Depends(oauth2_scheme),
     cookie_token: str | None = Cookie(default=None, alias="access_token"),
     db: AsyncSession = Depends(get_db),
+    blocklist: TokenBlocklist = Depends(get_token_blocklist),
 ) -> User:
     # Cookie takes priority over bearer token — bearer is kept for API clients
     actual_token = cookie_token or token
@@ -38,6 +40,11 @@ async def get_current_user(
         user_id: int = int(payload.get("sub"))
     except (JWTError, TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    # Reject tokens revoked via logout before any DB work. Tokens issued before
+    # the jti claim existed carry no jti and are treated as non-revocable.
+    jti = payload.get("jti")
+    if jti and await blocklist.is_revoked(jti):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
@@ -130,7 +137,27 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
     return {"token_type": "bearer"}
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    response: Response,
+    token: str | None = Depends(oauth2_scheme),
+    cookie_token: str | None = Cookie(default=None, alias="access_token"),
+    blocklist: TokenBlocklist = Depends(get_token_blocklist),
+):
+    # Revoke the token server-side so a copy made before logout cannot keep
+    # being used for the remainder of its lifetime. Decoding may fail for an
+    # invalid or already-expired token — in that case there is nothing to
+    # revoke, so just clear the cookie.
+    actual_token = cookie_token or token
+    if actual_token:
+        try:
+            payload = decode_token(actual_token)
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti and exp:
+                ttl = int(exp - datetime.now(timezone.utc).timestamp())
+                await blocklist.revoke(jti, ttl)
+        except (JWTError, TypeError, ValueError):
+            pass
     response.delete_cookie(
         "access_token",
         httponly=True,
