@@ -13,7 +13,7 @@ from app.models import User
 from app.services.auth import hash_password
 from app.schemas import UserCreate
 from pydantic import ValidationError
-from app.routers import auth, urls, redirect
+from app.routers import auth, urls, redirect, admin
 
 logger = logging.getLogger(__name__)
 
@@ -139,4 +139,5 @@ async def seed_default_user():
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(urls.router, prefix="/api/urls", tags=["urls"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(redirect.router, tags=["redirect"])

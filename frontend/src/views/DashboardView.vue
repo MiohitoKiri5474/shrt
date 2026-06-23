@@ -121,6 +121,7 @@ async function handleLogout() {
             @click="startEditUsername"
           >{{ authStore.user?.username ?? authStore.user?.email }}</span>
         </template>
+        <RouterLink v-if="authStore.user?.is_admin" class="btn-admin" to="/admin">Admin</RouterLink>
         <button v-if="authStore.user?.is_admin" class="btn-add-user" @click="showAddUser = true">Add User</button>
         <button
           class="theme-toggle"
@@ -275,6 +276,7 @@ async function handleLogout() {
   transform: rotate(15deg);
 }
 
+.btn-admin,
 .btn-add-user {
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--color-border-hover);
@@ -286,6 +288,12 @@ async function handleLogout() {
   transition: background 0.2s, border-color 0.2s;
 }
 
+.btn-admin {
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.btn-admin:hover,
 .btn-add-user:hover {
   background: var(--color-border);
 }
@@ -306,6 +314,7 @@ async function handleLogout() {
 }
 
 .theme-toggle:focus-visible,
+.btn-admin:focus-visible,
 .btn-add-user:focus-visible,
 .btn-signout:focus-visible {
   outline: 2px solid var(--color-accent);
