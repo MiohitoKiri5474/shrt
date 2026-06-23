@@ -169,3 +169,71 @@ async def test_update_url_not_owner(client, auth_client):
 async def test_update_url_not_found(auth_client):
     resp = await auth_client.patch("/api/urls/99999", json={"short_code": "notfound"})
     assert resp.status_code == 404
+
+async def test_create_url_with_password(auth_client):
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["has_password"] is True
+
+async def test_create_url_without_password(auth_client):
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://public.com"})
+    assert resp.status_code == 201
+    assert resp.json()["has_password"] is False
+
+async def test_list_urls_password_flag(auth_client):
+    await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    await auth_client.post("/api/urls", json={"original_url": "https://public.com"})
+    resp = await auth_client.get("/api/urls")
+    assert resp.status_code == 200
+    items = resp.json()
+    assert any(i["has_password"] for i in items)
+    assert any(not i["has_password"] for i in items)
+
+async def test_redirect_password_protected_goes_to_gate(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    code = create.json()["short_code"]
+    resp = await client.get(f"/{code}", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == f"/p/{code}"
+
+async def test_unlock_correct_password(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    code = create.json()["short_code"]
+    resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "hunter2"})
+    assert resp.status_code == 200
+    assert resp.json()["redirect_url"] == "https://secret.com/"
+
+async def test_unlock_wrong_password(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    code = create.json()["short_code"]
+    resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "wrong"})
+    assert resp.status_code == 401
+
+async def test_unlock_not_password_protected(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://public.com"})
+    code = create.json()["short_code"]
+    resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "anything"})
+    assert resp.status_code == 400
+
+async def test_unlock_not_found(client):
+    resp = await client.post("/api/urls/notfound8/unlock", json={"password": "x"})
+    assert resp.status_code == 404
+
+async def test_unlock_records_click(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    data = create.json()
+    code = data["short_code"]
+    url_id = data["id"]
+    await client.post(f"/api/urls/{code}/unlock", json={"password": "hunter2"})
+    stats = await auth_client.get(f"/api/urls/{url_id}/stats")
+    assert stats.json()["total_clicks"] == 1
+
+async def test_redirect_no_click_for_password_protected(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    data = create.json()
+    code = data["short_code"]
+    url_id = data["id"]
+    await client.get(f"/{code}", follow_redirects=False)
+    stats = await auth_client.get(f"/api/urls/{url_id}/stats")
+    assert stats.json()["total_clicks"] == 0

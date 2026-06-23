@@ -219,6 +219,14 @@ code {
   cursor: not-allowed;
 }
 
+.lock-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  opacity: 0.85;
+}
+
 .url-invalid__badge {
   display: inline-block;
   margin-left: 0.4rem;

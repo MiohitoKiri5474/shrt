@@ -41,8 +41,12 @@ export interface StatsOut {
 }
 
 export const urlsApi = {
-  async create(original_url: string, custom_code?: string): Promise<URLOut> {
-    const { data } = await apiClient.post<URLOut>('/api/urls', { original_url, custom_code })
+  async create(original_url: string, custom_code?: string, password?: string): Promise<URLOut> {
+    const { data } = await apiClient.post<URLOut>('/api/urls', { original_url, custom_code, password })
+    return data
+  },
+  async unlock(short_code: string, password: string): Promise<{ redirect_url: string }> {
+    const { data } = await apiClient.post<{ redirect_url: string }>(`/api/urls/${short_code}/unlock`, { password })
     return data
   },
   async list(): Promise<URLOut[]> {
