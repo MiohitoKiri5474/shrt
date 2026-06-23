@@ -87,3 +87,27 @@ async def test_delete_url_not_found(auth_client):
 async def test_stats_not_found(auth_client):
     resp = await auth_client.get("/api/urls/99999/stats")
     assert resp.status_code == 404
+
+async def test_qr_code_success(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://qr.com"})
+    code = create.json()["short_code"]
+    resp = await auth_client.get(f"/api/urls/{code}/qr")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "image/png"
+    assert resp.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+async def test_qr_code_not_found(auth_client):
+    resp = await auth_client.get("/api/urls/nosuchcode/qr")
+    assert resp.status_code == 404
+
+async def test_qr_code_requires_auth(client):
+    resp = await client.get("/api/urls/anycode/qr")
+    assert resp.status_code == 401
+
+async def test_qr_code_not_owner(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://owned.com"})
+    code = create.json()["short_code"]
+    await client.post("/api/auth/register", json={"email": "intruder@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "intruder@b.com", "password": "pass12345678"})
+    resp = await client.get(f"/api/urls/{code}/qr")
+    assert resp.status_code == 404

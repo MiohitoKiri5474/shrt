@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useURLsStore } from '../stores/urls'
@@ -8,7 +8,7 @@ import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import AddUserForm from '../components/AddUserForm.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
-import type { StatsOut } from '../api/urls'
+import { urlsApi, type StatsOut } from '../api/urls'
 const BASE_URL = window.location.origin
 
 const router = useRouter()
@@ -22,6 +22,9 @@ const loadError = ref('')
 const showAddUser = ref(false)
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
+const qrShortCode = ref<string | null>(null)
+const qrDialogRef = ref<HTMLDialogElement | null>(null)
+const qrSrc = computed(() => (qrShortCode.value ? urlsApi.qrUrl(qrShortCode.value) : ''))
 const editingUsername = ref(false)
 const usernameInput = ref('')
 const usernameError = ref('')
@@ -56,6 +59,22 @@ watch(pendingDeleteId, (id) => {
     dialogRef.value?.close()
   }
 })
+
+watch(qrShortCode, (code) => {
+  if (code !== null) {
+    nextTick(() => qrDialogRef.value?.showModal())
+  } else {
+    qrDialogRef.value?.close()
+  }
+})
+
+function handleQr(shortCode: string) {
+  qrShortCode.value = shortCode
+}
+
+function closeQr() {
+  qrShortCode.value = null
+}
 
 async function handleStats(id: number) {
   statsError.value = ''
@@ -144,6 +163,7 @@ async function handleLogout() {
           :key="url.id"
           :url="url"
           :base-url="BASE_URL"
+          @qr="handleQr"
           @stats="handleStats"
           @delete="handleDelete"
         />
@@ -182,6 +202,22 @@ async function handleLogout() {
       <div class="confirm-actions">
         <button class="btn-cancel" autofocus @click="cancelDelete">Cancel</button>
         <button class="btn-confirm-delete" @click="confirmDelete">Delete</button>
+      </div>
+    </dialog>
+
+    <dialog
+      ref="qrDialogRef"
+      class="qr-dialog"
+      aria-modal="true"
+      aria-labelledby="qr-title"
+      @close="closeQr"
+    >
+      <h3 id="qr-title">QR code</h3>
+      <p class="qr-target">{{ BASE_URL }}/{{ qrShortCode }}</p>
+      <img v-if="qrSrc" :src="qrSrc" class="qr-image" :alt="`QR code for ${BASE_URL}/${qrShortCode}`" width="256" height="256" />
+      <div class="qr-actions">
+        <a v-if="qrSrc" class="btn-qr-download" :href="qrSrc" :download="`qr-${qrShortCode}.png`">Download</a>
+        <button class="btn-cancel" autofocus @click="closeQr">Close</button>
       </div>
     </dialog>
   </div>
@@ -418,5 +454,74 @@ async function handleLogout() {
 
 .btn-confirm-delete:hover {
   opacity: 0.85;
+}
+
+.qr-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  z-index: 200;
+}
+
+.qr-dialog h3 {
+  margin: 0 0 0.5rem;
+  color: var(--color-heading);
+}
+
+.qr-target {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  word-break: break-all;
+}
+
+.qr-image {
+  display: block;
+  width: 256px;
+  height: 256px;
+  max-width: 100%;
+  margin: 0 auto 1.25rem;
+  background: #fff;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.qr-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.btn-qr-download {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-background);
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: opacity 0.2s;
+}
+
+.btn-qr-download:hover {
+  opacity: 0.85;
+}
+
+.btn-qr-download:focus-visible,
+.qr-actions .btn-cancel:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 </style>
