@@ -25,5 +25,11 @@ export const useURLsStore = defineStore('urls', () => {
     currentStats.value = await urlsApi.stats(id)
   }
 
-  return { urls, currentStats, fetchAll, create, remove, fetchStats }
+  async function update(id: number, payload: Parameters<typeof urlsApi.update>[1]) {
+    const updated = await urlsApi.update(id, payload)
+    urls.value = urls.value.map(u => u.id === updated.id ? updated : u)
+    return updated
+  }
+
+  return { urls, currentStats, fetchAll, create, remove, fetchStats, update }
 })

@@ -111,3 +111,61 @@ async def test_qr_code_not_owner(client, auth_client):
     await client.post("/api/auth/login", data={"username": "intruder@b.com", "password": "pass12345678"})
     resp = await client.get(f"/api/urls/{code}/qr")
     assert resp.status_code == 404
+
+async def test_update_url_short_code(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://edit.com"})
+    url_id = create.json()["id"]
+    resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": "newcode1"})
+    assert resp.status_code == 200
+    assert resp.json()["short_code"] == "newcode1"
+
+async def test_update_url_short_code_conflict(auth_client):
+    r1 = await auth_client.post("/api/urls", json={"original_url": "https://example.com", "custom_code": "aaacode1"})
+    r2 = await auth_client.post("/api/urls", json={"original_url": "https://example.org", "custom_code": "bbbcode1"})
+    resp = await auth_client.patch(f"/api/urls/{r2.json()['id']}", json={"short_code": "aaacode1"})
+    assert resp.status_code == 409
+
+async def test_update_url_set_password(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://pw.com"})
+    url_id = create.json()["id"]
+    resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": create.json()["short_code"], "password": "secret123456"})
+    assert resp.status_code == 200
+    assert resp.json()["has_password"] is True
+
+async def test_update_url_remove_password(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://pw2.com"})
+    url_id = create.json()["id"]
+    code = create.json()["short_code"]
+    await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": code, "password": "secret123456"})
+    resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": code, "remove_password": True})
+    assert resp.status_code == 200
+    assert resp.json()["has_password"] is False
+
+async def test_update_url_set_expiry(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://exp.com"})
+    url_id = create.json()["id"]
+    code = create.json()["short_code"]
+    resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": code, "expires_at": "2099-01-01T00:00:00Z"})
+    assert resp.status_code == 200
+    assert resp.json()["expires_at"] is not None
+
+async def test_update_url_clear_expiry(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://exp2.com"})
+    url_id = create.json()["id"]
+    code = create.json()["short_code"]
+    await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": code, "expires_at": "2099-01-01T00:00:00Z"})
+    resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": code, "expires_at": None})
+    assert resp.status_code == 200
+    assert resp.json()["expires_at"] is None
+
+async def test_update_url_not_owner(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://own.com"})
+    url_id = create.json()["id"]
+    await client.post("/api/auth/register", json={"email": "other2@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "other2@b.com", "password": "pass12345678"})
+    resp = await client.patch(f"/api/urls/{url_id}", json={"short_code": "hacker11"})
+    assert resp.status_code == 404
+
+async def test_update_url_not_found(auth_client):
+    resp = await auth_client.patch("/api/urls/99999", json={"short_code": "notfound"})
+    assert resp.status_code == 404

@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
 from app.models import URL, Click, User
-from app.schemas import SSRFBlockedError, SSRFDNSError, URLCreate, URLOut, StatsOut, validate_no_ssrf
-from app.services.auth import get_unique_short_code
+from app.schemas import SSRFBlockedError, SSRFDNSError, URLCreate, URLOut, URLUpdate, StatsOut, validate_no_ssrf
+from app.services.auth import get_unique_short_code, hash_password, verify_password
 from app.routers.auth import get_current_user
 from app.rate_limiter import limiter
 
@@ -49,9 +49,7 @@ async def create_url(
     await db.commit()
     await db.refresh(url)
     click_count = await db.scalar(select(func.count()).where(Click.url_id == url.id))
-    item = URLOut.model_validate(url)
-    item.click_count = click_count or 0
-    return item
+    return URLOut.from_orm_with_clicks(url, click_count or 0)
 
 @router.get("", response_model=list[URLOut])
 @limiter.limit("100/minute")
@@ -67,12 +65,36 @@ async def list_urls(
         .group_by(URL.id)
         .order_by(URL.created_at.desc())
     )
-    out = []
-    for url, click_count in rows:
-        item = URLOut.model_validate(url)
-        item.click_count = click_count or 0
-        out.append(item)
-    return out
+    return [URLOut.from_orm_with_clicks(url, click_count or 0) for url, click_count in rows]
+
+@router.patch("/{url_id}", response_model=URLOut)
+@limiter.limit("30/minute")
+async def update_url(
+    request: Request,
+    url_id: int,
+    data: URLUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(URL).where(URL.id == url_id, URL.user_id == current_user.id))
+    url = result.scalar_one_or_none()
+    if not url:
+        raise HTTPException(status_code=404, detail="URL not found")
+    if data.short_code != url.short_code:
+        conflict = await db.execute(select(URL).where(URL.short_code == data.short_code))
+        if conflict.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail="Short code already taken")
+        url.short_code = data.short_code
+    if data.remove_password:
+        url.password_hash = None
+    elif data.password:
+        url.password_hash = hash_password(data.password)
+    url.expires_at = data.expires_at
+    await db.commit()
+    await db.refresh(url)
+    click_count = await db.scalar(select(func.count()).where(Click.url_id == url.id))
+    return URLOut.from_orm_with_clicks(url, click_count or 0)
+
 
 @router.delete("/{url_id}", status_code=204)
 @limiter.limit("30/minute")
