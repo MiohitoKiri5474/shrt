@@ -17,3 +17,10 @@ async def test_health_rate_limit(client):
 
     resp = await client.get("/health")
     assert resp.status_code == 429, f"Request 31 expected 429 (rate limited), got {resp.status_code}"
+
+
+async def test_api_health_ok(client):
+    """/api/health returns 200 with the {'status': 'ok'} payload the UI polls."""
+    resp = await client.get("/api/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}

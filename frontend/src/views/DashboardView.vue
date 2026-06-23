@@ -7,6 +7,7 @@ import { useThemeStore } from '../stores/theme'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import AddUserForm from '../components/AddUserForm.vue'
+import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
 import type { StatsOut } from '../api/urls'
 const BASE_URL = window.location.origin
 
@@ -98,6 +99,7 @@ async function handleLogout() {
     <header class="dash-header">
       <h1>URL Shortener</h1>
       <nav class="dash-nav">
+        <NetworkStatusIndicator />
         <template v-if="editingUsername">
           <input
             v-model="usernameInput"
