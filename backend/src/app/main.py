@@ -86,6 +86,16 @@ app.add_middleware(
 async def health(request: Request):
     return {"status": "ok"}
 
+
+# Same payload as /health, but mounted under /api so the frontend can reach it
+# through nginx's `/api/*` reverse-proxy rule. Used by the UI to poll backend
+# connectivity. The limit is generous (a 30s client poll is ~2 req/min) so the
+# liveness probe never trips its own rate limit and false-reports "offline".
+@app.get("/api/health")
+@limiter.limit("60/minute")
+async def api_health(request: Request) -> dict[str, str]:
+    return {"status": "ok"}
+
 @app.on_event("startup")
 async def startup():  # pragma: no cover
     if _APP_ENV not in {"development", "dev", "test", "testing"}:
