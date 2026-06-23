@@ -31,6 +31,8 @@ def create_access_token(data: dict) -> str:
     to_encode["iat"] = now
     to_encode["iss"] = "url-shortener"
     to_encode["aud"] = "url-shortener-api"
+    # Unique token ID so the token can be revoked server-side on logout.
+    to_encode["jti"] = secrets.token_hex(16)
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_token(token: str) -> dict:
