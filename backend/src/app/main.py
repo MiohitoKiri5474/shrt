@@ -26,7 +26,7 @@ _APP_ENV = os.getenv("APP_ENV", "production").lower()
 _is_dev = _APP_ENV in {"development", "dev"}
 
 app = FastAPI(
-    title="URL Shortener API",
+    title="Shrt API",
     version="1.0.0",
     docs_url="/docs" if _is_dev else None,
     redoc_url="/redoc" if _is_dev else None,

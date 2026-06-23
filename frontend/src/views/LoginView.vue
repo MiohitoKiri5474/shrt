@@ -79,7 +79,7 @@ async function handleSubmit() {
     </button>
 
     <div class="login-card">
-      <h1>URL Shortener</h1>
+      <h1>Shrt</h1>
       <form @submit.prevent="handleSubmit" data-testid="login-form">
         <div class="field">
           <label for="identifier">Email or Username</label>
