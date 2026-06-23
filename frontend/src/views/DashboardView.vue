@@ -278,7 +278,7 @@ async function handleLogout() {
       <form @submit.prevent="confirmEdit">
         <label>
           Short code
-          <input v-model="editShortCode" minlength="3" maxlength="16" pattern="[a-zA-Z0-9_-]+" required />
+          <input v-model="editShortCode" minlength="3" maxlength="16" pattern="[a-zA-Z0-9_-]+" required autofocus />
         </label>
         <label>
           New password <span class="field-hint">(leave empty to keep current)</span>

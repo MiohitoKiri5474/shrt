@@ -101,7 +101,7 @@ class URLUpdate(BaseModel):
     remove_password: bool = False  # True = clear password regardless of `password` field
     expires_at: datetime | None = None  # None = no expiry; datetime = set expiry
 
-    @field_validator("expires_at", mode="before")
+    @field_validator("expires_at", mode="after")
     @classmethod
     def expires_must_be_future(cls, v: object) -> object:
         if v is None:
@@ -126,10 +126,10 @@ class URLOut(BaseModel):
 
     @classmethod
     def from_orm_with_clicks(cls, url: object, click_count: int) -> "URLOut":
-        obj = cls.model_validate(url)
-        obj.click_count = click_count
-        obj.has_password = bool(getattr(url, "password_hash", None))
-        return obj
+        return cls.model_validate(url).model_copy(update={
+            "click_count": click_count,
+            "has_password": bool(getattr(url, "password_hash", None)),
+        })
 
 class StatsOut(BaseModel):
     url_id: int
