@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { URLOut } from '../api/urls'
 
 const props = defineProps<{ url: URLOut; baseUrl: string }>()
-const emit = defineEmits<{ delete: [id: number]; stats: [id: number] }>()
+const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; qr: [shortCode: string] }>()
 const copied = ref(false)
 const copyError = ref(false)
 
@@ -58,6 +58,7 @@ function isSafeUrl(url: string): boolean {
       <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>
     </div>
     <div class="url-actions">
+      <button class="btn-qr" @click="emit('qr', url.short_code)">QR</button>
       <button class="btn-stats" @click="emit('stats', url.id)">Stats</button>
       <button class="btn-delete" @click="emit('delete', url.id)">Delete</button>
     </div>
@@ -116,6 +117,7 @@ code {
   margin-left: 1rem;
 }
 
+.btn-qr,
 .btn-stats {
   padding: 0.4rem 0.8rem;
   border: 1px solid var(--color-accent);
@@ -126,6 +128,7 @@ code {
   transition: background 0.2s;
 }
 
+.btn-qr:hover,
 .btn-stats:hover {
   background: var(--color-border);
 }
@@ -164,6 +167,7 @@ code {
   color: var(--color-error);
 }
 
+.btn-qr:focus-visible,
 .btn-stats:focus-visible,
 .btn-delete:focus-visible,
 .btn-copy:focus-visible {

@@ -1,6 +1,8 @@
 import asyncio
+import io
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request
+import segno
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
@@ -112,4 +114,33 @@ async def get_stats(
         original_url=url.original_url,
         total_clicks=total,
         clicks_by_date=clicks_by_date,
+    )
+
+@router.get(
+    "/{short_code}/qr",
+    responses={200: {"content": {"image/png": {}}}},
+)
+@limiter.limit("60/minute")
+async def get_qr_code(
+    request: Request,
+    short_code: str = Path(..., max_length=16, pattern=r"^[a-zA-Z0-9_-]+$"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(URL).where(URL.short_code == short_code, URL.user_id == current_user.id)
+    )
+    url = result.scalar_one_or_none()
+    if not url:
+        raise HTTPException(status_code=404, detail="URL not found")
+    short_url = f"{str(request.base_url).rstrip('/')}/{url.short_code}"
+    buffer = io.BytesIO()
+    segno.make_qr(short_url, error="m").save(buffer, kind="png", scale=8, border=4)
+    return Response(
+        content=buffer.getvalue(),
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f'inline; filename="qr-{url.short_code}.png"',
+            "Cache-Control": "private, max-age=86400",
+        },
     )
