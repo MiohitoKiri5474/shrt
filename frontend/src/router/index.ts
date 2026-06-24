@@ -18,6 +18,11 @@ const router = createRouter({
       component: () => import('../views/AdminView.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
     },
+    {
+      path: '/p/:code',
+      name: 'password-gate',
+      component: () => import('../views/PasswordGateView.vue'),
+    },
   ],
 })
 

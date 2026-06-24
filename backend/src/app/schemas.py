@@ -86,6 +86,7 @@ class Token(BaseModel):
 class URLCreate(BaseModel):
     original_url: AnyHttpUrl
     custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str | None = Field(None, min_length=1, max_length=128)
 
     @field_validator("original_url", mode="before")
     @classmethod
@@ -97,9 +98,9 @@ class URLCreate(BaseModel):
 
 class URLUpdate(BaseModel):
     short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
-    password: str = ""          # non-empty = set new password; empty = no change
-    remove_password: bool = False  # True = clear password regardless of `password` field
-    expires_at: datetime | None = None  # None = no expiry; datetime = set expiry
+    password: str = ""
+    remove_password: bool = False
+    expires_at: datetime | None = None
 
     @field_validator("expires_at", mode="after")
     @classmethod
@@ -112,6 +113,7 @@ class URLUpdate(BaseModel):
             if v <= datetime.now(timezone.utc):
                 raise ValueError("Expiry must be in the future")
         return v
+
 
 
 class URLOut(BaseModel):
@@ -130,6 +132,14 @@ class URLOut(BaseModel):
             "click_count": click_count,
             "has_password": bool(getattr(url, "password_hash", None)),
         })
+
+
+class PasswordVerify(BaseModel):
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class UnlockOut(BaseModel):
+    redirect_url: str
 
 class StatsOut(BaseModel):
     url_id: int

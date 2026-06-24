@@ -32,6 +32,8 @@ async def redirect(
         expires = url.expires_at if url.expires_at.tzinfo else url.expires_at.replace(tzinfo=timezone.utc)
         if now >= expires:
             raise HTTPException(status_code=410, detail="This link has expired")
+    if url.password_hash is not None:
+        return RedirectResponse(url=f"/p/{short_code}", status_code=302)
     loop = asyncio.get_running_loop()
     try:
         await asyncio.wait_for(
