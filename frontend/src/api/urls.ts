@@ -21,6 +21,15 @@ export interface URLOut {
   original_url: string
   created_at: string
   click_count: number
+  has_password: boolean
+  expires_at: string | null
+}
+
+export interface URLUpdatePayload {
+  short_code: string
+  password?: string
+  remove_password?: boolean
+  expires_at?: string | null
 }
 
 export interface StatsOut {
@@ -42,6 +51,10 @@ export const urlsApi = {
   },
   async remove(id: number): Promise<void> {
     await apiClient.delete(`/api/urls/${id}`)
+  },
+  async update(id: number, payload: URLUpdatePayload): Promise<URLOut> {
+    const { data } = await apiClient.patch<URLOut>(`/api/urls/${id}`, payload)
+    return data
   },
   async stats(id: number): Promise<StatsOut> {
     const { data } = await apiClient.get<StatsOut>(`/api/urls/${id}/stats`)

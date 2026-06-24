@@ -1,5 +1,5 @@
 from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
-from datetime import datetime
+from datetime import datetime, timezone
 import ipaddress
 import socket
 from urllib.parse import urlparse
@@ -95,6 +95,24 @@ class URLCreate(BaseModel):
         return v
 
 
+class URLUpdate(BaseModel):
+    short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str = ""          # non-empty = set new password; empty = no change
+    remove_password: bool = False  # True = clear password regardless of `password` field
+    expires_at: datetime | None = None  # None = no expiry; datetime = set expiry
+
+    @field_validator("expires_at", mode="after")
+    @classmethod
+    def expires_must_be_future(cls, v: object) -> object:
+        if v is None:
+            return v
+        if isinstance(v, datetime):
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=timezone.utc)
+            if v <= datetime.now(timezone.utc):
+                raise ValueError("Expiry must be in the future")
+        return v
+
 
 class URLOut(BaseModel):
     id: int
@@ -102,7 +120,16 @@ class URLOut(BaseModel):
     original_url: str
     created_at: datetime
     click_count: int = 0
+    has_password: bool = False
+    expires_at: datetime | None = None
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_with_clicks(cls, url: object, click_count: int) -> "URLOut":
+        return cls.model_validate(url).model_copy(update={
+            "click_count": click_count,
+            "has_password": bool(getattr(url, "password_hash", None)),
+        })
 
 class StatsOut(BaseModel):
     url_id: int

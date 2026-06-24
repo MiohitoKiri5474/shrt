@@ -9,11 +9,13 @@ vi.mock('../../api/urls', () => ({
     create: vi.fn(),
     remove: vi.fn(),
     stats: vi.fn(),
+    update: vi.fn(),
   },
 }))
 
 const mockURL = {
   id: 1, short_code: 'abc12345', original_url: 'https://ex.com', created_at: '', click_count: 0,
+  has_password: false, expires_at: null,
 }
 
 describe('urls store', () => {
@@ -56,6 +58,16 @@ describe('urls store', () => {
 
     await expect(store.remove(1)).rejects.toThrow('delete failed')
     expect(store.urls).toHaveLength(1)
+  })
+
+  it('update replaces url in list', async () => {
+    vi.mocked(urlsApiModule.urlsApi.list).mockResolvedValue([mockURL])
+    const updated = { ...mockURL, short_code: 'newcode1' }
+    vi.mocked(urlsApiModule.urlsApi.update).mockResolvedValue(updated)
+    const store = useURLsStore()
+    await store.fetchAll()
+    await store.update(1, { short_code: 'newcode1' })
+    expect(store.urls[0]!.short_code).toBe('newcode1')
   })
 
   it('fetchStats sets currentStats', async () => {
