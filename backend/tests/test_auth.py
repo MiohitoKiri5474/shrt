@@ -362,3 +362,34 @@ async def test_null_blocklist_never_revokes():
     bl = NullTokenBlocklist()
     await bl.revoke("x", 600)
     assert await bl.is_revoked("x") is False
+
+
+# --- Async bcrypt wrapper tests ---
+
+async def test_hash_password_async_produces_verifiable_hash():
+    from app.services.auth import hash_password_async, verify_password
+
+    hashed = await hash_password_async("testpassword123")
+    assert verify_password("testpassword123", hashed) is True
+    assert verify_password("wrongpassword", hashed) is False
+
+
+async def test_verify_password_async_correct_and_wrong():
+    from app.services.auth import hash_password, verify_password_async
+
+    hashed = hash_password("mypassword456")
+    assert await verify_password_async("mypassword456", hashed) is True
+    assert await verify_password_async("notmypassword", hashed) is False
+
+
+async def test_async_and_sync_bcrypt_are_consistent():
+    from app.services.auth import hash_password, hash_password_async, verify_password, verify_password_async
+
+    pw = "consistency_check"
+    sync_hash = hash_password(pw)
+    async_hash = await hash_password_async(pw)
+
+    assert verify_password(pw, sync_hash) is True
+    assert verify_password(pw, async_hash) is True
+    assert await verify_password_async(pw, sync_hash) is True
+    assert await verify_password_async(pw, async_hash) is True

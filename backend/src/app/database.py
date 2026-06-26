@@ -4,7 +4,19 @@ from sqlalchemy.orm import sessionmaker
 from app.config import DATABASE_URL
 from app.models import Base
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+_pool_kwargs = (
+    {}
+    if _is_sqlite
+    else {
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+        "pool_recycle": 1800,
+        "pool_pre_ping": True,
+    }
+)
+engine = create_async_engine(DATABASE_URL, echo=False, **_pool_kwargs)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
