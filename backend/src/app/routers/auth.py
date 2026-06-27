@@ -12,7 +12,7 @@ from app.database import get_db
 from app.rate_limiter import limiter
 from app.models import User
 from app.schemas import UserCreate, UserOut, UserUpdate, Token
-from app.services.auth import hash_password, hash_password_async, verify_password, verify_password_async, create_access_token, decode_token
+from app.services.auth import hash_password, hash_password_async, verify_password, verify_password_async, create_access_token, decode_token, _bcrypt_executor
 from app.services.token_blocklist import TokenBlocklist, get_token_blocklist
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -117,7 +117,7 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         try:
             loop = asyncio.get_running_loop()
             legacy_ok = await loop.run_in_executor(
-                None, _bcrypt.checkpw, form.password.encode(), user.password_hash.encode()
+                _bcrypt_executor, _bcrypt.checkpw, form.password.encode(), user.password_hash.encode()
             )
         except Exception:
             legacy_ok = False
