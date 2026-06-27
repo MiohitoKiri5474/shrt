@@ -27,7 +27,7 @@ _is_dev = _APP_ENV in {"development", "dev"}
 _is_non_prod = _APP_ENV in {"development", "dev", "test", "testing"}
 
 app = FastAPI(
-    title="URL Shortener API",
+    title="Shrt API",
     version="1.0.0",
     docs_url="/docs" if _is_dev else None,
     redoc_url="/redoc" if _is_dev else None,

@@ -49,15 +49,14 @@ def create_access_token(data: dict) -> str:
     expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode["exp"] = expire
     to_encode["iat"] = now
-    to_encode["iss"] = "url-shortener"
-    to_encode["aud"] = "url-shortener-api"
-    # Unique token ID so the token can be revoked server-side on logout.
+    to_encode["iss"] = "shrt"
+    to_encode["aud"] = "shrt-api"
     to_encode["jti"] = secrets.token_hex(16)
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_token(token: str) -> dict:
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
-                      audience="url-shortener-api", issuer="url-shortener")
+                      audience="shrt-api", issuer="shrt")
 
 def generate_short_code(length: int = 8) -> str:
     chars = string.ascii_letters + string.digits
