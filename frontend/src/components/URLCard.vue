@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { URLOut } from '../api/urls'
 
 const props = defineProps<{ url: URLOut; baseUrl: string }>()
-const emit = defineEmits<{ delete: [id: number]; stats: [id: number] }>()
+const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; qr: [shortCode: string]; edit: [id: number] }>()
 const copied = ref(false)
 const copyError = ref(false)
 
@@ -55,9 +55,15 @@ function isSafeUrl(url: string): boolean {
         <code>{{ baseUrl }}/{{ url.short_code }}</code>
         <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
       </div>
-      <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>
+      <div class="url-meta">
+        <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>
+        <span v-if="url.has_password" class="badge badge--lock" title="Password protected">🔒</span>
+        <span v-if="url.expires_at" class="badge badge--expiry" :title="`Expires ${new Date(url.expires_at).toLocaleString()}`">⏰ {{ new Date(url.expires_at).toLocaleDateString() }}</span>
+      </div>
     </div>
     <div class="url-actions">
+      <button class="btn-qr" @click="emit('qr', url.short_code)">QR</button>
+      <button class="btn-edit" @click="emit('edit', url.id)">Edit</button>
       <button class="btn-stats" @click="emit('stats', url.id)">Stats</button>
       <button class="btn-delete" @click="emit('delete', url.id)">Delete</button>
     </div>
@@ -104,10 +110,43 @@ code {
   color: var(--color-code);
 }
 
+.url-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .clicks {
   font-size: 0.8rem;
   color: var(--color-text);
   opacity: 0.6;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+}
+
+.btn-edit {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  color: var(--color-text);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-edit:hover {
+  background: var(--color-border);
+}
+
+.btn-edit:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .url-actions {
@@ -116,6 +155,7 @@ code {
   margin-left: 1rem;
 }
 
+.btn-qr,
 .btn-stats {
   padding: 0.4rem 0.8rem;
   border: 1px solid var(--color-accent);
@@ -126,6 +166,7 @@ code {
   transition: background 0.2s;
 }
 
+.btn-qr:hover,
 .btn-stats:hover {
   background: var(--color-border);
 }
@@ -164,6 +205,7 @@ code {
   color: var(--color-error);
 }
 
+.btn-qr:focus-visible,
 .btn-stats:focus-visible,
 .btn-delete:focus-visible,
 .btn-copy:focus-visible {
@@ -175,6 +217,14 @@ code {
   text-decoration: line-through;
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.lock-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  opacity: 0.85;
 }
 
 .url-invalid__badge {

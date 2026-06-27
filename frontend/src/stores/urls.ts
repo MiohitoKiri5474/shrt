@@ -10,8 +10,8 @@ export const useURLsStore = defineStore('urls', () => {
     urls.value = await urlsApi.list()
   }
 
-  async function create(originalUrl: string, customCode?: string) {
-    const created = await urlsApi.create(originalUrl, customCode)
+  async function create(originalUrl: string, customCode?: string, password?: string) {
+    const created = await urlsApi.create(originalUrl, customCode, password)
     urls.value.unshift(created)
     return created
   }
@@ -25,5 +25,11 @@ export const useURLsStore = defineStore('urls', () => {
     currentStats.value = await urlsApi.stats(id)
   }
 
-  return { urls, currentStats, fetchAll, create, remove, fetchStats }
+  async function update(id: number, payload: Parameters<typeof urlsApi.update>[1]) {
+    const updated = await urlsApi.update(id, payload)
+    urls.value = urls.value.map(u => u.id === updated.id ? updated : u)
+    return updated
+  }
+
+  return { urls, currentStats, fetchAll, create, remove, fetchStats, update }
 })

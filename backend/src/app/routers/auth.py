@@ -1,3 +1,4 @@
+import asyncio
 import os
 from datetime import datetime, timezone
 import bcrypt as _bcrypt
@@ -11,7 +12,8 @@ from app.database import get_db
 from app.rate_limiter import limiter
 from app.models import User
 from app.schemas import UserCreate, UserOut, UserUpdate, Token
-from app.services.auth import hash_password, verify_password, create_access_token, decode_token
+from app.services.auth import hash_password, hash_password_async, verify_password, verify_password_async, create_access_token, decode_token
+from app.services.token_blocklist import TokenBlocklist, get_token_blocklist
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter()
@@ -28,6 +30,7 @@ async def get_current_user(
     token: str | None = Depends(oauth2_scheme),
     cookie_token: str | None = Cookie(default=None, alias="access_token"),
     db: AsyncSession = Depends(get_db),
+    blocklist: TokenBlocklist = Depends(get_token_blocklist),
 ) -> User:
     # Cookie takes priority over bearer token — bearer is kept for API clients
     actual_token = cookie_token or token
@@ -38,6 +41,11 @@ async def get_current_user(
         user_id: int = int(payload.get("sub"))
     except (JWTError, TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    # Reject tokens revoked via logout before any DB work. Tokens issued before
+    # the jti claim existed carry no jti and are treated as non-revocable.
+    jti = payload.get("jti")
+    if jti and await blocklist.is_revoked(jti):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
@@ -53,7 +61,7 @@ async def _create_user(data: UserCreate, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == data.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")
-    user = User(email=data.email, password_hash=hash_password(data.password))
+    user = User(email=data.email, password_hash=await hash_password_async(data.password))
     db.add(user)
     try:
         await db.commit()
@@ -76,7 +84,7 @@ async def register(request: Request, data: UserCreate, db: AsyncSession = Depend
         if exc.status_code == 409:
             # Equalize latency so duplicate vs new registration is indistinguishable
             # by timing (bcrypt would run on a real registration).
-            hash_password(data.password)
+            await hash_password_async(data.password)
             raise HTTPException(status_code=409, detail="Email already registered")
         raise
 
@@ -87,7 +95,7 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
         # Run a dummy bcrypt check to normalize response time — a bare 401 returns
         # in microseconds while a normal failed login takes ~100ms for bcrypt,
         # letting an attacker distinguish "too long" from "wrong password" by timing.
-        verify_password("dummy", _DUMMY_HASH)
+        await verify_password_async("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     identifier = form.username
     if "@" in identifier:
@@ -98,25 +106,28 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
     if not user:
         # Three dummy bcrypt ops to match the worst-case wrong-password path:
         # verify_password (op 1) + _bcrypt.checkpw (op 2) + dummy (op 3).
-        verify_password("dummy", _DUMMY_HASH)
-        verify_password("dummy", _DUMMY_HASH)
-        verify_password("dummy", _DUMMY_HASH)
+        await verify_password_async("dummy", _DUMMY_HASH)
+        await verify_password_async("dummy", _DUMMY_HASH)
+        await verify_password_async("dummy", _DUMMY_HASH)
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not verify_password(form.password, user.password_hash):
+    if not await verify_password_async(form.password, user.password_hash):
         # Legacy fallback: hashes created before the SHA-256 prehash scheme
         # were produced with plain bcrypt(password). Try raw bcrypt verification;
         # on success transparently re-hash to the current scheme.
         try:
-            legacy_ok = _bcrypt.checkpw(form.password.encode(), user.password_hash.encode())
+            loop = asyncio.get_running_loop()
+            legacy_ok = await loop.run_in_executor(
+                None, _bcrypt.checkpw, form.password.encode(), user.password_hash.encode()
+            )
         except Exception:
             legacy_ok = False
         if not legacy_ok:
             # One extra dummy to reach 3 total ops:
             # verify_password (op 1) + _bcrypt.checkpw (op 2) + this dummy (op 3).
-            verify_password("dummy", _DUMMY_HASH)
+            await verify_password_async("dummy", _DUMMY_HASH)
             raise HTTPException(status_code=401, detail="Invalid credentials")
         # Upgrade the stored hash to the new SHA-256 prehash scheme.
-        user.password_hash = hash_password(form.password)
+        user.password_hash = await hash_password_async(form.password)
         await db.commit()
     token = create_access_token({"sub": str(user.id)})
     response.set_cookie(
@@ -130,7 +141,27 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
     return {"token_type": "bearer"}
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    response: Response,
+    token: str | None = Depends(oauth2_scheme),
+    cookie_token: str | None = Cookie(default=None, alias="access_token"),
+    blocklist: TokenBlocklist = Depends(get_token_blocklist),
+):
+    # Revoke the token server-side so a copy made before logout cannot keep
+    # being used for the remainder of its lifetime. Decoding may fail for an
+    # invalid or already-expired token — in that case there is nothing to
+    # revoke, so just clear the cookie.
+    actual_token = cookie_token or token
+    if actual_token:
+        try:
+            payload = decode_token(actual_token)
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti and exp:
+                ttl = int(exp - datetime.now(timezone.utc).timestamp())
+                await blocklist.revoke(jti, ttl)
+        except (JWTError, TypeError, ValueError):
+            pass
     response.delete_cookie(
         "access_token",
         httponly=True,

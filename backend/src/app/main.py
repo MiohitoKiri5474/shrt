@@ -3,17 +3,17 @@ import os
 from fastapi import FastAPI, Request
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from app.rate_limiter import limiter
+from app.rate_limiter import limiter, _trusted_proxy_nets, _trusted_proxies
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from app.database import create_tables, AsyncSessionLocal
 from app.models import User
-from app.services.auth import hash_password
+from app.services.auth import hash_password_async
 from app.schemas import UserCreate
 from pydantic import ValidationError
-from app.routers import auth, urls, redirect
+from app.routers import auth, urls, redirect, admin
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ _WEAK_PASSWORDS = frozenset({
 
 _APP_ENV = os.getenv("APP_ENV", "production").lower()
 _is_dev = _APP_ENV in {"development", "dev"}
+_is_non_prod = _APP_ENV in {"development", "dev", "test", "testing"}
 
 app = FastAPI(
     title="Shrt API",
@@ -61,6 +62,17 @@ if not _is_dev and not _cors_origins_env:
     raise ValueError("CORS_ALLOWED_ORIGINS must be set in production")
 origins = [o.strip() for o in (_cors_origins_env or "http://localhost:5173,http://localhost:80").split(",") if o.strip()]
 
+# Fail fast in production when no trusted proxies are configured. Without this,
+# the real client IP behind nginx can't be determined, so every request shares
+# one rate-limit bucket and a single user can exhaust limits for everyone.
+if not _is_non_prod and not _trusted_proxy_nets and not _trusted_proxies:
+    raise ValueError(
+        "TRUSTED_PROXY_CIDRS must be set in production to enable per-IP rate limiting. "
+        "Find your Docker bridge CIDR with: "
+        "docker network inspect <project>_app-net "
+        "--format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'"
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -72,6 +84,16 @@ app.add_middleware(
 @app.get("/health")
 @limiter.limit("30/minute")
 async def health(request: Request):
+    return {"status": "ok"}
+
+
+# Same payload as /health, but mounted under /api so the frontend can reach it
+# through nginx's `/api/*` reverse-proxy rule. Used by the UI to poll backend
+# connectivity. The limit is generous (a 30s client poll is ~2 req/min) so the
+# liveness probe never trips its own rate limit and false-reports "offline".
+@app.get("/api/health")
+@limiter.limit("60/minute")
+async def api_health(request: Request) -> dict[str, str]:
     return {"status": "ok"}
 
 @app.on_event("startup")
@@ -109,12 +131,14 @@ async def seed_default_user():
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
         if result.scalar_one_or_none() is None:
+            password_hash = await hash_password_async(password)
             try:
-                db.add(User(email=email, password_hash=hash_password(password), username=username, is_admin=True))
+                db.add(User(email=email, password_hash=password_hash, username=username, is_admin=True))
                 await db.commit()
             except IntegrityError:
                 await db.rollback()
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(urls.router, prefix="/api/urls", tags=["urls"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(redirect.router, tags=["redirect"])

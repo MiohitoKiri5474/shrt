@@ -36,6 +36,19 @@ Notes:
 - `custom_code`, if provided, must be unique (`409` if taken), 3-16 chars, `^[a-zA-Z0-9_-]+$`. If omitted, an 8-char random alphanumeric code is generated (`services/auth.py::get_unique_short_code`, retries up to 10 times, `503` on exhaustion).
 - `original_url` is capped at 2048 characters.
 
+## Admin — `/api/admin`
+
+| Method | Path | Auth required | Rate limit | Request | Response |
+|---|---|---|---|---|---|
+| GET | `/users` | Cookie/bearer + admin | 60/min | — | `AdminUserOut[]` |
+| DELETE | `/users/{user_id}` | Cookie/bearer + admin | 30/min | — | 204, no body |
+
+Notes:
+- Both endpoints require `is_admin`; non-admins get `403`, unauthenticated callers get `401`.
+- `GET /users` returns every user with a `url_count` (number of URLs they own).
+- `DELETE /users/{user_id}` cascades: the user's URLs and their click rows are removed.
+- An admin cannot delete their own account (`400`); deleting a missing user returns `404`.
+
 ## Redirect — no prefix
 
 | Method | Path | Auth required | Rate limit | Response |
@@ -58,6 +71,7 @@ Notes:
 UserCreate    { email: EmailStr, password: str (12-128 chars) }
 UserOut       { email: str, created_at: datetime, is_admin: bool, username: str | null }
 UserUpdate    { username: str (1-50 chars, ^[a-zA-Z0-9_-]+$) }
+AdminUserOut  { id: int, email: str, username: str | null, is_admin: bool, created_at: datetime, url_count: int }
 Token         { token_type: "bearer" }
 
 URLCreate     { original_url: AnyHttpUrl (≤2048 chars), custom_code: str | null (3-16 chars, ^[a-zA-Z0-9_-]+$) }

@@ -1,5 +1,5 @@
 from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
-from datetime import datetime
+from datetime import datetime, timezone
 import ipaddress
 import socket
 from urllib.parse import urlparse
@@ -71,18 +71,47 @@ class UserOut(BaseModel):
 class UserUpdate(BaseModel):
     username: str = Field(..., min_length=1, max_length=50, pattern=r"^[a-zA-Z0-9_-]+$")
 
+class AdminUserOut(BaseModel):
+    id: int
+    email: str
+    username: str | None = None
+    is_admin: bool
+    created_at: datetime
+    url_count: int = 0
+    model_config = {"from_attributes": True}
+
 class Token(BaseModel):
     token_type: str = "bearer"
 
 class URLCreate(BaseModel):
     original_url: AnyHttpUrl
     custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str | None = Field(None, min_length=1, max_length=128)
 
     @field_validator("original_url", mode="before")
     @classmethod
     def url_max_length(cls, v: object) -> object:
         if isinstance(v, str) and len(v) > 2048:
             raise ValueError("URL must not exceed 2048 characters")
+        return v
+
+
+class URLUpdate(BaseModel):
+    short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str = ""
+    remove_password: bool = False
+    expires_at: datetime | None = None
+
+    @field_validator("expires_at", mode="after")
+    @classmethod
+    def expires_must_be_future(cls, v: object) -> object:
+        if v is None:
+            return v
+        if isinstance(v, datetime):
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=timezone.utc)
+            if v <= datetime.now(timezone.utc):
+                raise ValueError("Expiry must be in the future")
         return v
 
 
@@ -93,7 +122,24 @@ class URLOut(BaseModel):
     original_url: str
     created_at: datetime
     click_count: int = 0
+    has_password: bool = False
+    expires_at: datetime | None = None
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_with_clicks(cls, url: object, click_count: int) -> "URLOut":
+        return cls.model_validate(url).model_copy(update={
+            "click_count": click_count,
+            "has_password": bool(getattr(url, "password_hash", None)),
+        })
+
+
+class PasswordVerify(BaseModel):
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class UnlockOut(BaseModel):
+    redirect_url: str
 
 class StatsOut(BaseModel):
     url_id: int

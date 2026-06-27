@@ -6,6 +6,7 @@ from app.main import app
 from app.database import get_db
 from app.models import Base, User
 from app.services.auth import hash_password
+from app.services.token_blocklist import get_token_blocklist
 
 _AsyncTestSession = None
 
@@ -227,3 +228,168 @@ async def test_legacy_bcrypt_hash_can_login_and_rehash(client):
     )
     # The legacy hash must NOT verify with the new scheme (different inputs).
     assert new_verify(password + "extra", updated_user.password_hash) is False
+
+
+# --- JWT revocation (server-side logout) tests ---
+
+
+class _InMemoryBlocklist:
+    """Test double for TokenBlocklist backed by an in-memory set."""
+
+    def __init__(self):
+        self.revoked: set[str] = set()
+
+    async def revoke(self, jti: str, ttl_seconds: int) -> None:
+        if ttl_seconds > 0:
+            self.revoked.add(jti)
+
+    async def is_revoked(self, jti: str) -> bool:
+        return jti in self.revoked
+
+
+@pytest.fixture
+def blocklist():
+    """Override the blocklist dependency with one shared in-memory instance for
+    the whole login -> /me -> logout -> /me sequence (mirrors get_db override)."""
+    fake = _InMemoryBlocklist()
+    app.dependency_overrides[get_token_blocklist] = lambda: fake
+    yield fake
+    app.dependency_overrides.pop(get_token_blocklist, None)
+
+
+async def test_logout_revokes_token(client, blocklist):
+    """After logout the same token must be rejected with 401 by /me."""
+    await client.post("/api/auth/register", json={"email": "revoke@b.com", "password": "pass12345678"})
+    login = await client.post("/api/auth/login", data={"username": "revoke@b.com", "password": "pass12345678"})
+    cookies = login.cookies
+
+    # Token works before logout.
+    assert (await client.get("/api/auth/me", cookies=cookies)).status_code == 200
+
+    logout = await client.post("/api/auth/logout", cookies=cookies)
+    assert logout.status_code == 200
+    assert len(blocklist.revoked) == 1  # exactly one jti revoked
+
+    # Same token is now rejected server-side even though it has not expired.
+    resp = await client.get("/api/auth/me", cookies=cookies)
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Token has been revoked"
+
+
+async def test_logout_without_token_is_noop(client, blocklist):
+    """Logout with no token still succeeds and revokes nothing."""
+    resp = await client.post("/api/auth/logout")
+    assert resp.status_code == 200
+    assert blocklist.revoked == set()
+
+
+async def test_non_revoked_token_still_valid(client, blocklist):
+    """A token that was never logged out must keep working."""
+    await client.post("/api/auth/register", json={"email": "keep@b.com", "password": "pass12345678"})
+    login = await client.post("/api/auth/login", data={"username": "keep@b.com", "password": "pass12345678"})
+    resp = await client.get("/api/auth/me", cookies=login.cookies)
+    assert resp.status_code == 200
+
+
+def test_access_token_has_unique_jti():
+    """Each issued token must carry a distinct jti claim for revocation."""
+    from app.services.auth import create_access_token, decode_token
+
+    p1 = decode_token(create_access_token({"sub": "1"}))
+    p2 = decode_token(create_access_token({"sub": "1"}))
+    assert p1["jti"] and p2["jti"]
+    assert p1["jti"] != p2["jti"]
+
+
+# --- RedisTokenBlocklist unit tests (fake client, no live Redis) ---
+
+
+class _FakeRedis:
+    """Minimal async Redis stand-in implementing setex/exists."""
+
+    def __init__(self):
+        self.store: dict[str, str] = {}
+
+    async def setex(self, key, ttl, value):
+        self.store[key] = value
+
+    async def exists(self, key):
+        return 1 if key in self.store else 0
+
+
+class _BrokenRedis:
+    """Async Redis stand-in whose every call raises (simulates an outage)."""
+
+    async def setex(self, *args, **kwargs):
+        raise ConnectionError("redis down")
+
+    async def exists(self, *args, **kwargs):
+        raise ConnectionError("redis down")
+
+
+async def test_redis_blocklist_revoke_and_check():
+    from app.services.token_blocklist import RedisTokenBlocklist
+
+    bl = RedisTokenBlocklist(_FakeRedis())
+    assert await bl.is_revoked("abc") is False
+    await bl.revoke("abc", 600)
+    assert await bl.is_revoked("abc") is True
+
+
+async def test_redis_blocklist_skips_nonpositive_ttl():
+    """An already-expired token (ttl <= 0) is not written to the store."""
+    from app.services.token_blocklist import RedisTokenBlocklist
+
+    fake = _FakeRedis()
+    bl = RedisTokenBlocklist(fake)
+    await bl.revoke("expired", 0)
+    await bl.revoke("expired2", -5)
+    assert fake.store == {}
+
+
+async def test_redis_blocklist_fails_open_on_outage():
+    """Redis errors must not raise: revoke is a no-op, is_revoked returns False."""
+    from app.services.token_blocklist import RedisTokenBlocklist
+
+    bl = RedisTokenBlocklist(_BrokenRedis())
+    await bl.revoke("x", 600)  # must not raise
+    assert await bl.is_revoked("x") is False  # fail open
+
+
+async def test_null_blocklist_never_revokes():
+    from app.services.token_blocklist import NullTokenBlocklist
+
+    bl = NullTokenBlocklist()
+    await bl.revoke("x", 600)
+    assert await bl.is_revoked("x") is False
+
+
+# --- Async bcrypt wrapper tests ---
+
+async def test_hash_password_async_produces_verifiable_hash():
+    from app.services.auth import hash_password_async, verify_password
+
+    hashed = await hash_password_async("testpassword123")
+    assert verify_password("testpassword123", hashed) is True
+    assert verify_password("wrongpassword", hashed) is False
+
+
+async def test_verify_password_async_correct_and_wrong():
+    from app.services.auth import hash_password, verify_password_async
+
+    hashed = hash_password("mypassword456")
+    assert await verify_password_async("mypassword456", hashed) is True
+    assert await verify_password_async("notmypassword", hashed) is False
+
+
+async def test_async_and_sync_bcrypt_are_consistent():
+    from app.services.auth import hash_password, hash_password_async, verify_password, verify_password_async
+
+    pw = "consistency_check"
+    sync_hash = hash_password(pw)
+    async_hash = await hash_password_async(pw)
+
+    assert verify_password(pw, sync_hash) is True
+    assert verify_password(pw, async_hash) is True
+    assert await verify_password_async(pw, sync_hash) is True
+    assert await verify_password_async(pw, async_hash) is True

@@ -12,6 +12,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 
+// ponytail: UX-only cooldown — resets on page refresh, not a security control.
+// The backend enforces 5 req/min via rate limiter; don't remove that.
 const failureCount = ref(0)
 const cooldownUntil = ref(0)
 const cooldownSecondsLeft = ref(0)
@@ -52,14 +54,23 @@ async function handleSubmit() {
     await authStore.login(identifier.value, password.value)
     failureCount.value = 0
     router.push('/dashboard')
-  } catch {
-    error.value = 'Invalid email or password'
-    failureCount.value += 1
-    if (failureCount.value >= 3) {
-      const backoffMs = Math.min(failureCount.value * 5000, 30000)
-      cooldownUntil.value = Date.now() + backoffMs
-      cooldownSecondsLeft.value = Math.ceil(backoffMs / 1000)
-      startCooldownTimer()
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 429) {
+      error.value = 'Too many attempts. Please wait before trying again.'
+      // Reset failure count since backend is now enforcing the limit
+      failureCount.value = 0
+      cooldownUntil.value = 0
+      cooldownSecondsLeft.value = 0
+    } else {
+      error.value = 'Invalid email or password'
+      failureCount.value += 1
+      if (failureCount.value >= 3) {
+        const backoffMs = Math.min(failureCount.value * 5000, 30000)
+        cooldownUntil.value = Date.now() + backoffMs
+        cooldownSecondsLeft.value = Math.ceil(backoffMs / 1000)
+        startCooldownTimer()
+      }
     }
   } finally {
     loading.value = false

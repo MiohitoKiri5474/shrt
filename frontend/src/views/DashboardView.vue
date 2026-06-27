@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useURLsStore } from '../stores/urls'
@@ -7,7 +7,8 @@ import { useThemeStore } from '../stores/theme'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import AddUserForm from '../components/AddUserForm.vue'
-import type { StatsOut } from '../api/urls'
+import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
+import { urlsApi, type StatsOut, type URLOut } from '../api/urls'
 const BASE_URL = window.location.origin
 
 const router = useRouter()
@@ -21,6 +22,16 @@ const loadError = ref('')
 const showAddUser = ref(false)
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
+const qrShortCode = ref<string | null>(null)
+const qrDialogRef = ref<HTMLDialogElement | null>(null)
+const qrSrc = computed(() => (qrShortCode.value ? urlsApi.qrUrl(qrShortCode.value) : ''))
+const editDialogRef = ref<HTMLDialogElement | null>(null)
+const editingUrl = ref<URLOut | null>(null)
+const editShortCode = ref('')
+const editPassword = ref('')
+const editRemovePassword = ref(false)
+const editExpiresAt = ref('')
+const editError = ref('')
 const editingUsername = ref(false)
 const usernameInput = ref('')
 const usernameError = ref('')
@@ -55,6 +66,60 @@ watch(pendingDeleteId, (id) => {
     dialogRef.value?.close()
   }
 })
+
+watch(qrShortCode, (code) => {
+  if (code !== null) {
+    nextTick(() => qrDialogRef.value?.showModal())
+  } else {
+    qrDialogRef.value?.close()
+  }
+})
+
+function handleQr(shortCode: string) {
+  qrShortCode.value = shortCode
+}
+
+function closeQr() {
+  qrShortCode.value = null
+}
+
+watch(editingUrl, (url) => {
+  if (url !== null) {
+    nextTick(() => editDialogRef.value?.showModal())
+  } else {
+    editDialogRef.value?.close()
+  }
+})
+
+function handleEdit(id: number) {
+  const url = urlsStore.urls.find(u => u.id === id) ?? null
+  if (!url) return
+  editingUrl.value = url
+  editShortCode.value = url.short_code
+  editPassword.value = ''
+  editRemovePassword.value = false
+  editExpiresAt.value = url.expires_at ? url.expires_at.slice(0, 16) : ''
+  editError.value = ''
+}
+
+function cancelEdit() {
+  editingUrl.value = null
+}
+
+async function confirmEdit() {
+  if (!editingUrl.value) return
+  editError.value = ''
+  try {
+    const payload: Parameters<typeof urlsStore.update>[1] = { short_code: editShortCode.value }
+    if (editRemovePassword.value) payload.remove_password = true
+    else if (editPassword.value) payload.password = editPassword.value
+    payload.expires_at = editExpiresAt.value ? new Date(editExpiresAt.value).toISOString() : null
+    await urlsStore.update(editingUrl.value.id, payload)
+    editingUrl.value = null
+  } catch {
+    editError.value = 'Failed to update link. Check the short code is unique.'
+  }
+}
 
 async function handleStats(id: number) {
   statsError.value = ''
@@ -98,6 +163,7 @@ async function handleLogout() {
     <header class="dash-header">
       <h1>Shrt</h1>
       <nav class="dash-nav">
+        <NetworkStatusIndicator />
         <template v-if="editingUsername">
           <input
             v-model="usernameInput"
@@ -119,6 +185,7 @@ async function handleLogout() {
             @click="startEditUsername"
           >{{ authStore.user?.username ?? authStore.user?.email }}</span>
         </template>
+        <RouterLink v-if="authStore.user?.is_admin" class="btn-admin" to="/admin">Admin</RouterLink>
         <button v-if="authStore.user?.is_admin" class="btn-add-user" @click="showAddUser = true">Add User</button>
         <button
           class="theme-toggle"
@@ -141,6 +208,8 @@ async function handleLogout() {
           :key="url.id"
           :url="url"
           :base-url="BASE_URL"
+          @qr="handleQr"
+          @edit="handleEdit"
           @stats="handleStats"
           @delete="handleDelete"
         />
@@ -180,6 +249,55 @@ async function handleLogout() {
         <button class="btn-cancel" autofocus @click="cancelDelete">Cancel</button>
         <button class="btn-confirm-delete" @click="confirmDelete">Delete</button>
       </div>
+    </dialog>
+
+    <dialog
+      ref="qrDialogRef"
+      class="qr-dialog"
+      aria-modal="true"
+      aria-labelledby="qr-title"
+      @close="closeQr"
+    >
+      <h3 id="qr-title">QR code</h3>
+      <p class="qr-target">{{ BASE_URL }}/{{ qrShortCode }}</p>
+      <img v-if="qrSrc" :src="qrSrc" class="qr-image" :alt="`QR code for ${BASE_URL}/${qrShortCode}`" width="256" height="256" />
+      <div class="qr-actions">
+        <a v-if="qrSrc" class="btn-qr-download" :href="qrSrc" :download="`qr-${qrShortCode}.png`">Download</a>
+        <button class="btn-cancel" autofocus @click="closeQr">Close</button>
+      </div>
+    </dialog>
+
+    <dialog
+      ref="editDialogRef"
+      class="edit-dialog"
+      aria-modal="true"
+      aria-labelledby="edit-title"
+      @close="cancelEdit"
+    >
+      <h3 id="edit-title">Edit Link</h3>
+      <form @submit.prevent="confirmEdit">
+        <label>
+          Short code
+          <input v-model="editShortCode" minlength="3" maxlength="16" pattern="[a-zA-Z0-9_-]+" required autofocus />
+        </label>
+        <label>
+          New password <span class="field-hint">(leave empty to keep current)</span>
+          <input v-model="editPassword" type="password" autocomplete="new-password" :disabled="editRemovePassword" />
+        </label>
+        <label v-if="editingUrl?.has_password" class="checkbox-label">
+          <input v-model="editRemovePassword" type="checkbox" />
+          Remove password
+        </label>
+        <label>
+          Expires at <span class="field-hint">(leave empty for no expiry)</span>
+          <input v-model="editExpiresAt" type="datetime-local" />
+        </label>
+        <p v-if="editError" class="error" role="alert">{{ editError }}</p>
+        <div class="confirm-actions">
+          <button type="button" class="btn-cancel" @click="cancelEdit">Cancel</button>
+          <button type="submit" class="btn-save">Save</button>
+        </div>
+      </form>
     </dialog>
   </div>
 </template>
@@ -273,6 +391,7 @@ async function handleLogout() {
   transform: rotate(15deg);
 }
 
+.btn-admin,
 .btn-add-user {
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--color-border-hover);
@@ -284,6 +403,12 @@ async function handleLogout() {
   transition: background 0.2s, border-color 0.2s;
 }
 
+.btn-admin {
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.btn-admin:hover,
 .btn-add-user:hover {
   background: var(--color-border);
 }
@@ -304,6 +429,7 @@ async function handleLogout() {
 }
 
 .theme-toggle:focus-visible,
+.btn-admin:focus-visible,
 .btn-add-user:focus-visible,
 .btn-signout:focus-visible {
   outline: 2px solid var(--color-accent);
@@ -406,6 +532,146 @@ async function handleLogout() {
 }
 
 .btn-confirm-delete:hover {
+  opacity: 0.85;
+}
+
+.qr-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  z-index: 200;
+}
+
+.qr-dialog h3 {
+  margin: 0 0 0.5rem;
+  color: var(--color-heading);
+}
+
+.qr-target {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  word-break: break-all;
+}
+
+.qr-image {
+  display: block;
+  width: 256px;
+  height: 256px;
+  max-width: 100%;
+  margin: 0 auto 1.25rem;
+  background: #fff;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.qr-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.btn-qr-download {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-background);
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: opacity 0.2s;
+}
+
+.btn-qr-download:hover {
+  opacity: 0.85;
+}
+
+.btn-qr-download:focus-visible,
+.qr-actions .btn-cancel:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.edit-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  max-width: 420px;
+  width: 90%;
+  z-index: 200;
+}
+
+.edit-dialog h3 {
+  margin: 0 0 1rem;
+  color: var(--color-heading);
+}
+
+.edit-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+}
+
+.edit-dialog input[type="text"],
+.edit-dialog input[type="password"],
+.edit-dialog input[type="datetime-local"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.edit-dialog input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.checkbox-label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  font-weight: normal;
+}
+
+.btn-save {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-save:hover {
   opacity: 0.85;
 }
 </style>

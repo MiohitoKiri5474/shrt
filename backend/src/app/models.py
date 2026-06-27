@@ -24,6 +24,8 @@ class URL(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     original_url: Mapped[str] = mapped_column(String(2048), nullable=False)
     short_code: Mapped[str] = mapped_column(String(16), unique=True, index=True, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     user: Mapped["User"] = relationship("User", back_populates="urls")
     clicks: Mapped[list["Click"]] = relationship("Click", back_populates="url", cascade="all, delete")
