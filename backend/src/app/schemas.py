@@ -1,8 +1,16 @@
 from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import ipaddress
 import socket
 from urllib.parse import urlparse
+
+# Dedicated executor for SSRF DNS checks — isolates slow getaddrinfo calls from the
+# shared default executor so DNS-amplification attacks cannot starve other async tasks.
+_SSRF_EXECUTOR = ThreadPoolExecutor(max_workers=8, thread_name_prefix="ssrf-check")
+
+# Seconds to wait for a single SSRF DNS check before aborting.
+_SSRF_CHECK_TIMEOUT_S = 5.0
 
 
 class SSRFDNSError(ValueError):
