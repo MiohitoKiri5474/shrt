@@ -47,38 +47,41 @@ browser refuses to attach `SameSite=Strict` cookies to cross-origin requests.
 ### Current Behaviour
 
 Access tokens are short-lived JWTs (15-minute expiry) stored in an **HttpOnly, SameSite=Strict
-cookie**. On logout (`POST /api/auth/logout`), the backend calls `response.delete_cookie()`,
-which instructs the browser to remove the cookie. No server-side token revocation takes place.
+cookie**. Every issued token carries a `jti` (JWT ID) claim — a cryptographically random
+32-character hex token generated at mint time via `secrets.token_hex(16)`.
 
-### Accepted Tradeoff
+On logout (`POST /api/auth/logout`), the backend:
 
-This means a token that has been "logged out" of the browser remains cryptographically valid
-for up to 15 minutes. An attacker who obtained a copy of the token (e.g., via a server-side
-log leak before the HttpOnly flag was enforced) could use it within that window.
+1. Clears the `access_token` cookie via `response.delete_cookie()`.
+2. Extracts the `jti` and remaining TTL from the token.
+3. Writes `revoked_jti:<jti> = 1` to Redis via `SETEX` with the remaining TTL so the
+   entry auto-expires exactly when the token itself would have expired.
 
-We accept this tradeoff because:
+On every authenticated request, `get_current_user` checks the `jti` against the Redis
+blocklist before touching the database. Tokens whose `jti` is found in the blocklist are
+rejected with `HTTP 401 Token has been revoked`.
 
-- The 15-minute window is short enough for the current threat model.
-- HttpOnly cookies prevent JavaScript-based token theft (XSS), which is the most common
-  credential-theft vector in web apps.
-- Implementing full revocation requires either an in-memory blacklist (lost on restart;
-  does not work across multiple processes) or a database / Redis lookup on every
-  authenticated request (latency cost, new infrastructure dependency).
+### Fail-Open Behaviour When Redis Is Unavailable
 
-### Path to Full Revocation
+The blocklist is defence-in-depth, not the primary access control. If Redis is unreachable,
+both `revoke` and `is_revoked` fail open (log a warning, return without raising). This means:
 
-If the threat model changes (e.g., the app runs behind a load balancer with multiple
-replicas, or compliance requirements mandate immediate revocation), add:
+- **During a Redis outage**, a previously revoked token may temporarily regain validity —
+  but only for its remaining `<= ACCESS_TOKEN_EXPIRE_MINUTES` window, and only while Redis
+  is down.
+- **Failing closed** (rejecting every authenticated request on Redis errors) would be a
+  self-inflicted denial of service. The short token lifetime bounds the risk of failing open.
 
-1. A `jti` (JWT ID) claim to every issued token (`uuid.uuid4()`).
-2. A `revoked_tokens` table (or Redis `SET`) keyed on `jti` with TTL equal to token expiry.
-3. A check in `get_current_user` that rejects tokens whose `jti` appears in the revoked set.
-4. On logout, insert the token's `jti` into the revoked set.
+When `REDIS_URL` is not set, the application uses `NullTokenBlocklist`, which is a no-op
+implementation: logout still clears the cookie and authentication still works, but a stolen
+token cannot be invalidated server-side. A warning is logged when this fallback is selected.
+In production, `REDIS_URL` is enforced at startup (see startup check in `main.py`).
 
 ### Relevant Files
 
-- `backend/src/app/services/auth.py` — `create_access_token()` and `decode_token()`
-- `backend/src/app/routers/auth.py` — `logout` endpoint
+- `backend/src/app/services/auth.py` — `create_access_token()` (adds `jti`) and `decode_token()`
+- `backend/src/app/services/token_blocklist.py` — `RedisTokenBlocklist` (production), `NullTokenBlocklist` (fallback)
+- `backend/src/app/routers/auth.py` — `logout` endpoint (revokes `jti`), `get_current_user` (checks blocklist)
 
 ---
 
