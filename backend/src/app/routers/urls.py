@@ -27,7 +27,12 @@ async def create_url(
 ):
     loop = asyncio.get_running_loop()
     try:
-        await loop.run_in_executor(None, validate_no_ssrf, str(data.original_url))
+        await asyncio.wait_for(
+            loop.run_in_executor(None, validate_no_ssrf, str(data.original_url)),
+            timeout=5.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except SSRFDNSError:
         raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except SSRFBlockedError as e:
