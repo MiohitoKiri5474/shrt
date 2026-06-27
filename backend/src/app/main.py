@@ -62,6 +62,15 @@ if not _is_dev and not _cors_origins_env:
     raise ValueError("CORS_ALLOWED_ORIGINS must be set in production")
 origins = [o.strip() for o in (_cors_origins_env or "http://localhost:5173,http://localhost:80").split(",") if o.strip()]
 
+# Fail fast in production when REDIS_URL is absent. Without Redis, rate limiting
+# falls back to in-memory (not shared across workers) and JWT revocation via
+# token blocklist is silently disabled, leaving logged-out tokens valid.
+if not _is_dev and not os.getenv("REDIS_URL"):
+    raise ValueError(
+        "REDIS_URL must be set in production "
+        "(required for rate limiting and token revocation)"
+    )
+
 # Fail fast in production when no trusted proxies are configured. Without this,
 # the real client IP behind nginx can't be determined, so every request shares
 # one rate-limit bucket and a single user can exhaust limits for everyone.
