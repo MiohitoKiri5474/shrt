@@ -211,12 +211,6 @@ function handleClose() {
   margin-bottom: 0.75rem;
 }
 
-.success {
-  color: var(--color-success);
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
