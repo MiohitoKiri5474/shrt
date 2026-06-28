@@ -75,7 +75,7 @@ both `revoke` and `is_revoked` fail open (log a warning, return without raising)
 When `REDIS_URL` is not set, the application uses `NullTokenBlocklist`, which is a no-op
 implementation: logout still clears the cookie and authentication still works, but a stolen
 token cannot be invalidated server-side. A warning is logged when this fallback is selected.
-In production, `REDIS_URL` is enforced at startup (see startup check in `main.py`).
+In production, `REDIS_URL` is enforced at module load in `config.py` (raises `ValueError` on import if absent).
 
 ### Relevant Files
 
