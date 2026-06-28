@@ -2,13 +2,12 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { authApi } from '../api/auth'
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; 'user-added': [email: string] }>()
 
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
-const successEmail = ref('')
 const emailInput = ref<HTMLInputElement | null>(null)
 const modalEl = ref<HTMLDivElement | null>(null)
 
@@ -26,6 +25,7 @@ onBeforeUnmount(() => {
 })
 
 function trapFocus(e: KeyboardEvent) {
+  if (e.key === 'Escape') { handleClose(); return }
   if (e.key !== 'Tab' || !modalEl.value) return
   const focusable = modalEl.value.querySelectorAll<HTMLElement>(
     'button, input, [tabindex]:not([tabindex="-1"])'
@@ -42,7 +42,6 @@ function trapFocus(e: KeyboardEvent) {
 
 async function handleSubmit() {
   error.value = ''
-  successEmail.value = ''
   if (password.value.length < 12) {
     error.value = 'Password must be at least 12 characters.'
     return
@@ -54,7 +53,7 @@ async function handleSubmit() {
   loading.value = true
   try {
     const user = await authApi.addUser(email.value, password.value)
-    successEmail.value = user.email
+    emit('user-added', user.email)
     email.value = ''
     password.value = ''
   } catch (e: unknown) {
@@ -73,7 +72,6 @@ function handleClose() {
   email.value = ''
   password.value = ''
   error.value = ''
-  successEmail.value = ''
   emit('close')
 }
 </script>
@@ -114,9 +112,6 @@ function handleClose() {
         </div>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
-        <p v-if="successEmail" class="success" role="status">
-          User <strong>{{ successEmail }}</strong> created successfully.
-        </p>
 
         <div class="actions">
           <button type="button" class="btn-secondary" @click="handleClose">Cancel</button>
