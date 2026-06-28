@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { defineComponent } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
@@ -76,6 +76,45 @@ describe('AdminView', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.findComponent(AddUserFormStub).exists()).toBe(false)
+  })
+
+  describe('toast behaviour', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('shows toast with correct email after user-added emit', async () => {
+      const wrapper = mount(AdminView, { global: globalOptions })
+      await flushPromises()
+
+      await wrapper.find('.btn-add-user').trigger('click')
+      await wrapper.findComponent(AddUserFormStub).vm.$emit('user-added', 'toast@example.com')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('[role="status"]').text()).toContain('toast@example.com')
+      wrapper.unmount()
+    })
+
+    it('toast clears after 3000ms', async () => {
+      const wrapper = mount(AdminView, { global: globalOptions })
+      await flushPromises()
+
+      await wrapper.find('.btn-add-user').trigger('click')
+      await wrapper.findComponent(AddUserFormStub).vm.$emit('user-added', 'toast@example.com')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('[role="status"]').exists()).toBe(true)
+
+      vi.advanceTimersByTime(3000)
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('[role="status"]').exists()).toBe(false)
+      wrapper.unmount()
+    })
   })
 
   it('handleUserAdded closes modal and calls fetchAll again', async () => {
