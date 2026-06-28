@@ -10,6 +10,7 @@ const adminStore = useAdminStore()
 const themeStore = useThemeStore()
 
 const showAddUserModal = ref(false)
+const successMessage = ref('')
 const loadError = ref('')
 const deleteError = ref('')
 const pendingDeleteId = ref<number | null>(null)
@@ -59,11 +60,15 @@ function cancelDelete() {
   pendingDeleteId.value = null
 }
 
-function handleUserAdded() {
+function handleUserAdded(email: string) {
   showAddUserModal.value = false
   adminStore.fetchAll().catch(() => {
     loadError.value = 'Failed to refresh users.'
   })
+  successMessage.value = `User ${email} created.`
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
 }
 </script>
 
@@ -86,6 +91,7 @@ function handleUserAdded() {
 
     <main class="admin-content">
       <h2>All users</h2>
+      <p v-if="successMessage" class="success-notice" role="status">{{ successMessage }}</p>
       <p v-if="!loadError && adminStore.users.length === 0" class="empty">No users found.</p>
 
       <table v-if="adminStore.users.length" class="user-table">
@@ -359,6 +365,11 @@ function handleUserAdded() {
 
 .error {
   color: var(--color-error);
+  margin-top: 1rem;
+}
+
+.success-notice {
+  color: var(--color-success, #22c55e);
   margin-top: 1rem;
 }
 
