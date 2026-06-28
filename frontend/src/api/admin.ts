@@ -1,5 +1,4 @@
 import { apiClient } from './client'
-import type { UserOut } from './auth'
 
 export interface AdminUser {
   id: number
@@ -17,9 +16,5 @@ export const adminApi = {
   },
   async deleteUser(id: number): Promise<void> {
     await apiClient.delete(`/api/admin/users/${id}`)
-  },
-  async createUser(email: string, password: string): Promise<UserOut> {
-    const { data } = await apiClient.post<UserOut>('/api/auth/users', { email, password })
-    return data
   },
 }
