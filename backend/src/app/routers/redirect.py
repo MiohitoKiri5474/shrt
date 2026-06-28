@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import URL, Click
 from app.utils import anonymize_ip
 from app.rate_limiter import limiter, get_real_ip
-from app.schemas import SSRFBlockedError, SSRFDNSError, validate_no_ssrf
+from app.schemas import SSRFBlockedError, SSRFDNSError, validate_no_ssrf, _SSRF_EXECUTOR, _SSRF_CHECK_TIMEOUT_S
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ async def redirect(
     loop = asyncio.get_running_loop()
     try:
         await asyncio.wait_for(
-            loop.run_in_executor(None, validate_no_ssrf, str(url.original_url)),
-            timeout=5.0,
+            loop.run_in_executor(_SSRF_EXECUTOR, validate_no_ssrf, str(url.original_url)),
+            timeout=_SSRF_CHECK_TIMEOUT_S,
         )
     except asyncio.TimeoutError:
         raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
