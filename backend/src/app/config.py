@@ -27,3 +27,11 @@ if _APP_ENV not in {"development", "dev", "test", "testing"} and "changeme" in _
         "REDIS_URL contains the default password 'changeme'. "
         "Set REDIS_PASSWORD to a strong value with: openssl rand -hex 32"
     )
+# Fail fast in production when REDIS_URL is absent. Without Redis, rate limiting
+# falls back to in-memory (not shared across workers) and JWT revocation via
+# token blocklist is silently disabled, leaving logged-out tokens valid.
+if _APP_ENV not in {"development", "dev"} and not _REDIS_URL:
+    raise ValueError(
+        "REDIS_URL must be set in production "
+        "(required for rate limiting and token revocation)"
+    )
