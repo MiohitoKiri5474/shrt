@@ -72,16 +72,23 @@ both `revoke` and `is_revoked` fail open (log a warning, return without raising)
 - **Failing closed** (rejecting every authenticated request on Redis errors) would be a
   self-inflicted denial of service. The short token lifetime bounds the risk of failing open.
 
-When `REDIS_URL` is not set, the application uses `NullTokenBlocklist`, which is a no-op
-implementation: logout still clears the cookie and authentication still works, but a stolen
-token cannot be invalidated server-side. A warning is logged when this fallback is selected.
-In production, `REDIS_URL` is enforced at startup (see startup check in `main.py`).
+In development and test environments, when `REDIS_URL` is not configured the application
+falls back to `NullTokenBlocklist` — a no-op: logout still clears the cookie and
+authentication still works, but a stolen token cannot be invalidated server-side. A warning
+is logged when this fallback is selected.
+
+In production (`APP_ENV` not set to `development` or `dev`), `REDIS_URL` is a hard
+requirement: the application refuses to start if it is absent (see `main.py`). A separate
+startup check in `config.py` also rejects any `REDIS_URL` that still contains the default
+password `changeme`.
 
 ### Relevant Files
 
 - `backend/src/app/services/auth.py` — `create_access_token()` (adds `jti`) and `decode_token()`
-- `backend/src/app/services/token_blocklist.py` — `RedisTokenBlocklist` (production), `NullTokenBlocklist` (fallback)
+- `backend/src/app/services/token_blocklist.py` — `RedisTokenBlocklist` (production), `NullTokenBlocklist` (dev/test fallback)
 - `backend/src/app/routers/auth.py` — `logout` endpoint (revokes `jti`), `get_current_user` (checks blocklist)
+- `backend/src/app/main.py` — raises `ValueError` at startup when `REDIS_URL` is absent in production
+- `backend/src/app/config.py` — raises `ValueError` at startup when `REDIS_URL` contains the default `changeme` password
 
 ---
 
