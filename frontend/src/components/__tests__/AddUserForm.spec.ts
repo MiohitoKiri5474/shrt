@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import AddUserForm from '../AddUserForm.vue'
 import * as authApiModule from '../../api/auth'
@@ -19,10 +19,6 @@ const mockUser = {
 describe('AddUserForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    // ensure document listeners are cleaned up after each unmount
   })
 
   it('emits user-added with email on successful creation', async () => {
