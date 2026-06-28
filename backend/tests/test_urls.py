@@ -1,10 +1,12 @@
 import pytest
+from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import update as sa_update
 from app.main import app
 from app.database import get_db
-from app.models import Base
+from app.models import Base, URL
 
 @pytest.fixture(autouse=True)
 async def setup_db():
@@ -237,3 +239,32 @@ async def test_redirect_no_click_for_password_protected(client, auth_client):
     await client.get(f"/{code}", follow_redirects=False)
     stats = await auth_client.get(f"/api/urls/{url_id}/stats")
     assert stats.json()["total_clicks"] == 0
+
+async def test_unlock_expired_password_protected_returns_410(client, auth_client):
+    """Expired+password-protected link returns 410 even when the correct password is supplied.
+
+    The unlock_url endpoint checks expiry before verifying the password, so submitting
+    the right password must still yield 410 — not 401 — proving the expiry gate fires.
+    """
+    # Create a password-protected URL
+    create = await auth_client.post(
+        "/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"}
+    )
+    data = create.json()
+    code = data["short_code"]
+    url_id = data["id"]
+
+    # The API validator rejects past expiry dates, so bypass it with a direct DB update.
+    async for db in app.dependency_overrides[get_db]():
+        await db.execute(
+            sa_update(URL)
+            .where(URL.id == url_id)
+            .values(expires_at=datetime.now(timezone.utc) - timedelta(seconds=1))
+        )
+        await db.commit()
+        break
+
+    # Correct password + expired link must return 410 (not 401 or 200)
+    resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "hunter2"})
+    assert resp.status_code == 410
+    assert "expired" in resp.json()["detail"].lower()
