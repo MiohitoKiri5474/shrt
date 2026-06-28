@@ -2,7 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { authApi } from '../api/auth'
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; 'user-added': [email: string] }>()
 
 const email = ref('')
 const password = ref('')
@@ -55,6 +55,7 @@ async function handleSubmit() {
   try {
     const user = await authApi.addUser(email.value, password.value)
     successEmail.value = user.email
+    emit('user-added', user.email)
     email.value = ''
     password.value = ''
   } catch (e: unknown) {
