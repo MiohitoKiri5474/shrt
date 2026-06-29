@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
 from app.models import URL, User
-from app.schemas import AdminUserOut
+from app.schemas import AdminUserOut, AdminUserUpdate
 from app.routers.auth import require_admin
 from app.rate_limiter import limiter
 
@@ -28,6 +28,32 @@ async def list_users(
         item = AdminUserOut.model_validate(user)
         item.url_count = url_count or 0
         out.append(item)
+    return out
+
+
+@router.patch("/users/{user_id}", response_model=AdminUserOut)
+@limiter.limit("30/minute")
+async def update_user_role(
+    request: Request,
+    user_id: int,
+    body: AdminUserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot change your own admin role")
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_admin = body.is_admin
+    await db.commit()
+    await db.refresh(user)
+    out = AdminUserOut.model_validate(user)
+    url_count_result = await db.execute(
+        select(func.count(URL.id)).where(URL.user_id == user.id)
+    )
+    out.url_count = url_count_result.scalar_one() or 0
     return out
 
 
