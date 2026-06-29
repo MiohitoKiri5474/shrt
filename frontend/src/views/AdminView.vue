@@ -10,17 +10,20 @@ const adminStore = useAdminStore()
 const themeStore = useThemeStore()
 
 const showAddUserModal = ref(false)
+const showMenu = ref(false)
 const successMessage = ref('')
 const loadError = ref('')
 const deleteError = ref('')
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
+const menuRef = ref<HTMLDivElement | null>(null)
 
 onMounted(() => {
   loadError.value = ''
   adminStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load users. Please refresh.'
   })
+  document.addEventListener('click', handleOutsideClick)
 })
 
 watch(pendingDeleteId, (id) => {
@@ -30,6 +33,12 @@ watch(pendingDeleteId, (id) => {
     dialogRef.value?.close()
   }
 })
+
+function handleOutsideClick(e: MouseEvent) {
+  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
+    showMenu.value = false
+  }
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
@@ -74,6 +83,7 @@ function handleUserAdded(email: string) {
 
 onBeforeUnmount(() => {
   if (successTimer) clearTimeout(successTimer)
+  document.removeEventListener('click', handleOutsideClick)
 })
 </script>
 
@@ -82,8 +92,29 @@ onBeforeUnmount(() => {
     <header class="admin-header">
       <h1>User Management</h1>
       <nav class="admin-nav">
-        <RouterLink class="btn-link" to="/dashboard">← Dashboard</RouterLink>
-        <button class="btn-add-user" @click="showAddUserModal = true">Add User</button>
+        <div ref="menuRef" class="hamburger-wrapper">
+          <button
+            class="hamburger-btn"
+            :aria-expanded="showMenu"
+            aria-haspopup="true"
+            aria-label="Open menu"
+            @click.stop="showMenu = !showMenu"
+          >
+            <span class="bar" />
+            <span class="bar" />
+            <span class="bar" />
+          </button>
+          <div v-if="showMenu" class="dropdown-menu" role="menu">
+            <RouterLink
+              class="dropdown-item"
+              to="/dashboard"
+              role="menuitem"
+              @click="showMenu = false"
+            >
+              ← Dashboard
+            </RouterLink>
+          </div>
+        </div>
         <button
           class="theme-toggle"
           :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
@@ -95,7 +126,10 @@ onBeforeUnmount(() => {
     </header>
 
     <main class="admin-content">
-      <h2>All users</h2>
+      <div class="content-header">
+        <h2>All users</h2>
+        <button class="btn-add-user" @click="showAddUserModal = true">+ Add User</button>
+      </div>
       <p v-if="successMessage" class="success-notice" role="status">{{ successMessage }}</p>
       <p v-if="!loadError && adminStore.users.length === 0" class="empty">No users found.</p>
 
@@ -197,38 +231,71 @@ onBeforeUnmount(() => {
   gap: 0.75rem;
 }
 
-.btn-link {
-  font-size: 0.875rem;
-  color: var(--color-text);
-  text-decoration: none;
-  padding: 0.35rem 0.6rem;
+.hamburger-wrapper {
+  position: relative;
+}
+
+.hamburger-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0.35rem;
+  background: transparent;
+  border: 1px solid var(--color-border-hover);
   border-radius: 4px;
+  cursor: pointer;
   transition: background 0.2s;
 }
 
-.btn-link:hover {
+.hamburger-btn:hover {
   background: var(--color-border);
 }
 
-.btn-add-user {
-  padding: 0.35rem 0.75rem;
-  background: var(--color-accent);
-  color: var(--color-background);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: opacity 0.2s;
-}
-
-.btn-add-user:hover {
-  opacity: 0.85;
-}
-
-.btn-add-user:focus-visible {
+.hamburger-btn:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+.bar {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-text);
+  border-radius: 2px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem 0;
+  z-index: 100;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+  background: var(--color-background-mute);
+}
+
+.dropdown-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 .theme-toggle {
@@ -252,7 +319,6 @@ onBeforeUnmount(() => {
   transform: rotate(15deg);
 }
 
-.btn-link:focus-visible,
 .theme-toggle:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
@@ -264,10 +330,38 @@ onBeforeUnmount(() => {
   padding: 2rem 1rem;
 }
 
-.admin-content h2 {
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.content-header h2 {
   color: var(--color-heading);
   font-size: 1.05rem;
-  margin: 0 0 1rem;
+  margin: 0;
+}
+
+.btn-add-user {
+  padding: 0.35rem 0.75rem;
+  background: var(--color-accent);
+  color: var(--color-background);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.btn-add-user:hover {
+  opacity: 0.85;
+}
+
+.btn-add-user:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .empty {
