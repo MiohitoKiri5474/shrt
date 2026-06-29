@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useURLsStore } from '../stores/urls'
@@ -20,6 +20,8 @@ const statsError = ref('')
 const deleteError = ref('')
 const loadError = ref('')
 const showAddUser = ref(false)
+const showMenu = ref(false)
+const menuRef = ref<HTMLDivElement | null>(null)
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
 const qrShortCode = ref<string | null>(null)
@@ -35,6 +37,12 @@ const editError = ref('')
 const editingUsername = ref(false)
 const usernameInput = ref('')
 const usernameError = ref('')
+
+function handleOutsideClick(e: MouseEvent) {
+  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
+    showMenu.value = false
+  }
+}
 
 function startEditUsername() {
   usernameInput.value = authStore.user?.username ?? ''
@@ -57,6 +65,11 @@ onMounted(() => {
   urlsStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load URLs. Please refresh.'
   })
+  document.addEventListener('click', handleOutsideClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleOutsideClick)
 })
 
 watch(pendingDeleteId, (id) => {
@@ -164,29 +177,6 @@ async function handleLogout() {
       <h1>Shrt</h1>
       <nav class="dash-nav">
         <NetworkStatusIndicator />
-        <template v-if="editingUsername">
-          <input
-            v-model="usernameInput"
-            class="username-input"
-            placeholder="username"
-            maxlength="50"
-            @keyup.enter="saveUsername"
-            @keyup.escape="editingUsername = false"
-          />
-          <button class="btn-save-username" @click="saveUsername">Save</button>
-          <button class="btn-cancel-username" @click="editingUsername = false">Cancel</button>
-          <span v-if="usernameError" class="error">{{ usernameError }}</span>
-        </template>
-        <template v-else>
-          <span
-            class="user-email"
-            :title="authStore.user?.email"
-            style="cursor: pointer"
-            @click="startEditUsername"
-          >{{ authStore.user?.username ?? authStore.user?.email }}</span>
-        </template>
-        <RouterLink v-if="authStore.user?.is_admin" class="btn-admin" to="/admin">Admin</RouterLink>
-        <button v-if="authStore.user?.is_admin" class="btn-add-user" @click="showAddUser = true">Add User</button>
         <button
           class="theme-toggle"
           :aria-label="themeStore.isDark ? '昼モードに切り替え' : '夜モードに切り替え'"
@@ -195,7 +185,61 @@ async function handleLogout() {
         >
           <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
         </button>
-        <button class="btn-signout" @click="handleLogout">Sign out</button>
+        <div ref="menuRef" class="hamburger-wrapper">
+          <button
+            class="hamburger-btn"
+            :aria-expanded="showMenu"
+            aria-haspopup="true"
+            :aria-label="showMenu ? 'Close menu' : 'Open menu'"
+            @keydown.esc.prevent="showMenu = false"
+            @click.stop="showMenu = !showMenu"
+          >
+            <span class="bar" />
+            <span class="bar" />
+            <span class="bar" />
+          </button>
+          <div v-if="showMenu" class="dropdown-menu" role="menu" @keydown.esc.prevent="showMenu = false">
+            <div class="dropdown-user">
+              <template v-if="editingUsername">
+                <input
+                  v-model="usernameInput"
+                  class="username-input"
+                  placeholder="username"
+                  maxlength="50"
+                  @keyup.enter="saveUsername"
+                  @keyup.escape="editingUsername = false"
+                />
+                <div class="username-actions">
+                  <button class="btn-save-username" @click="saveUsername">Save</button>
+                  <button class="btn-cancel-username" @click="editingUsername = false">Cancel</button>
+                </div>
+                <span v-if="usernameError" class="error-sm">{{ usernameError }}</span>
+              </template>
+              <template v-else>
+                <button class="dropdown-item user-item" role="menuitem" @click="startEditUsername">
+                  <span class="user-display">{{ authStore.user?.username ?? authStore.user?.email }}</span>
+                  <span class="edit-hint">edit</span>
+                </button>
+              </template>
+            </div>
+            <hr class="dropdown-sep" />
+            <RouterLink
+              v-if="authStore.user?.is_admin"
+              class="dropdown-item"
+              to="/admin"
+              role="menuitem"
+              @click="showMenu = false"
+            >Admin</RouterLink>
+            <button
+              v-if="authStore.user?.is_admin"
+              class="dropdown-item"
+              role="menuitem"
+              @click="showMenu = false; showAddUser = true"
+            >Add User</button>
+            <hr v-if="authStore.user?.is_admin" class="dropdown-sep" />
+            <button class="dropdown-item dropdown-item--danger" role="menuitem" @click="handleLogout">Sign out</button>
+          </div>
+        </div>
       </nav>
     </header>
     <main class="dash-content">
@@ -332,44 +376,6 @@ async function handleLogout() {
   gap: 0.75rem;
 }
 
-.user-email {
-  font-size: 0.875rem;
-  color: var(--color-text);
-  opacity: 0.75;
-}
-
-.username-input {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
-  background: var(--color-background);
-  color: var(--color-text);
-  width: 10rem;
-}
-
-.username-input:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-}
-
-.btn-save-username,
-.btn-cancel-username {
-  padding: 0.25rem 0.6rem;
-  border: 1px solid var(--color-border-hover);
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: var(--color-text);
-  transition: background 0.2s;
-}
-
-.btn-save-username:hover,
-.btn-cancel-username:hover {
-  background: var(--color-border);
-}
-
 .theme-toggle {
   width: 2.1rem;
   height: 2.1rem;
@@ -391,49 +397,162 @@ async function handleLogout() {
   transform: rotate(15deg);
 }
 
-.btn-admin,
-.btn-add-user {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--color-border-hover);
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: var(--color-text);
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.btn-admin {
-  text-decoration: none;
-  line-height: 1.4;
-}
-
-.btn-admin:hover,
-.btn-add-user:hover {
-  background: var(--color-border);
-}
-
-.btn-signout {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--color-border-hover);
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: var(--color-text);
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.btn-signout:hover {
-  background: var(--color-border);
-}
-
-.theme-toggle:focus-visible,
-.btn-admin:focus-visible,
-.btn-add-user:focus-visible,
-.btn-signout:focus-visible {
+.theme-toggle:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+.hamburger-wrapper {
+  position: relative;
+}
+
+.hamburger-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0.35rem;
+  background: transparent;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hamburger-btn:hover {
+  background: var(--color-border);
+}
+
+.hamburger-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.bar {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-text);
+  border-radius: 2px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem 0;
+  z-index: 100;
+}
+
+.dropdown-user {
+  padding: 0.5rem 0.75rem;
+}
+
+.dropdown-sep {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 0.25rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+  background: var(--color-background-mute);
+}
+
+.dropdown-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.dropdown-item--danger {
+  color: var(--color-error);
+}
+
+.user-item {
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.user-display {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+.edit-hint {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.username-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.username-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.username-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.btn-save-username,
+.btn-cancel-username {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border-hover);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  transition: background 0.2s;
+}
+
+.btn-save-username:hover,
+.btn-cancel-username:hover {
+  background: var(--color-border);
+}
+
+.error-sm {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--color-error);
 }
 
 .dash-content {
