@@ -77,7 +77,7 @@ describe('DashboardView hamburger menu', () => {
     vi.clearAllMocks()
 
     const authStore = useAuthStore()
-    authStore.user = { id: 1, email: 'user@example.com', username: 'testuser', is_admin: false }
+    authStore.user = { email: 'user@example.com', username: 'testuser', is_admin: false, created_at: '' }
 
     const urlsStore = useURLsStore()
     urlsStore.urls = []
@@ -162,7 +162,7 @@ describe('DashboardView hamburger menu', () => {
 
   it('shows Admin link and Add User for admin user', async () => {
     const authStore = useAuthStore()
-    authStore.user = { id: 1, email: 'admin@example.com', username: 'admin', is_admin: true }
+    authStore.user = { email: 'admin@example.com', username: 'admin', is_admin: true, created_at: '' }
 
     const wrapper = mount(DashboardView, { global: globalOptions })
     await flushPromises()
