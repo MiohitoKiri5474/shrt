@@ -110,8 +110,11 @@ services:
 volumes:
   # UPGRADE NOTE: Changed from bind mount (./backend-data) to named volume.
   # Before upgrading, copy existing data:
-  #   cp -r ./backend-data/. $(docker volume inspect shrt_backend-data --format '{{.Mountpoint}}')
+  #   cp -r ./backend-data/. $(docker volume inspect url-shortener-fullstack_backend-data --format '{{.Mountpoint}}')
+  # Volume name pinned to the old directory-derived project name so that adding
+  # `name: shrt` above does not silently orphan existing SQLite data on upgrade.
   backend-data:
+    name: url-shortener-fullstack_backend-data
 
 networks:
   app-net:
