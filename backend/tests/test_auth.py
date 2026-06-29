@@ -273,7 +273,7 @@ async def test_logout_revokes_token(client, blocklist):
     # Same token is now rejected server-side even though it has not expired.
     resp = await client.get("/api/auth/me", cookies=cookies)
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "Token has been revoked"
+    assert resp.json()["detail"] == "Not authenticated"
 
 
 async def test_logout_without_token_is_noop(client, blocklist):

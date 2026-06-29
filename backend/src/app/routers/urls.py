@@ -2,13 +2,14 @@ import asyncio
 import io
 import logging
 import re
+from datetime import datetime, timezone
 import segno
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
 from app.models import URL, Click, User
-from app.schemas import SSRFBlockedError, SSRFDNSError, URLCreate, URLOut, URLUpdate, StatsOut, PasswordVerify, UnlockOut, validate_no_ssrf
+from app.schemas import SSRFBlockedError, SSRFDNSError, URLCreate, URLOut, URLUpdate, StatsOut, PasswordVerify, UnlockOut, validate_no_ssrf, _SSRF_EXECUTOR, _SSRF_CHECK_TIMEOUT_S
 from app.services.auth import get_unique_short_code, hash_password_async, verify_password_async
 from app.routers.auth import get_current_user
 from app.rate_limiter import limiter, get_real_ip
@@ -27,7 +28,12 @@ async def create_url(
 ):
     loop = asyncio.get_running_loop()
     try:
-        await loop.run_in_executor(None, validate_no_ssrf, str(data.original_url))
+        await asyncio.wait_for(
+            loop.run_in_executor(_SSRF_EXECUTOR, validate_no_ssrf, str(data.original_url)),
+            timeout=_SSRF_CHECK_TIMEOUT_S,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except SSRFDNSError:
         raise HTTPException(status_code=503, detail="URL destination temporarily unreachable")
     except SSRFBlockedError as e:
@@ -130,6 +136,11 @@ async def unlock_url(
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="Short URL not found")
+    if url.expires_at is not None:
+        now = datetime.now(timezone.utc)
+        expires = url.expires_at if url.expires_at.tzinfo else url.expires_at.replace(tzinfo=timezone.utc)
+        if now >= expires:
+            raise HTTPException(status_code=410, detail="This link has expired")
     if url.password_hash is None:
         raise HTTPException(status_code=400, detail="This URL is not password protected")
     if not await verify_password_async(data.password, url.password_hash):
@@ -137,8 +148,8 @@ async def unlock_url(
     loop = asyncio.get_running_loop()
     try:
         await asyncio.wait_for(
-            loop.run_in_executor(None, validate_no_ssrf, str(url.original_url)),
-            timeout=5.0,
+            loop.run_in_executor(_SSRF_EXECUTOR, validate_no_ssrf, str(url.original_url)),
+            timeout=_SSRF_CHECK_TIMEOUT_S,
         )
     except (asyncio.TimeoutError, SSRFDNSError, SSRFBlockedError, ValueError):
         raise HTTPException(status_code=400, detail="URL destination is no longer valid")

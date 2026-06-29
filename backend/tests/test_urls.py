@@ -1,10 +1,12 @@
 import pytest
+from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.database import get_db
-from app.models import Base
+from app.models import Base, URL
 
 @pytest.fixture(autouse=True)
 async def setup_db():
@@ -203,6 +205,20 @@ async def test_unlock_correct_password(client, auth_client):
     resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "hunter2"})
     assert resp.status_code == 200
     assert resp.json()["redirect_url"] == "https://secret.com/"
+
+async def test_unlock_expired_password_protected_returns_410(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
+    code = create.json()["short_code"]
+    past = datetime.now(timezone.utc) - timedelta(hours=1)
+    agen = app.dependency_overrides[get_db]()
+    db = await anext(agen)
+    try:
+        await db.execute(update(URL).where(URL.short_code == code).values(expires_at=past))
+        await db.commit()
+    finally:
+        await agen.aclose()
+    resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "hunter2"})
+    assert resp.status_code == 410
 
 async def test_unlock_wrong_password(client, auth_client):
     create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})

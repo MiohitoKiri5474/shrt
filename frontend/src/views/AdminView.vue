@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useAdminStore } from '../stores/admin'
 import { useThemeStore } from '../stores/theme'
+import AddUserForm from '../components/AddUserForm.vue'
 
 const authStore = useAuthStore()
 const adminStore = useAdminStore()
 const themeStore = useThemeStore()
 
+const showAddUserModal = ref(false)
+const successMessage = ref('')
 const loadError = ref('')
 const deleteError = ref('')
 const pendingDeleteId = ref<number | null>(null)
@@ -56,6 +59,22 @@ async function confirmDelete() {
 function cancelDelete() {
   pendingDeleteId.value = null
 }
+
+let successTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleUserAdded(email: string) {
+  showAddUserModal.value = false
+  adminStore.fetchAll().catch(() => {
+    loadError.value = 'Failed to refresh users.'
+  })
+  if (successTimer) clearTimeout(successTimer)
+  successMessage.value = `User ${email} created.`
+  successTimer = setTimeout(() => { successMessage.value = '' }, 3000)
+}
+
+onBeforeUnmount(() => {
+  if (successTimer) clearTimeout(successTimer)
+})
 </script>
 
 <template>
@@ -64,6 +83,7 @@ function cancelDelete() {
       <h1>User Management</h1>
       <nav class="admin-nav">
         <RouterLink class="btn-link" to="/dashboard">← Dashboard</RouterLink>
+        <button class="btn-add-user" @click="showAddUserModal = true">Add User</button>
         <button
           class="theme-toggle"
           :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
@@ -76,6 +96,7 @@ function cancelDelete() {
 
     <main class="admin-content">
       <h2>All users</h2>
+      <p v-if="successMessage" class="success-notice" role="status">{{ successMessage }}</p>
       <p v-if="!loadError && adminStore.users.length === 0" class="empty">No users found.</p>
 
       <table v-if="adminStore.users.length" class="user-table">
@@ -137,6 +158,12 @@ function cancelDelete() {
         <button class="btn-confirm-delete" @click="confirmDelete">Delete</button>
       </div>
     </dialog>
+
+    <AddUserForm
+      v-if="showAddUserModal"
+      @user-added="handleUserAdded"
+      @close="showAddUserModal = false"
+    />
   </div>
 </template>
 
@@ -181,6 +208,27 @@ function cancelDelete() {
 
 .btn-link:hover {
   background: var(--color-border);
+}
+
+.btn-add-user {
+  padding: 0.35rem 0.75rem;
+  background: var(--color-accent);
+  color: var(--color-background);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.btn-add-user:hover {
+  opacity: 0.85;
+}
+
+.btn-add-user:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .theme-toggle {
@@ -322,6 +370,11 @@ function cancelDelete() {
 
 .error {
   color: var(--color-error);
+  margin-top: 1rem;
+}
+
+.success-notice {
+  color: var(--color-success, #22c55e);
   margin-top: 1rem;
 }
 
