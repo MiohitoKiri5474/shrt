@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useAdminStore } from '../stores/admin'
 import { useThemeStore } from '../stores/theme'
@@ -60,16 +60,21 @@ function cancelDelete() {
   pendingDeleteId.value = null
 }
 
+let successTimer: ReturnType<typeof setTimeout> | null = null
+
 function handleUserAdded(email: string) {
   showAddUserModal.value = false
   adminStore.fetchAll().catch(() => {
     loadError.value = 'Failed to refresh users.'
   })
+  if (successTimer) clearTimeout(successTimer)
   successMessage.value = `User ${email} created.`
-  setTimeout(() => {
-    successMessage.value = ''
-  }, 3000)
+  successTimer = setTimeout(() => { successMessage.value = '' }, 3000)
 }
+
+onBeforeUnmount(() => {
+  if (successTimer) clearTimeout(successTimer)
+})
 </script>
 
 <template>
