@@ -97,14 +97,15 @@ onBeforeUnmount(() => {
             class="hamburger-btn"
             :aria-expanded="showMenu"
             aria-haspopup="true"
-            aria-label="Open menu"
+            :aria-label="showMenu ? 'Close menu' : 'Open menu'"
+            @keydown.esc.prevent="showMenu = false"
             @click.stop="showMenu = !showMenu"
           >
             <span class="bar" />
             <span class="bar" />
             <span class="bar" />
           </button>
-          <div v-if="showMenu" class="dropdown-menu" role="menu">
+          <div v-if="showMenu" class="dropdown-menu" role="menu" @keydown.esc.prevent="showMenu = false">
             <RouterLink
               class="dropdown-item"
               to="/dashboard"
