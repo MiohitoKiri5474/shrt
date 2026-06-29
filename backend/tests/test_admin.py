@@ -148,3 +148,47 @@ async def test_admin_cannot_delete_self(client, admin_cookies):
 async def test_delete_nonexistent_user_gets_404(client, admin_cookies):
     resp = await client.delete("/api/admin/users/99999", cookies=admin_cookies)
     assert resp.status_code == 404
+
+
+async def test_promote_user_to_admin(client, admin_cookies):
+    target_id = await _make_user("plain@b.com", "plainpass1234", is_admin=False)
+    resp = await client.patch(
+        f"/api/admin/users/{target_id}", json={"is_admin": True}, cookies=admin_cookies
+    )
+    assert resp.status_code == 200
+    assert resp.json()["is_admin"] is True
+
+
+async def test_demote_admin_to_user(client, admin_cookies):
+    target_id = await _make_user("other_admin@b.com", "adminpass1234", is_admin=True)
+    resp = await client.patch(
+        f"/api/admin/users/{target_id}", json={"is_admin": False}, cookies=admin_cookies
+    )
+    assert resp.status_code == 200
+    assert resp.json()["is_admin"] is False
+
+
+async def test_admin_cannot_change_own_role(client, admin_cookies):
+    listing = await client.get("/api/admin/users", cookies=admin_cookies)
+    admin_id = next(u["id"] for u in listing.json() if u["email"] == "admin@b.com")
+    resp = await client.patch(
+        f"/api/admin/users/{admin_id}", json={"is_admin": False}, cookies=admin_cookies
+    )
+    assert resp.status_code == 400
+
+
+async def test_patch_nonexistent_user_gets_404(client, admin_cookies):
+    resp = await client.patch("/api/admin/users/99999", json={"is_admin": True}, cookies=admin_cookies)
+    assert resp.status_code == 404
+
+
+async def test_patch_user_non_admin_gets_403(client):
+    target_id = await _make_user("victim2@b.com", "victimpass1234")
+    await client.post("/api/auth/register", json={"email": "attacker2@b.com", "password": "attackerpass12"})
+    login = await client.post(
+        "/api/auth/login", data={"username": "attacker2@b.com", "password": "attackerpass12"}
+    )
+    resp = await client.patch(
+        f"/api/admin/users/{target_id}", json={"is_admin": True}, cookies=login.cookies
+    )
+    assert resp.status_code == 403
