@@ -1,7 +1,7 @@
 services:
   redis:
     image: redis:7-alpine
-    container_name: url-shortener-redis
+    container_name: shrt-redis
     # Persistence disabled intentionally: rate-limit counters need not survive Redis restarts.
     # Multi-worker consistency is achieved by all workers sharing this Redis instance.
     user: "999:1000"

@@ -1,4 +1,4 @@
-# URL Shortener
+# Shrt
 
 Fullstack URL shortener — Vue3 frontend, FastAPI backend, Docker.
 

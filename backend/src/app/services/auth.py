@@ -1,3 +1,5 @@
+import asyncio
+import concurrent.futures
 import hashlib
 import secrets
 import string
@@ -17,11 +19,29 @@ def _prehash(password: str) -> bytes:
     return hashlib.sha256(password.encode()).digest()
 
 
+# Dedicated executor for CPU-bound bcrypt work, isolated from the default
+# executor so a hung I/O task (e.g. SSRF DNS validation in urls.py) can't
+# starve login hashing. max_workers=None uses the same default sizing as the
+# shared pool — min(32, os.cpu_count() + 4) — but in its own thread pool.
+_bcrypt_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=None,
+    thread_name_prefix="bcrypt",
+)
+
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(_prehash(password), bcrypt.gensalt(rounds=12)).decode()
 
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(_prehash(plain), hashed.encode())
+
+async def hash_password_async(password: str) -> str:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_bcrypt_executor, hash_password, password)
+
+async def verify_password_async(plain: str, hashed: str) -> bool:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_bcrypt_executor, verify_password, plain, hashed)
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
@@ -29,15 +49,14 @@ def create_access_token(data: dict) -> str:
     expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode["exp"] = expire
     to_encode["iat"] = now
-    to_encode["iss"] = "url-shortener"
-    to_encode["aud"] = "url-shortener-api"
-    # Unique token ID so the token can be revoked server-side on logout.
+    to_encode["iss"] = "shrt"
+    to_encode["aud"] = "shrt-api"
     to_encode["jti"] = secrets.token_hex(16)
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_token(token: str) -> dict:
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
-                      audience="url-shortener-api", issuer="url-shortener")
+                      audience="shrt-api", issuer="shrt")
 
 def generate_short_code(length: int = 8) -> str:
     chars = string.ascii_letters + string.digits
