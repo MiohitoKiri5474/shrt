@@ -14,6 +14,7 @@ const showMenu = ref(false)
 const successMessage = ref('')
 const loadError = ref('')
 const deleteError = ref('')
+const roleError = ref('')
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
 const menuRef = ref<HTMLDivElement | null>(null)
@@ -47,6 +48,15 @@ function formatDate(iso: string): string {
 
 function isSelf(email: string): boolean {
   return authStore.user?.email === email
+}
+
+async function handleToggleRole(id: number, currentIsAdmin: boolean) {
+  roleError.value = ''
+  try {
+    await adminStore.toggleRole(id, !currentIsAdmin)
+  } catch {
+    roleError.value = 'Failed to update role. Please try again.'
+  }
 }
 
 function handleDelete(id: number) {
@@ -158,6 +168,14 @@ onBeforeUnmount(() => {
             <td class="num">{{ user.url_count }}</td>
             <td class="actions-col">
               <button
+                class="btn-toggle-role"
+                :disabled="isSelf(user.email)"
+                :title="isSelf(user.email) ? 'You cannot change your own role' : (user.is_admin ? 'Demote to user' : 'Promote to admin')"
+                @click="handleToggleRole(user.id, user.is_admin)"
+              >
+                {{ user.is_admin ? 'Demote' : 'Promote' }}
+              </button>
+              <button
                 class="btn-delete"
                 :disabled="isSelf(user.email)"
                 :title="isSelf(user.email) ? 'You cannot delete your own account' : 'Delete user'"
@@ -172,6 +190,7 @@ onBeforeUnmount(() => {
 
       <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
       <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
+      <p v-if="roleError" class="error" role="alert">{{ roleError }}</p>
     </main>
 
     <dialog
@@ -433,6 +452,35 @@ onBeforeUnmount(() => {
 .badge-user {
   color: var(--color-text);
   opacity: 0.7;
+}
+
+.btn-toggle-role {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--color-accent);
+  background: transparent;
+  color: var(--color-accent);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  margin-right: 0.4rem;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+
+.btn-toggle-role:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-background);
+}
+
+.btn-toggle-role:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.btn-toggle-role:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
 }
 
 .btn-delete {

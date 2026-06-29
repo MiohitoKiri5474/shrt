@@ -88,6 +88,11 @@ class AdminUserOut(BaseModel):
     url_count: int = 0
     model_config = {"from_attributes": True}
 
+
+class AdminUserUpdate(BaseModel):
+    is_admin: bool
+
+
 class Token(BaseModel):
     token_type: str = "bearer"
 
