@@ -23,6 +23,7 @@ Object.defineProperty(window, 'matchMedia', {
 vi.mock('../../api/admin', () => ({
   adminApi: {
     listUsers: vi.fn(),
+    updateUser: vi.fn(),
     deleteUser: vi.fn(),
   },
 }))
@@ -195,5 +196,70 @@ describe('AdminView', () => {
     expect(wrapper.findComponent(AddUserFormStub).exists()).toBe(false)
     // fetchAll called a second time to refresh the user list
     expect(adminApiModule.adminApi.listUsers).toHaveBeenCalledTimes(2)
+  })
+
+  describe('role toggle', () => {
+    const regularUser = {
+      id: 2,
+      email: 'user@example.com',
+      username: 'user',
+      is_admin: false,
+      created_at: '2024-01-01T00:00:00Z',
+      url_count: 0,
+    }
+    const adminUser = {
+      id: 3,
+      email: 'other@example.com',
+      username: 'other',
+      is_admin: true,
+      created_at: '2024-01-01T00:00:00Z',
+      url_count: 0,
+    }
+
+    it('shows Promote button for regular user', async () => {
+      vi.mocked(adminApiModule.adminApi.listUsers).mockResolvedValue([regularUser])
+      const wrapper = mount(AdminView, { global: globalOptions })
+      await flushPromises()
+      expect(wrapper.find('.btn-toggle-role').text()).toBe('Promote')
+    })
+
+    it('shows Demote button for admin user', async () => {
+      vi.mocked(adminApiModule.adminApi.listUsers).mockResolvedValue([adminUser])
+      const wrapper = mount(AdminView, { global: globalOptions })
+      await flushPromises()
+      expect(wrapper.find('.btn-toggle-role').text()).toBe('Demote')
+    })
+
+    it('calls updateUser and updates badge on Promote click', async () => {
+      vi.mocked(adminApiModule.adminApi.listUsers).mockResolvedValue([regularUser])
+      vi.mocked(adminApiModule.adminApi.updateUser).mockResolvedValue({ ...regularUser, is_admin: true })
+      const wrapper = mount(AdminView, { global: globalOptions })
+      await flushPromises()
+      await wrapper.find('.btn-toggle-role').trigger('click')
+      await flushPromises()
+      expect(adminApiModule.adminApi.updateUser).toHaveBeenCalledWith(2, true)
+      expect(wrapper.find('.badge-admin').exists()).toBe(true)
+    })
+
+    it('calls updateUser and updates badge on Demote click', async () => {
+      vi.mocked(adminApiModule.adminApi.listUsers).mockResolvedValue([adminUser])
+      vi.mocked(adminApiModule.adminApi.updateUser).mockResolvedValue({ ...adminUser, is_admin: false })
+      const wrapper = mount(AdminView, { global: globalOptions })
+      await flushPromises()
+      await wrapper.find('.btn-toggle-role').trigger('click')
+      await flushPromises()
+      expect(adminApiModule.adminApi.updateUser).toHaveBeenCalledWith(3, false)
+      expect(wrapper.find('.badge-user').exists()).toBe(true)
+    })
+
+    it('shows role error on updateUser failure', async () => {
+      vi.mocked(adminApiModule.adminApi.listUsers).mockResolvedValue([regularUser])
+      vi.mocked(adminApiModule.adminApi.updateUser).mockRejectedValue(new Error('fail'))
+      const wrapper = mount(AdminView, { global: globalOptions })
+      await flushPromises()
+      await wrapper.find('.btn-toggle-role').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('Failed to update role')
+    })
   })
 })
