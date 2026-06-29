@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from app.database import create_tables, AsyncSessionLocal
 from app.models import User
-from app.services.auth import hash_password
+from app.services.auth import hash_password_async
 from app.schemas import UserCreate
 from pydantic import ValidationError
 from app.routers import auth, urls, redirect, admin
@@ -27,7 +27,7 @@ _is_dev = _APP_ENV in {"development", "dev"}
 _is_non_prod = _APP_ENV in {"development", "dev", "test", "testing"}
 
 app = FastAPI(
-    title="URL Shortener API",
+    title="Shrt API",
     version="1.0.0",
     docs_url="/docs" if _is_dev else None,
     redoc_url="/redoc" if _is_dev else None,
@@ -131,8 +131,9 @@ async def seed_default_user():
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.email == email))
         if result.scalar_one_or_none() is None:
+            password_hash = await hash_password_async(password)
             try:
-                db.add(User(email=email, password_hash=hash_password(password), username=username, is_admin=True))
+                db.add(User(email=email, password_hash=password_hash, username=username, is_admin=True))
                 await db.commit()
             except IntegrityError:
                 await db.rollback()

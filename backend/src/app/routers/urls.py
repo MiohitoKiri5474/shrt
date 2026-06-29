@@ -10,7 +10,7 @@ from sqlalchemy import select, func
 from app.database import get_db
 from app.models import URL, Click, User
 from app.schemas import SSRFBlockedError, SSRFDNSError, URLCreate, URLOut, URLUpdate, StatsOut, PasswordVerify, UnlockOut, validate_no_ssrf, _SSRF_EXECUTOR, _SSRF_CHECK_TIMEOUT_S
-from app.services.auth import get_unique_short_code, hash_password, verify_password
+from app.services.auth import get_unique_short_code, hash_password_async, verify_password_async
 from app.routers.auth import get_current_user
 from app.rate_limiter import limiter, get_real_ip
 from app.utils import anonymize_ip
@@ -56,7 +56,7 @@ async def create_url(
         user_id=current_user.id,
         original_url=str(data.original_url),
         short_code=code,
-        password_hash=hash_password(data.password) if data.password else None,
+        password_hash=await hash_password_async(data.password) if data.password else None,
     )
     db.add(url)
     await db.commit()
@@ -101,7 +101,7 @@ async def update_url(
     if data.remove_password:
         url.password_hash = None
     elif data.password:
-        url.password_hash = hash_password(data.password)
+        url.password_hash = await hash_password_async(data.password)
     url.expires_at = data.expires_at
     await db.commit()
     await db.refresh(url)
@@ -143,7 +143,7 @@ async def unlock_url(
             raise HTTPException(status_code=410, detail="This link has expired")
     if url.password_hash is None:
         raise HTTPException(status_code=400, detail="This URL is not password protected")
-    if not verify_password(data.password, url.password_hash):
+    if not await verify_password_async(data.password, url.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect password")
     loop = asyncio.get_running_loop()
     try:

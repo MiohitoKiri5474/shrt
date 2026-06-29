@@ -161,7 +161,7 @@ async function handleLogout() {
 <template>
   <div class="dashboard">
     <header class="dash-header">
-      <h1>URL Shortener</h1>
+      <h1>Shrt</h1>
       <nav class="dash-nav">
         <NetworkStatusIndicator />
         <template v-if="editingUsername">
