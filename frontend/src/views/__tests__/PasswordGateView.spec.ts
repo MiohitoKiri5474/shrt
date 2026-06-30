@@ -64,6 +64,15 @@ describe('PasswordGateView', () => {
     expect(wrapper.find('[role="alert"]').text()).toContain('Link not found')
   })
 
+  it('shows expired error on 410', async () => {
+    vi.mocked(urlsApiModule.urlsApi.unlock).mockRejectedValue({ response: { status: 410 } })
+    const wrapper = await mountGate()
+    await wrapper.find('#gate-password').setValue('any')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').text()).toContain('expired')
+  })
+
   it('shows generic error on other failures', async () => {
     vi.mocked(urlsApiModule.urlsApi.unlock).mockRejectedValue({ response: { status: 500 } })
     const wrapper = await mountGate()
