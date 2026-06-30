@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -26,9 +27,22 @@ _APP_ENV = os.getenv("APP_ENV", "production").lower()
 _is_dev = _APP_ENV in {"development", "dev"}
 _is_non_prod = _APP_ENV in {"development", "dev", "test", "testing"}
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # pragma: no cover
+    if _APP_ENV not in {"development", "dev", "test", "testing"}:
+        logger.warning(
+            "HSTS is not set at the application layer. "
+            "Ensure the TLS-terminating proxy sets: "
+            "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+        )
+    await create_tables()
+    await seed_default_user()
+    yield
+
 app = FastAPI(
     title="Shrt API",
     version="1.0.0",
+    lifespan=lifespan,
     docs_url="/docs" if _is_dev else None,
     redoc_url="/redoc" if _is_dev else None,
     openapi_url="/openapi.json" if _is_dev else None,
@@ -95,17 +109,6 @@ async def health(request: Request):
 @limiter.limit("60/minute")
 async def api_health(request: Request) -> dict[str, str]:
     return {"status": "ok"}
-
-@app.on_event("startup")
-async def startup():  # pragma: no cover
-    if _APP_ENV not in {"development", "dev", "test", "testing"}:
-        logger.warning(
-            "HSTS is not set at the application layer. "
-            "Ensure the TLS-terminating proxy sets: "
-            "Strict-Transport-Security: max-age=31536000; includeSubDomains"
-        )
-    await create_tables()
-    await seed_default_user()
 
 async def seed_default_user():
     email = os.getenv("DEFAULT_USER_EMAIL")
