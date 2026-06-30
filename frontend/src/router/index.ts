@@ -23,6 +23,11 @@ const router = createRouter({
       name: 'password-gate',
       component: () => import('../views/PasswordGateView.vue'),
     },
+    {
+      path: '/expired',
+      name: 'expired',
+      component: () => import('../views/ExpiredView.vue'),
+    },
   ],
 })
 
