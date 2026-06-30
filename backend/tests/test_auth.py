@@ -33,7 +33,7 @@ async def client():
 
 @pytest.fixture
 async def admin_token(client):
-    """Create an admin user directly in DB and return its auth cookies."""
+    """Create an admin user directly in DB and log in on the shared client."""
     async with _AsyncTestSession() as session:
         admin = User(
             email="admin@b.com",
@@ -42,8 +42,7 @@ async def admin_token(client):
         )
         session.add(admin)
         await session.commit()
-    resp = await client.post("/api/auth/login", data={"username": "admin@b.com", "password": "adminpassword123"})
-    return dict(resp.cookies)
+    await client.post("/api/auth/login", data={"username": "admin@b.com", "password": "adminpassword123"})
 
 async def test_register(client):
     resp = await client.post("/api/auth/register", json={"email": "a@b.com", "password": "secret123456"})
@@ -74,8 +73,8 @@ async def test_login_wrong_password(client):
 
 async def test_me_endpoint(client):
     await client.post("/api/auth/register", json={"email": "me@b.com", "password": "pass12345678"})
-    login = await client.post("/api/auth/login", data={"username": "me@b.com", "password": "pass12345678"})
-    resp = await client.get("/api/auth/me", cookies=login.cookies)
+    await client.post("/api/auth/login", data={"username": "me@b.com", "password": "pass12345678"})
+    resp = await client.get("/api/auth/me")
     assert resp.status_code == 200
     assert resp.json()["email"] == "me@b.com"
 
@@ -92,7 +91,6 @@ async def test_create_user_as_admin(client, admin_token):
     resp = await client.post(
         "/api/auth/users",
         json={"email": "new@b.com", "password": "newpassword123"},
-        cookies=admin_token,
     )
     assert resp.status_code == 201
     assert resp.json()["email"] == "new@b.com"
@@ -100,11 +98,10 @@ async def test_create_user_as_admin(client, admin_token):
 async def test_create_user_non_admin_gets_403(client):
     """Non-admin authenticated users cannot create accounts (403)."""
     await client.post("/api/auth/register", json={"email": "regular@b.com", "password": "regularpass123"})
-    login = await client.post("/api/auth/login", data={"username": "regular@b.com", "password": "regularpass123"})
+    await client.post("/api/auth/login", data={"username": "regular@b.com", "password": "regularpass123"})
     resp = await client.post(
         "/api/auth/users",
         json={"email": "target@b.com", "password": "targetpass123"},
-        cookies=login.cookies,
     )
     assert resp.status_code == 403
 
@@ -116,12 +113,10 @@ async def test_create_user_duplicate(client, admin_token):
     await client.post(
         "/api/auth/users",
         json={"email": "dup2@b.com", "password": "pass12345678"},
-        cookies=admin_token,
     )
     resp = await client.post(
         "/api/auth/users",
         json={"email": "dup2@b.com", "password": "other12345678"},
-        cookies=admin_token,
     )
     assert resp.status_code == 409
 
@@ -129,7 +124,6 @@ async def test_create_user_short_password(client, admin_token):
     resp = await client.post(
         "/api/auth/users",
         json={"email": "short@b.com", "password": "abc"},
-        cookies=admin_token,
     )
     assert resp.status_code == 422
 
@@ -260,18 +254,17 @@ def blocklist():
 async def test_logout_revokes_token(client, blocklist):
     """After logout the same token must be rejected with 401 by /me."""
     await client.post("/api/auth/register", json={"email": "revoke@b.com", "password": "pass12345678"})
-    login = await client.post("/api/auth/login", data={"username": "revoke@b.com", "password": "pass12345678"})
-    cookies = login.cookies
+    await client.post("/api/auth/login", data={"username": "revoke@b.com", "password": "pass12345678"})
 
     # Token works before logout.
-    assert (await client.get("/api/auth/me", cookies=cookies)).status_code == 200
+    assert (await client.get("/api/auth/me")).status_code == 200
 
-    logout = await client.post("/api/auth/logout", cookies=cookies)
+    logout = await client.post("/api/auth/logout")
     assert logout.status_code == 200
     assert len(blocklist.revoked) == 1  # exactly one jti revoked
 
     # Same token is now rejected server-side even though it has not expired.
-    resp = await client.get("/api/auth/me", cookies=cookies)
+    resp = await client.get("/api/auth/me")
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
@@ -286,8 +279,8 @@ async def test_logout_without_token_is_noop(client, blocklist):
 async def test_non_revoked_token_still_valid(client, blocklist):
     """A token that was never logged out must keep working."""
     await client.post("/api/auth/register", json={"email": "keep@b.com", "password": "pass12345678"})
-    login = await client.post("/api/auth/login", data={"username": "keep@b.com", "password": "pass12345678"})
-    resp = await client.get("/api/auth/me", cookies=login.cookies)
+    await client.post("/api/auth/login", data={"username": "keep@b.com", "password": "pass12345678"})
+    resp = await client.get("/api/auth/me")
     assert resp.status_code == 200
 
 
