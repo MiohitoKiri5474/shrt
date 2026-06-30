@@ -253,3 +253,18 @@ async def test_redirect_no_click_for_password_protected(client, auth_client):
     await client.get(f"/{code}", follow_redirects=False)
     stats = await auth_client.get(f"/api/urls/{url_id}/stats")
     assert stats.json()["total_clicks"] == 0
+
+async def test_redirect_expired_link_redirects_to_expired_page(client, auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://example.com"})
+    code = create.json()["short_code"]
+    past = datetime.now(timezone.utc) - timedelta(hours=1)
+    agen = app.dependency_overrides[get_db]()
+    db = await anext(agen)
+    try:
+        await db.execute(update(URL).where(URL.short_code == code).values(expires_at=past))
+        await db.commit()
+    finally:
+        await agen.aclose()
+    resp = await client.get(f"/{code}", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == f"/expired?code={code}"
