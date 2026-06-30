@@ -441,3 +441,55 @@ async def test_update_me_username_conflict_gets_409(client):
 async def test_update_me_unauthenticated_gets_401(client):
     resp = await client.patch("/api/auth/me", json={"username": "anon"})
     assert resp.status_code == 401
+
+
+# --- get_current_user security edge cases ---
+
+async def test_revoked_token_rejected_even_with_cookie_present(client, blocklist):
+    """A revoked JTI must be rejected by /me even when the cookie is still in the jar.
+
+    This covers the server-side revocation check (auth.py line 48) — the path
+    exercised when an attacker holds a copy of a cookie after the legitimate user
+    logged out through a different client.
+    """
+    from app.services.auth import decode_token
+
+    await client.post("/api/auth/register", json={"email": "victim@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "victim@b.com", "password": "pass12345678"})
+
+    # Decode the token still in the cookie jar to extract its jti.
+    raw_token = client.cookies.get("access_token")
+    assert raw_token, "expected an access_token cookie after login"
+    payload = decode_token(raw_token)
+    jti = payload["jti"]
+
+    # Directly revoke the jti without clearing the cookie (simulates a stolen cookie).
+    await blocklist.revoke(jti, ttl_seconds=900)
+
+    # /me must now return 401 via the revocation check, not the missing-cookie path.
+    resp = await client.get("/api/auth/me")
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Not authenticated"
+
+
+async def test_deleted_user_with_valid_token_gets_401(client):
+    """A valid JWT for a user deleted from the DB must be rejected with 401.
+
+    Covers auth.py line 52 — the guard that prevents a deleted account from
+    continuing to use tokens issued before the account was removed.
+    """
+    await client.post("/api/auth/register", json={"email": "deleted@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "deleted@b.com", "password": "pass12345678"})
+
+    # Token works now.
+    assert (await client.get("/api/auth/me")).status_code == 200
+
+    # Delete the user directly from the DB while the token is still valid.
+    async with _AsyncTestSession() as session:
+        from sqlalchemy import delete as _delete
+        await session.execute(_delete(User).where(User.email == "deleted@b.com"))
+        await session.commit()
+
+    # The same (still-valid) token must now be rejected.
+    resp = await client.get("/api/auth/me")
+    assert resp.status_code == 401
