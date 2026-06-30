@@ -386,3 +386,58 @@ async def test_async_and_sync_bcrypt_are_consistent():
     assert verify_password(pw, async_hash) is True
     assert await verify_password_async(pw, sync_hash) is True
     assert await verify_password_async(pw, async_hash) is True
+
+
+# --- Login by username and unknown-user paths ---
+
+async def test_login_unknown_user_gets_401(client):
+    """Login attempt for a non-existent user must return 401."""
+    resp = await client.post(
+        "/api/auth/login",
+        data={"username": "ghost@nowhere.com", "password": "doesntmatter1"},
+    )
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid credentials"
+
+
+async def test_login_by_username(client):
+    """Users can authenticate using their username instead of email."""
+    await client.post("/api/auth/register", json={"email": "uname@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "uname@b.com", "password": "pass12345678"})
+    # Set a username via PATCH /me
+    patch = await client.patch("/api/auth/me", json={"username": "mynick"})
+    assert patch.status_code == 200
+    assert patch.json()["username"] == "mynick"
+    # Now login using the username (no @ in identifier)
+    await client.post("/api/auth/logout")
+    resp = await client.post("/api/auth/login", data={"username": "mynick", "password": "pass12345678"})
+    assert resp.status_code == 200
+
+
+# --- PATCH /me (update_me) endpoint ---
+
+async def test_update_me_sets_username(client):
+    await client.post("/api/auth/register", json={"email": "patch@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "patch@b.com", "password": "pass12345678"})
+    resp = await client.patch("/api/auth/me", json={"username": "newhandle"})
+    assert resp.status_code == 200
+    assert resp.json()["username"] == "newhandle"
+    assert resp.json()["email"] == "patch@b.com"
+
+
+async def test_update_me_username_conflict_gets_409(client):
+    """Cannot take a username already claimed by another user."""
+    await client.post("/api/auth/register", json={"email": "alice@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "alice@b.com", "password": "pass12345678"})
+    await client.patch("/api/auth/me", json={"username": "takenname"})
+    await client.post("/api/auth/logout")
+
+    await client.post("/api/auth/register", json={"email": "bob@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "bob@b.com", "password": "pass12345678"})
+    resp = await client.patch("/api/auth/me", json={"username": "takenname"})
+    assert resp.status_code == 409
+
+
+async def test_update_me_unauthenticated_gets_401(client):
+    resp = await client.patch("/api/auth/me", json={"username": "anon"})
+    assert resp.status_code == 401
