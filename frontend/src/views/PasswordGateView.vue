@@ -35,6 +35,8 @@ async function handleUnlock() {
       error.value = 'Incorrect password. Please try again.'
     } else if (status === 404) {
       error.value = 'Link not found.'
+    } else if (status === 410) {
+      error.value = 'This link has expired.'
     } else {
       error.value = 'Something went wrong. Please try again.'
     }
