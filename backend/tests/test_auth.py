@@ -276,6 +276,20 @@ async def test_logout_without_token_is_noop(client, blocklist):
     assert blocklist.revoked == set()
 
 
+async def test_logout_rate_limited(client, blocklist):
+    """Hitting /api/auth/logout 20 times should succeed; the 21st must return 429.
+
+    Every other endpoint carries a rate limit; an unbounded logout can be
+    hammered without throttling even though it only revokes the caller's own
+    token."""
+    for i in range(20):
+        resp = await client.post("/api/auth/logout")
+        assert resp.status_code == 200, f"Request {i + 1} expected 200, got {resp.status_code}"
+
+    resp = await client.post("/api/auth/logout")
+    assert resp.status_code == 429, f"Request 21 expected 429 (rate limited), got {resp.status_code}"
+
+
 async def test_non_revoked_token_still_valid(client, blocklist):
     """A token that was never logged out must keep working."""
     await client.post("/api/auth/register", json={"email": "keep@b.com", "password": "pass12345678"})
