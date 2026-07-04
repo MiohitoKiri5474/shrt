@@ -1,0 +1,28 @@
+# Redis configuration for Shrt.
+#
+# Copy this file to redis.conf (same directory) and replace the placeholder
+# password below with a real secret:
+#
+#   cp redis/redis.conf.example redis/redis.conf
+#   openssl rand -hex 32   # use the output as the requirepass value
+#
+# `redis.conf` is gitignored — it is mounted read-only into the redis
+# container instead of passing --requirepass on the command line, so the
+# password never appears in `docker inspect` / `ps aux` / `/proc/1/cmdline`.
+#
+# IMPORTANT: the `requirepass` value below MUST match the REDIS_PASSWORD
+# value in your root .env file — docker-compose.yml uses REDIS_PASSWORD to
+# build the backend's REDIS_URL and the redis container's REDISCLI_AUTH
+# (used by the healthcheck), while this file sets the actual server-side
+# password Redis enforces.
+
+# Persistence disabled intentionally: rate-limit counters need not survive
+# Redis restarts, and all backend workers share this instance for
+# consistent multi-worker rate limiting.
+save ""
+appendonly no
+
+maxmemory 100mb
+maxmemory-policy allkeys-lru
+
+requirepass changeme

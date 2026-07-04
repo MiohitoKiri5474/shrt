@@ -1,8 +1,9 @@
-FROM python:3.12-slim
+# python:3.12-slim, digest resolved 2026-07-04
+FROM python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a1bfc852199fbf
 
 WORKDIR /app
 
-RUN pip install uv
+RUN pip install uv==0.11.26
 
 COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev

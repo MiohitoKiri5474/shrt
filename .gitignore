@@ -19,18 +19,28 @@ coverage/
 # DB
 *.db
 *.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.db-journal
 
-# Env
+# Legacy bind-mount data dir; compose now uses a named volume for backend-data.
+backend-data/
+
+# Redis config (contains the real requirepass value); keep .example tracked.
+redis/redis.conf
+
+# Env — ignore all real env files, keep example templates tracked.
 .env
-.env.local
-.env.*.local
-.env.production
-.env.staging
+.env.*
+!.env.example
+!.env.production.example
 
 # IDE
 .vscode/
 .idea/
 *.swp
+.DS_Store
 
 worktree/
 worktrees/
