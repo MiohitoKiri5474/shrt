@@ -27,10 +27,16 @@ class SSRFBlockedError(ValueError):
 
 
 def validate_no_ssrf(url: str) -> None:
-    """Resolve hostname and block private/internal/reserved/multicast targets.
+    """Resolve hostname and allow only globally-routable targets.
 
     Call at both URL-creation time and redirect-serve time to prevent DNS rebinding.
     Uses getaddrinfo to check all resolved IPs, preventing multi-A-record SSRF bypass.
+
+    Takes an allowlist stance (``not addr.is_global``) rather than enumerating
+    individual non-routable ranges: private/loopback/link-local are checked
+    explicitly for clarity, but ``is_global`` also closes ranges those checks
+    miss — e.g. RFC 6598 carrier-grade NAT (100.64.0.0/10), 0.0.0.0/8, and any
+    future reserved space — without needing a new condition for each one.
 
     Raises SSRFDNSError for transient DNS failures, SSRFBlockedError for blocked addresses.
     """
@@ -52,6 +58,7 @@ def validate_no_ssrf(url: str) -> None:
             or addr.is_link_local
             or addr.is_reserved
             or addr.is_multicast
+            or not addr.is_global
         ):
             raise SSRFBlockedError(addr)
 
@@ -98,8 +105,8 @@ class Token(BaseModel):
 
 class URLCreate(BaseModel):
     original_url: AnyHttpUrl
-    custom_code: str | None = Field(None, min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
-    password: str | None = Field(None, min_length=1, max_length=128)
+    custom_code: str | None = Field(None, min_length=6, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str | None = Field(None, min_length=6, max_length=128)
 
     @field_validator("original_url", mode="before")
     @classmethod
@@ -148,7 +155,7 @@ class URLOut(BaseModel):
 
 
 class PasswordVerify(BaseModel):
-    password: str = Field(..., min_length=1, max_length=128)
+    password: str = Field(..., min_length=6, max_length=128)
 
 
 class UnlockOut(BaseModel):
