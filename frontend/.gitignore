@@ -29,10 +29,13 @@ coverage
 .eslintcache
 
 # Environment files — never commit real env values
+.env
 .env.production
 .env.staging
 .env.local
 .env.*.local
+!.env.example
+!.env.*.example
 
 # Cypress
 /cypress/videos/
