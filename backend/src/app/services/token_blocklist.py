@@ -17,10 +17,19 @@ denial of service. The bounded cost of failing open is that an already-revoked
 token regains validity, but only for its remaining (<= ACCESS_TOKEN_EXPIRE)
 window and only while Redis is down. The blocklist is defense-in-depth layered
 on top of the short token lifetime, not the primary access control.
+
+Local bridge cache (M2): to narrow that fail-open window, each process also
+remembers the ``jti`` values it revokes in an in-process cache keyed by the
+token's remaining TTL. When Redis is unreachable, a token revoked *by this
+process* is still rejected here for the rest of its lifetime instead of failing
+open. Residual risk (accepted): the cache only bridges revocations made by this
+process — a revocation performed on another worker, or before this process
+started, still depends on Redis and still fails open during an outage.
 """
 
 import logging
 import os
+import time
 from typing import Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
@@ -58,16 +67,38 @@ class RedisTokenBlocklist:
 
     def __init__(self, client) -> None:
         self._client = client
+        # Local bridge cache: jti -> monotonic deadline. Lets a token revoked on
+        # THIS process stay rejected through a brief Redis outage instead of
+        # failing open for its full remaining lifetime. See module docstring.
+        self._local_revoked: dict[str, float] = {}
+
+    def _remember_local(self, jti: str, ttl_seconds: int) -> None:
+        self._local_revoked[jti] = time.monotonic() + ttl_seconds
+
+    def _local_has(self, jti: str) -> bool:
+        deadline = self._local_revoked.get(jti)
+        if deadline is None:
+            return False
+        if deadline <= time.monotonic():
+            # Entry aged out exactly when the token itself expires — drop it so
+            # the cache stays bounded.
+            del self._local_revoked[jti]
+            return False
+        return True
 
     async def revoke(self, jti: str, ttl_seconds: int) -> None:
         # A non-positive TTL means the token is already expired (or expiring this
         # instant) and needs no blocklist entry — it is rejected on its own.
         if ttl_seconds <= 0:
             return
+        # Record locally first so a Redis outage during revoke cannot lose the
+        # revocation on the process that performed it.
+        self._remember_local(jti, ttl_seconds)
         try:
             await self._client.setex(f"{_REVOKED_PREFIX}{jti}", ttl_seconds, "1")
         except Exception:
             # Fail open: never let a Redis outage block logout (would be a DoS).
+            # The local cache above still rejects this jti on this process.
             logger.warning(
                 "Token blocklist: failed to revoke jti %s (Redis unavailable)",
                 jti,
@@ -75,6 +106,10 @@ class RedisTokenBlocklist:
             )
 
     async def is_revoked(self, jti: str) -> bool:
+        # Local cache is positive-authoritative: if this process revoked the
+        # token, it stays revoked regardless of Redis availability.
+        if self._local_has(jti):
+            return True
         try:
             return bool(await self._client.exists(f"{_REVOKED_PREFIX}{jti}"))
         except Exception:
