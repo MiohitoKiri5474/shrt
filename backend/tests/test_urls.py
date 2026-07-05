@@ -82,6 +82,18 @@ async def test_create_url_custom_code_conflict(auth_client):
     resp = await auth_client.post("/api/urls", json={"original_url": "https://example.org", "custom_code": "taken123"})
     assert resp.status_code == 409
 
+async def test_create_url_custom_code_too_short_rejected(auth_client):
+    """custom_code below the 6-char minimum must be rejected (422) — short codes
+    are enumerable given the public redirect route's rate limit."""
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://short.com", "custom_code": "abc12"})
+    assert resp.status_code == 422
+
+async def test_create_url_password_too_short_rejected(auth_client):
+    """A URL-protection password below the 6-char minimum must be rejected (422) —
+    a 1-char password offers negligible brute-force resistance."""
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "abc12"})
+    assert resp.status_code == 422
+
 async def test_delete_url_not_found(auth_client):
     resp = await auth_client.delete("/api/urls/99999")
     assert resp.status_code == 404
@@ -223,7 +235,7 @@ async def test_unlock_expired_password_protected_returns_410(client, auth_client
 async def test_unlock_wrong_password(client, auth_client):
     create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})
     code = create.json()["short_code"]
-    resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "wrong"})
+    resp = await client.post(f"/api/urls/{code}/unlock", json={"password": "wrongpw"})
     assert resp.status_code == 401
 
 async def test_unlock_not_password_protected(client, auth_client):
@@ -233,7 +245,7 @@ async def test_unlock_not_password_protected(client, auth_client):
     assert resp.status_code == 400
 
 async def test_unlock_not_found(client):
-    resp = await client.post("/api/urls/notfound8/unlock", json={"password": "x"})
+    resp = await client.post("/api/urls/notfound8/unlock", json={"password": "wrongpw"})
     assert resp.status_code == 404
 
 async def test_unlock_records_click(client, auth_client):

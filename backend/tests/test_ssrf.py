@@ -48,6 +48,20 @@ class TestValidateNoSsrf:
             with pytest.raises(ValueError, match="blocked"):
                 validate_no_ssrf("http://multicast.example.com/")
 
+    def test_cgnat_blocked(self):
+        """RFC 6598 carrier-grade NAT space (100.64.0.0/10) is not private/loopback/
+        link-local/reserved/multicast, but is also not globally routable — must be
+        blocked by the is_global allowlist check."""
+        with patch("socket.getaddrinfo", return_value=[_addr("100.64.0.1")]):
+            with pytest.raises(ValueError, match="blocked"):
+                validate_no_ssrf("http://cgnat.example.com/")
+
+    def test_reserved_0_0_0_0_8_blocked(self):
+        """0.0.0.0/8 ('this network') is non-global and must be blocked."""
+        with patch("socket.getaddrinfo", return_value=[_addr("0.0.0.1")]):
+            with pytest.raises(ValueError, match="blocked"):
+                validate_no_ssrf("http://this-network.example.com/")
+
     def test_dns_error_raises_ssrf_dns_error(self):
         """DNS resolution failure must raise SSRFDNSError (fail-closed)."""
         with patch("socket.getaddrinfo", side_effect=OSError("Name or service not known")):

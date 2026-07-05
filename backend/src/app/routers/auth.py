@@ -141,7 +141,9 @@ async def login(request: Request, response: Response, form: OAuth2PasswordReques
     return {"token_type": "bearer"}
 
 @router.post("/logout")
+@limiter.limit("20/minute")
 async def logout(
+    request: Request,
     response: Response,
     token: str | None = Depends(oauth2_scheme),
     cookie_token: str | None = Cookie(default=None, alias="access_token"),
