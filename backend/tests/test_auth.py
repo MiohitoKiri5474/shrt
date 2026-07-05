@@ -276,6 +276,20 @@ async def test_logout_without_token_is_noop(client, blocklist):
     assert blocklist.revoked == set()
 
 
+async def test_logout_rate_limited(client, blocklist):
+    """Hitting /api/auth/logout 20 times should succeed; the 21st must return 429.
+
+    Every other endpoint carries a rate limit; an unbounded logout can be
+    hammered without throttling even though it only revokes the caller's own
+    token."""
+    for i in range(20):
+        resp = await client.post("/api/auth/logout")
+        assert resp.status_code == 200, f"Request {i + 1} expected 200, got {resp.status_code}"
+
+    resp = await client.post("/api/auth/logout")
+    assert resp.status_code == 429, f"Request 21 expected 429 (rate limited), got {resp.status_code}"
+
+
 async def test_non_revoked_token_still_valid(client, blocklist):
     """A token that was never logged out must keep working."""
     await client.post("/api/auth/register", json={"email": "keep@b.com", "password": "pass12345678"})
@@ -320,6 +334,25 @@ class _BrokenRedis:
         raise ConnectionError("redis down")
 
 
+class _FlakyRedis:
+    """Async Redis stand-in that can be toggled from reachable to broken mid-test,
+    to simulate an outage that starts *after* a token was already revoked."""
+
+    def __init__(self):
+        self.store: dict[str, str] = {}
+        self.broken = False
+
+    async def setex(self, key, ttl, value):
+        if self.broken:
+            raise ConnectionError("redis down")
+        self.store[key] = value
+
+    async def exists(self, key):
+        if self.broken:
+            raise ConnectionError("redis down")
+        return 1 if key in self.store else 0
+
+
 async def test_redis_blocklist_revoke_and_check():
     from app.services.token_blocklist import RedisTokenBlocklist
 
@@ -330,7 +363,8 @@ async def test_redis_blocklist_revoke_and_check():
 
 
 async def test_redis_blocklist_skips_nonpositive_ttl():
-    """An already-expired token (ttl <= 0) is not written to the store."""
+    """An already-expired token (ttl <= 0) is not written to the store, and is
+    not remembered by the local bridging cache either."""
     from app.services.token_blocklist import RedisTokenBlocklist
 
     fake = _FakeRedis()
@@ -338,15 +372,48 @@ async def test_redis_blocklist_skips_nonpositive_ttl():
     await bl.revoke("expired", 0)
     await bl.revoke("expired2", -5)
     assert fake.store == {}
+    assert await bl.is_revoked("expired") is False
+    assert await bl.is_revoked("expired2") is False
 
 
-async def test_redis_blocklist_fails_open_on_outage():
-    """Redis errors must not raise: revoke is a no-op, is_revoked returns False."""
+async def test_redis_blocklist_revoke_survives_outage_via_local_cache():
+    """Redis errors during revoke must not raise. The local in-process cache
+    still catches the just-revoked jti on this same instance even though Redis
+    itself is unreachable — this is the bridging control for M2: a token
+    revoked right before/during an outage stays rejected on the process that
+    revoked it, instead of failing open for its full remaining lifetime."""
     from app.services.token_blocklist import RedisTokenBlocklist
 
     bl = RedisTokenBlocklist(_BrokenRedis())
     await bl.revoke("x", 600)  # must not raise
-    assert await bl.is_revoked("x") is False  # fail open
+    assert await bl.is_revoked("x") is True  # caught locally, not by Redis
+
+
+async def test_redis_blocklist_still_fails_open_for_unknown_jti_during_outage():
+    """A jti never revoked by *this* process instance still fails open when
+    Redis is unreachable. The local cache only bridges revocations made by
+    this process — revocations from another worker, or from before this
+    process started, still depend on Redis. This is the accepted residual
+    risk documented in the module docstring."""
+    from app.services.token_blocklist import RedisTokenBlocklist
+
+    bl = RedisTokenBlocklist(_BrokenRedis())
+    assert await bl.is_revoked("never-seen-by-this-process") is False
+
+
+async def test_redis_blocklist_revoked_token_survives_later_outage():
+    """A token revoked while Redis was reachable must still be rejected if
+    Redis goes down afterward — the local cache bridges the gap regardless of
+    whether Redis was already down at revoke time."""
+    from app.services.token_blocklist import RedisTokenBlocklist
+
+    fake = _FlakyRedis()
+    bl = RedisTokenBlocklist(fake)
+    await bl.revoke("abc", 600)
+    assert await bl.is_revoked("abc") is True  # Redis still up
+
+    fake.broken = True
+    assert await bl.is_revoked("abc") is True  # Redis down now, local cache catches it
 
 
 async def test_null_blocklist_never_revokes():

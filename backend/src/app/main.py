@@ -1,12 +1,14 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 from fastapi import FastAPI, Request
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.rate_limiter import limiter, _trusted_proxy_nets, _trusted_proxies
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from app.database import create_tables, AsyncSessionLocal
@@ -94,6 +96,37 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+def compute_allowed_hosts(allowed_hosts_env: str | None, is_dev: bool, cors_origins: list[str]) -> list[str]:
+    """Resolve the TrustedHostMiddleware allowlist.
+
+    Prefers an explicit ALLOWED_HOSTS env var; otherwise derives hostnames from
+    the CORS origins (the backend is normally reached under the same host as
+    the frontend, behind one reverse proxy). In dev, falls back to "*" so local
+    tooling (and the test client's synthetic Host header) is never blocked.
+    Raises if no hosts can be resolved outside dev — silently defaulting to "*"
+    in production would defeat the point of the check.
+    """
+    if allowed_hosts_env:
+        return [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
+    if is_dev:
+        return ["*"]
+    hosts = sorted({h for o in cors_origins if (h := urlparse(o).hostname)})
+    if not hosts:
+        raise ValueError(
+            "Could not derive allowed hosts from CORS_ALLOWED_ORIGINS. Set ALLOWED_HOSTS "
+            "explicitly (comma-separated hostnames, e.g. yourdomain.com)."
+        )
+    return hosts
+
+
+# Reject requests with a forged/unexpected Host header. Without this, an
+# attacker-controlled Host is reflected into the QR-code short link built from
+# request.base_url (routers/urls.py get_qr_code). Defaults to the hostnames
+# already trusted for CORS; set ALLOWED_HOSTS to override when the backend is
+# reachable under a different host than the frontend origins.
+allowed_hosts = compute_allowed_hosts(os.getenv("ALLOWED_HOSTS"), _is_dev, origins)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 @app.get("/health")
 @limiter.limit("30/minute")
