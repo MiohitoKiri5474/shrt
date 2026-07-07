@@ -6,11 +6,13 @@ For the minimal quick-start, see the root [README.md](../README.md). This doc co
 
 Copy `.env.example` to `.env` before starting. All are read by `backend/src/app/config.py` / `main.py` / `rate_limiter.py` unless noted.
 
+Also copy `redis/redis.conf.example` to `redis/redis.conf` and set its `requirepass` to the **same** value as `REDIS_PASSWORD` below — Redis reads its password from that mounted config file (not a command-line flag), so the two must be kept in sync by hand. See the comments in `redis/redis.conf.example` for details.
+
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `SECRET_KEY` | Yes | — (`KeyError` if unset) | JWT signing secret, HS256. Must be ≥64 chars. Generate: `python3 -c "import secrets; print(secrets.token_hex(48))"` |
 | `DATABASE_URL` | Yes | — (`KeyError` if unset) | SQLAlchemy async connection string. `sqlite+aiosqlite:///...` only allowed when `APP_ENV` is `development`/`dev`/`test`/`testing`; any other env requires PostgreSQL (`postgresql+asyncpg://...`) or startup raises `ValueError`. |
-| `REDIS_PASSWORD` | Yes | — | Redis auth password, also used by `docker-compose.yml` to build `REDIS_URL` for the backend. Must not contain `changeme` outside dev (startup raises). Generate: `openssl rand -hex 32`. |
+| `REDIS_PASSWORD` | Yes | — | Must match `requirepass` in `redis/redis.conf` (see above). Used by `docker-compose.yml` to build `REDIS_URL` for the backend and as `REDISCLI_AUTH` for the redis container's healthcheck. Must not contain `changeme` outside dev (startup raises). Generate: `openssl rand -hex 32`. |
 | `APP_ENV` | No | `production` | `development`/`dev` relaxes: disables `Secure` cookie flag, enables `/docs`/`/redoc`/`/openapi.json`, allows SQLite. |
 | `DEFAULT_USER_EMAIL` / `DEFAULT_USER_PASSWORD` | No (seeding skipped if either unset) | — | Seeds an admin user (`is_admin=True`) on startup if no user with that email exists. Password must pass `UserCreate` validation (12-128 chars) and must not be one of a known weak-password list — in production, a weak password raises `RuntimeError` and the app refuses to start. |
 | `DEFAULT_USER_USERNAME` | No | — | Optional username for the seeded admin (email always works for login regardless). |
@@ -37,11 +39,11 @@ Set in `frontend/.env` (dev) or `frontend/.env.production` (prod build), not the
 
 | Service | Image/Build | Exposed | Depends on | Healthcheck |
 |---|---|---|---|---|
-| `redis` | `redis:7-alpine`, runs as uid `999:1000` | internal `6379` only | — | `redis-cli -a $REDIS_PASSWORD ping`, 15s interval |
+| `redis` | `redis:7-alpine`, runs as uid `999:1000` | internal `6379` only | — | `redis-cli ping` (auth via `REDISCLI_AUTH` env var), 15s interval |
 | `backend` | builds `./backend` | internal `8000` only | `redis` (healthy) | `GET /health` via `urllib`, 30s interval |
 | `frontend` | builds `./frontend`, runs as uid `101:101` | `${HOST_PORT:-80}:80` | `backend` (healthy) | none |
 
-All three set `security_opt: no-new-privileges:true` and `cap_drop: ALL`; `frontend` additionally adds back `NET_BIND_SERVICE` to bind port 80 as non-root. Redis persistence is intentionally disabled (`--save "" --appendonly no`) — rate-limit counters don't need to survive a restart, and all backend workers share the one Redis instance for consistent limits.
+All three set `security_opt: no-new-privileges:true`, `cap_drop: ALL`, and `read_only: true` (with targeted `tmpfs` mounts for the paths each service needs to write); `frontend` additionally adds back `NET_BIND_SERVICE` to bind port 80 as non-root. Redis persistence is intentionally disabled (`save ""` / `appendonly no` in `redis/redis.conf`) — rate-limit counters don't need to survive a restart, and all backend workers share the one Redis instance for consistent limits.
 
 Backend data (SQLite file, if used) lives in the host bind mount `./backend-data`, mounted at `/app/data`. `docker compose down -v` does not remove bind mounts, unlike named volumes. On Linux hosts, the directory must be writable by uid `10001` (the container's `appuser`): `mkdir -p ./backend-data && chown 10001:10001 ./backend-data`.
 
