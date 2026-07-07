@@ -13,12 +13,16 @@ Auth, CSRF, and JWT lifecycle details (cookie flags, token revocation tradeoffs,
 | POST | `/logout` | None | — | — | `{"message": "Logged out"}`, clears cookie |
 | GET | `/me` | Cookie or bearer | 60/min | — | `UserOut` |
 | PATCH | `/me` | Cookie or bearer | 10/min | `UserUpdate` (username) | `UserOut` |
+| PATCH | `/me/email` | Cookie or bearer | 10/min | `EmailChange` (current_password, new_email) | `UserOut` |
+| PATCH | `/me/password` | Cookie or bearer | 10/min | `PasswordChange` (current_password, new_password) | `Token` `{token_type: "bearer"}`, rotates `access_token` cookie |
 | POST | `/users` | Cookie/bearer + admin | 10/min | `UserCreate` | `UserOut`, 201 |
 
 Notes:
 - `/register` is gated by the `ALLOW_REGISTRATION` env var (default: disabled — returns `403` unless set to `true`/`1`/`yes`/`on`).
 - `/login` accepts either email or username in the `username` form field (routed by presence of `@`).
 - `username` in `/me` PATCH must match `^[a-zA-Z0-9_-]+$`, 1-50 chars, and be unique.
+- `/me/email` and `/me/password` both require `current_password` (401 if wrong). No email verification flow — the change is immediate, same as registration.
+- `/me/password` revokes the caller's current JWT via the token blocklist and issues a fresh `access_token` cookie in the same response, so the current session stays authenticated while any other copy of the old token is rejected immediately.
 - `/users` (admin-only user creation) does not check `ALLOW_REGISTRATION`.
 
 ## URLs — `/api/urls`
@@ -71,6 +75,8 @@ Notes:
 UserCreate    { email: EmailStr, password: str (12-128 chars) }
 UserOut       { email: str, created_at: datetime, is_admin: bool, username: str | null }
 UserUpdate    { username: str (1-50 chars, ^[a-zA-Z0-9_-]+$) }
+EmailChange   { current_password: str, new_email: EmailStr }
+PasswordChange { current_password: str, new_password: str (min 12 chars; endpoint also caps at 128) }
 AdminUserOut  { id: int, email: str, username: str | null, is_admin: bool, created_at: datetime, url_count: int }
 Token         { token_type: "bearer" }
 
