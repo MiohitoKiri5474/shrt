@@ -439,47 +439,16 @@ describe('DashboardView logout', () => {
   })
 })
 
-describe('DashboardView username editing', () => {
-  beforeEach(() => {
+describe('DashboardView profile link', () => {
+  it('has a Profile link in the hamburger menu, no click-to-edit username', async () => {
     const store = setupStores({ email: 'user@example.com', username: 'oldname', is_admin: false, created_at: '' })
     vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
-  })
-
-  it('shows username input when user-item clicked', async () => {
     const wrapper = mount(DashboardView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.hamburger-btn').trigger('click')
-    await wrapper.find('.user-item').trigger('click')
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('.username-input').exists()).toBe(true)
-    expect((wrapper.find('.username-input').element as HTMLInputElement).value).toBe('oldname')
-  })
-
-  it('calls authStore.updateUsername on Save', async () => {
-    const authStore = useAuthStore()
-    vi.spyOn(authStore, 'updateUsername').mockResolvedValue(undefined)
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    await wrapper.find('.user-item').trigger('click')
-    await wrapper.vm.$nextTick()
-    await wrapper.find('.username-input').setValue('newname')
-    await wrapper.find('.btn-save-username').trigger('click')
-    await flushPromises()
-    expect(authStore.updateUsername).toHaveBeenCalledWith('newname')
-    expect(wrapper.find('.username-input').exists()).toBe(false)
-  })
-
-  it('shows usernameError when updateUsername fails', async () => {
-    const authStore = useAuthStore()
-    vi.spyOn(authStore, 'updateUsername').mockRejectedValue(new Error('fail'))
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    await wrapper.find('.user-item').trigger('click')
-    await wrapper.vm.$nextTick()
-    await wrapper.find('.btn-save-username').trigger('click')
-    await flushPromises()
-    expect(wrapper.find('.error-sm').text()).toContain('Failed to update username')
+    const menu = wrapper.find('.dropdown-menu')
+    expect(menu.text()).toContain('Profile')
+    expect(menu.text()).toContain('oldname')
+    expect(wrapper.find('.user-item').exists()).toBe(false)
   })
 })
