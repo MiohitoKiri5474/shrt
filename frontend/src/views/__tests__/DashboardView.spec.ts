@@ -350,4 +350,3 @@ describe('DashboardView edit flow', () => {
     expect(store.update).not.toHaveBeenCalled()
   })
 })
-
