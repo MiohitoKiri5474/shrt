@@ -102,6 +102,13 @@ onBeforeUnmount(() => {
     <header class="admin-header">
       <h1>User Management</h1>
       <nav class="admin-nav">
+        <button
+          class="theme-toggle"
+          :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
+          @click="themeStore.toggle()"
+        >
+          <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
+        </button>
         <div ref="menuRef" class="hamburger-wrapper">
           <button
             class="hamburger-btn"
@@ -126,13 +133,6 @@ onBeforeUnmount(() => {
             </RouterLink>
           </div>
         </div>
-        <button
-          class="theme-toggle"
-          :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
-          @click="themeStore.toggle()"
-        >
-          <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
-        </button>
       </nav>
     </header>
 
