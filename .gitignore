@@ -19,6 +19,7 @@ coverage/
 # DB
 *.db
 *.sqlite
+backend-data/
 
 # Env
 .env
