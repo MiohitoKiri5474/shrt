@@ -6,7 +6,6 @@ import { useURLsStore } from '../stores/urls'
 import { useThemeStore } from '../stores/theme'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
-import AddUserForm from '../components/AddUserForm.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
 import { urlsApi, type StatsOut, type URLOut } from '../api/urls'
 const BASE_URL = window.location.origin
@@ -19,7 +18,6 @@ const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
 const loadError = ref('')
-const showAddUser = ref(false)
 const showMenu = ref(false)
 const menuRef = ref<HTMLDivElement | null>(null)
 const pendingDeleteId = ref<number | null>(null)
@@ -230,12 +228,6 @@ async function handleLogout() {
               role="menuitem"
               @click="showMenu = false"
             >Admin</RouterLink>
-            <button
-              v-if="authStore.user?.is_admin"
-              class="dropdown-item"
-              role="menuitem"
-              @click="showMenu = false; showAddUser = true"
-            >Add User</button>
             <hr v-if="authStore.user?.is_admin" class="dropdown-sep" />
             <button class="dropdown-item dropdown-item--danger" role="menuitem" @click="handleLogout">Sign out</button>
           </div>
@@ -275,8 +267,6 @@ async function handleLogout() {
       <p v-if="statsError" class="error">{{ statsError }}</p>
       <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
     </main>
-
-    <AddUserForm v-if="showAddUser" @close="showAddUser = false" />
 
     <dialog
       ref="dialogRef"
