@@ -75,19 +75,12 @@ const URLCardStub = defineComponent({
   `,
 })
 
-const AddUserFormStub = defineComponent({
-  name: 'AddUserForm',
-  emits: ['close'],
-  template: '<div class="add-user-form-stub" />',
-})
-
 const globalOptions = {
   plugins: [router],
   stubs: {
     NetworkStatusIndicator: NetworkStatusStub,
     CreateURLForm: CreateURLFormStub,
     URLCard: URLCardStub,
-    AddUserForm: AddUserFormStub,
   },
 }
 
@@ -183,14 +176,14 @@ describe('DashboardView hamburger menu', () => {
     expect(menu.text()).not.toContain('Add User')
   })
 
-  it('shows Admin link and Add User for admin user', async () => {
+  it('shows Admin link for admin user, no Add User in hamburger', async () => {
     useAuthStore().user = { email: 'admin@example.com', username: 'admin', is_admin: true, created_at: '' }
     const wrapper = mount(DashboardView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.hamburger-btn').trigger('click')
     const menu = wrapper.find('.dropdown-menu')
     expect(menu.text()).toContain('Admin')
-    expect(menu.text()).toContain('Add User')
+    expect(menu.text()).not.toContain('Add User')
   })
 })
 
