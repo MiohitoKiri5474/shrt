@@ -24,7 +24,8 @@ coverage/
 *.db-shm
 *.db-journal
 
-# Legacy bind-mount data dir; compose now uses a named volume for backend-data.
+# Backend SQLite DB, bind-mounted at ./backend-data (docker compose down -v
+# does not touch bind mounts, unlike named volumes).
 backend-data/
 
 # Redis config (contains the real requirepass value); keep .example tracked.

@@ -45,7 +45,7 @@ Set in `frontend/.env` (dev) or `frontend/.env.production` (prod build), not the
 
 All three set `security_opt: no-new-privileges:true`, `cap_drop: ALL`, and `read_only: true` (with targeted `tmpfs` mounts for the paths each service needs to write); `frontend` additionally adds back `NET_BIND_SERVICE` to bind port 80 as non-root. Redis persistence is intentionally disabled (`save ""` / `appendonly no` in `redis/redis.conf`) — rate-limit counters don't need to survive a restart, and all backend workers share the one Redis instance for consistent limits.
 
-Backend data (SQLite file, if used) lives in the named volume `backend-data`, mounted at `/app/data`.
+Backend data (SQLite file, if used) lives in the host bind mount `./backend-data`, mounted at `/app/data`. `docker compose down -v` does not remove bind mounts, unlike named volumes. On Linux hosts, the directory must be writable by uid `10001` (the container's `appuser`): `mkdir -p ./backend-data && chown 10001:10001 ./backend-data`.
 
 `docker-compose.dev.yml` is an override, not a default — pass it explicitly:
 
