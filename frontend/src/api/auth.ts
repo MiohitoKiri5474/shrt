@@ -48,6 +48,20 @@ export const authApi = {
     const { data } = await apiClient.patch<UserOut>('/api/auth/me', { username })
     return data
   },
+  async updateEmail(currentPassword: string, newEmail: string): Promise<UserOut> {
+    const { data } = await apiClient.patch<UserOut>('/api/auth/me/email', {
+      current_password: currentPassword,
+      new_email: newEmail,
+    })
+    return data
+  },
+  async updatePassword(currentPassword: string, newPassword: string): Promise<Token> {
+    const { data } = await apiClient.patch<Token>('/api/auth/me/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    })
+    return data
+  },
   async logout(): Promise<void> {
     await apiClient.post('/api/auth/logout')
   },

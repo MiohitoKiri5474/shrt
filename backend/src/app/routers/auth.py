@@ -11,7 +11,7 @@ from jwt import PyJWTError as JWTError
 from app.database import get_db
 from app.rate_limiter import limiter
 from app.models import User
-from app.schemas import UserCreate, UserOut, UserUpdate, Token
+from app.schemas import UserCreate, UserOut, UserUpdate, EmailChange, PasswordChange, Token
 from app.services.auth import hash_password, hash_password_async, verify_password, verify_password_async, create_access_token, decode_token, _bcrypt_executor
 from app.services.token_blocklist import TokenBlocklist, get_token_blocklist
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
@@ -200,6 +200,72 @@ async def update_me(
         raise HTTPException(status_code=409, detail="Username already taken")
     await db.refresh(current_user)
     return current_user
+
+@router.patch("/me/email", response_model=UserOut)
+@limiter.limit("10/minute")
+async def update_email(
+    request: Request,
+    data: EmailChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not await verify_password_async(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    result = await db.execute(
+        select(User).where(User.email == data.new_email, User.id != current_user.id)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Email already registered")
+    current_user.email = data.new_email
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Email already registered")
+    await db.refresh(current_user)
+    return current_user
+
+@router.patch("/me/password")
+@limiter.limit("10/minute")
+async def update_password(
+    request: Request,
+    response: Response,
+    data: PasswordChange,
+    token: str | None = Depends(oauth2_scheme),
+    cookie_token: str | None = Cookie(default=None, alias="access_token"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    blocklist: TokenBlocklist = Depends(get_token_blocklist),
+):
+    if len(data.new_password) > 128:
+        raise HTTPException(status_code=422, detail="Password too long")
+    if not await verify_password_async(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    current_user.password_hash = await hash_password_async(data.new_password)
+    await db.commit()
+    # Revoke the current token so any other copy of it (other tabs, a stolen
+    # cookie) is rejected immediately after a password change.
+    actual_token = cookie_token or token
+    if actual_token:
+        try:
+            payload = decode_token(actual_token)
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti and exp:
+                ttl = int(exp - datetime.now(timezone.utc).timestamp())
+                await blocklist.revoke(jti, ttl)
+        except (JWTError, TypeError, ValueError):
+            pass
+    new_token = create_access_token({"sub": str(current_user.id)})
+    response.set_cookie(
+        key="access_token",
+        value=new_token,
+        httponly=True,
+        samesite="strict",
+        secure=_COOKIE_SECURE,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+    return {"token_type": "bearer"}
 
 @router.post("/users", response_model=UserOut, status_code=201)
 @limiter.limit("10/minute")

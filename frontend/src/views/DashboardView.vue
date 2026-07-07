@@ -32,29 +32,10 @@ const editPassword = ref('')
 const editRemovePassword = ref(false)
 const editExpiresAt = ref('')
 const editError = ref('')
-const editingUsername = ref(false)
-const usernameInput = ref('')
-const usernameError = ref('')
 
 function handleOutsideClick(e: MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
     showMenu.value = false
-  }
-}
-
-function startEditUsername() {
-  usernameInput.value = authStore.user?.username ?? ''
-  usernameError.value = ''
-  editingUsername.value = true
-}
-
-async function saveUsername() {
-  usernameError.value = ''
-  try {
-    await authStore.updateUsername(usernameInput.value)
-    editingUsername.value = false
-  } catch {
-    usernameError.value = 'Failed to update username'
   }
 }
 
@@ -198,29 +179,15 @@ async function handleLogout() {
           </button>
           <div v-if="showMenu" class="dropdown-menu" role="menu" @keydown.esc.prevent="showMenu = false">
             <div class="dropdown-user">
-              <template v-if="editingUsername">
-                <input
-                  v-model="usernameInput"
-                  class="username-input"
-                  placeholder="username"
-                  maxlength="50"
-                  @keyup.enter="saveUsername"
-                  @keyup.escape="editingUsername = false"
-                />
-                <div class="username-actions">
-                  <button class="btn-save-username" @click="saveUsername">Save</button>
-                  <button class="btn-cancel-username" @click="editingUsername = false">Cancel</button>
-                </div>
-                <span v-if="usernameError" class="error-sm">{{ usernameError }}</span>
-              </template>
-              <template v-else>
-                <button class="dropdown-item user-item" role="menuitem" @click="startEditUsername">
-                  <span class="user-display">{{ authStore.user?.username ?? authStore.user?.email }}</span>
-                  <span class="edit-hint">edit</span>
-                </button>
-              </template>
+              <span class="user-display">{{ authStore.user?.username ?? authStore.user?.email }}</span>
             </div>
             <hr class="dropdown-sep" />
+            <RouterLink
+              class="dropdown-item"
+              to="/profile"
+              role="menuitem"
+              @click="showMenu = false"
+            >Profile</RouterLink>
             <RouterLink
               v-if="authStore.user?.is_admin"
               class="dropdown-item"
@@ -479,70 +446,12 @@ async function handleLogout() {
   color: var(--color-error);
 }
 
-.user-item {
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
 .user-display {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   opacity: 0.85;
   font-weight: 500;
-}
-
-.edit-hint {
-  font-size: 0.75rem;
-  opacity: 0.5;
-  flex-shrink: 0;
-}
-
-.username-input {
-  width: 100%;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
-  background: var(--color-background);
-  color: var(--color-text);
-  box-sizing: border-box;
-}
-
-.username-input:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-}
-
-.username-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.4rem;
-}
-
-.btn-save-username,
-.btn-cancel-username {
-  flex: 1;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--color-border-hover);
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: var(--color-text);
-  transition: background 0.2s;
-}
-
-.btn-save-username:hover,
-.btn-cancel-username:hover {
-  background: var(--color-border);
-}
-
-.error-sm {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.78rem;
-  color: var(--color-error);
 }
 
 .dash-content {

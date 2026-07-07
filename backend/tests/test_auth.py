@@ -560,3 +560,139 @@ async def test_deleted_user_with_valid_token_gets_401(client):
     # The same (still-valid) token must now be rejected.
     resp = await client.get("/api/auth/me")
     assert resp.status_code == 401
+
+
+# --- PATCH /me/email endpoint ---
+
+async def test_update_email_success(client):
+    await client.post("/api/auth/register", json={"email": "old@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "old@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "pass12345678", "new_email": "new@b.com"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["email"] == "new@b.com"
+
+
+async def test_update_email_wrong_password_gets_401(client):
+    await client.post("/api/auth/register", json={"email": "wrongpw@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "wrongpw@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "notmypassword", "new_email": "new2@b.com"},
+    )
+    assert resp.status_code == 401
+
+
+async def test_update_email_conflict_gets_409(client):
+    await client.post("/api/auth/register", json={"email": "taken@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/register", json={"email": "wantstaken@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "wantstaken@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "pass12345678", "new_email": "taken@b.com"},
+    )
+    assert resp.status_code == 409
+
+
+async def test_update_email_malformed_gets_422(client):
+    await client.post("/api/auth/register", json={"email": "malformed@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "malformed@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "pass12345678", "new_email": "not-an-email"},
+    )
+    assert resp.status_code == 422
+
+
+async def test_update_email_unauthenticated_gets_401(client):
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "whatever12345", "new_email": "anon@b.com"},
+    )
+    assert resp.status_code == 401
+
+
+# --- PATCH /me/password endpoint ---
+
+async def test_update_password_success_and_old_password_stops_working(client):
+    await client.post("/api/auth/register", json={"email": "pwchange@b.com", "password": "oldpassword123"})
+    await client.post("/api/auth/login", data={"username": "pwchange@b.com", "password": "oldpassword123"})
+    resp = await client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "oldpassword123", "new_password": "newpassword456"},
+    )
+    assert resp.status_code == 200
+    assert "token_type" in resp.json()
+
+    await client.post("/api/auth/logout")
+    old_login = await client.post(
+        "/api/auth/login", data={"username": "pwchange@b.com", "password": "oldpassword123"}
+    )
+    assert old_login.status_code == 401
+    new_login = await client.post(
+        "/api/auth/login", data={"username": "pwchange@b.com", "password": "newpassword456"}
+    )
+    assert new_login.status_code == 200
+
+
+async def test_update_password_wrong_current_password_gets_401(client):
+    await client.post("/api/auth/register", json={"email": "wrongcur@b.com", "password": "correctpass123"})
+    await client.post("/api/auth/login", data={"username": "wrongcur@b.com", "password": "correctpass123"})
+    resp = await client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "notcorrect123", "new_password": "brandnewpass1"},
+    )
+    assert resp.status_code == 401
+
+
+async def test_update_password_too_short_gets_422(client):
+    await client.post("/api/auth/register", json={"email": "shortnew@b.com", "password": "correctpass123"})
+    await client.post("/api/auth/login", data={"username": "shortnew@b.com", "password": "correctpass123"})
+    resp = await client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "correctpass123", "new_password": "short"},
+    )
+    assert resp.status_code == 422
+
+
+async def test_update_password_too_long_gets_422(client):
+    await client.post("/api/auth/register", json={"email": "toolongnew@b.com", "password": "correctpass123"})
+    await client.post("/api/auth/login", data={"username": "toolongnew@b.com", "password": "correctpass123"})
+    resp = await client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "correctpass123", "new_password": "a" * 129},
+    )
+    assert resp.status_code == 422
+
+
+async def test_update_password_revokes_old_token(client, blocklist):
+    from app.services.auth import decode_token
+
+    await client.post("/api/auth/register", json={"email": "revokepw@b.com", "password": "oldpassword123"})
+    await client.post("/api/auth/login", data={"username": "revokepw@b.com", "password": "oldpassword123"})
+
+    old_raw_token = client.cookies.get("access_token")
+    assert old_raw_token
+    old_jti = decode_token(old_raw_token)["jti"]
+
+    resp = await client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "oldpassword123", "new_password": "newpassword456"},
+    )
+    assert resp.status_code == 200
+    assert await blocklist.is_revoked(old_jti) is True
+
+    # The new cookie set by the response keeps the session alive.
+    me = await client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "revokepw@b.com"
+
+
+async def test_update_password_unauthenticated_gets_401(client):
+    resp = await client.patch(
+        "/api/auth/me/password",
+        json={"current_password": "whatever12345", "new_password": "newpassword456"},
+    )
+    assert resp.status_code == 401
