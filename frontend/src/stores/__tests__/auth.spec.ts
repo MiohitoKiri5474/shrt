@@ -10,6 +10,8 @@ vi.mock('../../api/auth', () => ({
     register: vi.fn(),
     logout: vi.fn().mockResolvedValue(undefined),
     updateUsername: vi.fn(),
+    updateEmail: vi.fn(),
+    updatePassword: vi.fn(),
     addUser: vi.fn(),
   },
 }))
@@ -59,5 +61,21 @@ describe('auth store', () => {
     expect(store.user).toBeNull()
     expect(store.isAuthenticated).toBe(false)
     expect(authApiModule.authApi.logout).not.toHaveBeenCalled()
+  })
+
+  it('updateEmail calls authApi and updates user', async () => {
+    vi.mocked(authApiModule.authApi.updateEmail).mockResolvedValue({ email: 'new@b.com', created_at: '', is_admin: false, username: null })
+    const store = useAuthStore()
+    await store.updateEmail('currentpass123', 'new@b.com')
+    expect(store.user?.email).toBe('new@b.com')
+  })
+
+  it('updatePassword calls authApi without mutating user', async () => {
+    vi.mocked(authApiModule.authApi.updatePassword).mockResolvedValue({ token_type: 'bearer' })
+    const store = useAuthStore()
+    store.$patch({ user: { email: 'a@b.com', created_at: '', is_admin: false, username: null } })
+    await store.updatePassword('oldpass123456', 'newpass123456')
+    expect(authApiModule.authApi.updatePassword).toHaveBeenCalledWith('oldpass123456', 'newpass123456')
+    expect(store.user?.email).toBe('a@b.com')
   })
 })
