@@ -560,3 +560,55 @@ async def test_deleted_user_with_valid_token_gets_401(client):
     # The same (still-valid) token must now be rejected.
     resp = await client.get("/api/auth/me")
     assert resp.status_code == 401
+
+
+# --- PATCH /me/email endpoint ---
+
+async def test_update_email_success(client):
+    await client.post("/api/auth/register", json={"email": "old@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "old@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "pass12345678", "new_email": "new@b.com"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["email"] == "new@b.com"
+
+
+async def test_update_email_wrong_password_gets_401(client):
+    await client.post("/api/auth/register", json={"email": "wrongpw@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "wrongpw@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "notmypassword", "new_email": "new2@b.com"},
+    )
+    assert resp.status_code == 401
+
+
+async def test_update_email_conflict_gets_409(client):
+    await client.post("/api/auth/register", json={"email": "taken@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/register", json={"email": "wantstaken@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "wantstaken@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "pass12345678", "new_email": "taken@b.com"},
+    )
+    assert resp.status_code == 409
+
+
+async def test_update_email_malformed_gets_422(client):
+    await client.post("/api/auth/register", json={"email": "malformed@b.com", "password": "pass12345678"})
+    await client.post("/api/auth/login", data={"username": "malformed@b.com", "password": "pass12345678"})
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "pass12345678", "new_email": "not-an-email"},
+    )
+    assert resp.status_code == 422
+
+
+async def test_update_email_unauthenticated_gets_401(client):
+    resp = await client.patch(
+        "/api/auth/me/email",
+        json={"current_password": "whatever12345", "new_email": "anon@b.com"},
+    )
+    assert resp.status_code == 401

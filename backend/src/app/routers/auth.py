@@ -11,7 +11,7 @@ from jwt import PyJWTError as JWTError
 from app.database import get_db
 from app.rate_limiter import limiter
 from app.models import User
-from app.schemas import UserCreate, UserOut, UserUpdate, Token
+from app.schemas import UserCreate, UserOut, UserUpdate, EmailChange, Token
 from app.services.auth import hash_password, hash_password_async, verify_password, verify_password_async, create_access_token, decode_token, _bcrypt_executor
 from app.services.token_blocklist import TokenBlocklist, get_token_blocklist
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
@@ -198,6 +198,30 @@ async def update_me(
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail="Username already taken")
+    await db.refresh(current_user)
+    return current_user
+
+@router.patch("/me/email", response_model=UserOut)
+@limiter.limit("10/minute")
+async def update_email(
+    request: Request,
+    data: EmailChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not await verify_password_async(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    result = await db.execute(
+        select(User).where(User.email == data.new_email, User.id != current_user.id)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Email already registered")
+    current_user.email = data.new_email
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Email already registered")
     await db.refresh(current_user)
     return current_user
 
