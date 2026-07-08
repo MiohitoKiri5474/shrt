@@ -1,14 +1,46 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '')
+const showDrawer = ref(false)
+
+function openDrawer() {
+  showDrawer.value = true
+}
+
+function closeDrawer() {
+  showDrawer.value = false
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') closeDrawer()
+}
+
+watch(showDrawer, (open) => {
+  if (open) {
+    document.addEventListener('keydown', handleKeydown)
+  } else {
+    document.removeEventListener('keydown', handleKeydown)
+  }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
+async function handleSignOut() {
+  closeDrawer()
+  await authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -28,8 +60,10 @@ const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '')
       <button
         v-if="authStore.isAuthenticated"
         class="hamburger-btn"
+        :aria-expanded="showDrawer"
         aria-haspopup="dialog"
-        aria-label="Open menu"
+        :aria-label="showDrawer ? 'Close menu' : 'Open menu'"
+        @click="openDrawer"
       >
         <span class="bar" />
         <span class="bar" />
@@ -37,6 +71,49 @@ const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '')
       </button>
     </div>
   </header>
+
+  <Teleport to="body">
+    <div v-if="showDrawer" class="drawer-backdrop" @click="closeDrawer">
+      <aside
+        class="drawer-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        @click.stop
+      >
+        <div class="drawer-header">
+          <span class="drawer-user">{{ authStore.user?.username ?? authStore.user?.email }}</span>
+          <button class="drawer-close" aria-label="Close menu" @click="closeDrawer">✕</button>
+        </div>
+        <hr class="drawer-sep" />
+        <nav class="drawer-links">
+          <RouterLink
+            v-if="route.name !== 'dashboard'"
+            class="drawer-item"
+            to="/dashboard"
+            role="menuitem"
+            @click="closeDrawer"
+          >Dashboard</RouterLink>
+          <RouterLink
+            v-if="route.name !== 'profile'"
+            class="drawer-item"
+            to="/profile"
+            role="menuitem"
+            @click="closeDrawer"
+          >Profile</RouterLink>
+          <RouterLink
+            v-if="authStore.user?.is_admin && route.name !== 'admin'"
+            class="drawer-item"
+            to="/admin"
+            role="menuitem"
+            @click="closeDrawer"
+          >Admin</RouterLink>
+        </nav>
+        <hr class="drawer-sep" />
+        <button class="drawer-item drawer-item--danger" role="menuitem" @click="handleSignOut">Sign out</button>
+      </aside>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -130,5 +207,111 @@ const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '')
   height: 2px;
   background: var(--color-text);
   border-radius: 2px;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer-panel {
+  width: min(300px, 85vw);
+  height: 100%;
+  background: var(--color-background-soft);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  animation: drawer-slide-in 0.2s ease-out;
+}
+
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-panel {
+    animation: none;
+  }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.drawer-user {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.drawer-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--color-text);
+  padding: 0.25rem;
+}
+
+.drawer-close:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.drawer-sep {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 0.75rem 0;
+}
+
+.drawer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.drawer-item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.drawer-item:hover {
+  background: var(--color-background-mute);
+}
+
+.drawer-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.drawer-item--danger {
+  color: var(--color-error);
 }
 </style>
