@@ -35,10 +35,16 @@ const AddUserFormStub = defineComponent({
   template: '<div class="add-user-form-stub" />',
 })
 
+const NavbarStub = defineComponent({
+  name: 'Navbar',
+  template: '<div class="navbar-stub" />',
+})
+
 const globalOptions = {
   stubs: {
     RouterLink: true,
     AddUserForm: AddUserFormStub,
+    Navbar: NavbarStub,
   },
 }
 
@@ -79,6 +85,12 @@ describe('AdminView', () => {
     expect(wrapper.findComponent(AddUserFormStub).exists()).toBe(false)
   })
 
+  it('renders Navbar', async () => {
+    const wrapper = mount(AdminView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.find('.navbar-stub').exists()).toBe(true)
+  })
+
   describe('toast behaviour', () => {
     beforeEach(() => {
       vi.useFakeTimers()
@@ -114,65 +126,6 @@ describe('AdminView', () => {
       await wrapper.vm.$nextTick()
 
       expect(wrapper.find('[role="status"]').exists()).toBe(false)
-      wrapper.unmount()
-    })
-  })
-
-  describe('hamburger menu', () => {
-    it('is closed by default', async () => {
-      const wrapper = mount(AdminView, { global: globalOptions })
-      await flushPromises()
-
-      expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
-      expect(wrapper.find('.hamburger-btn').attributes('aria-expanded')).toBe('false')
-    })
-
-    it('opens on hamburger button click', async () => {
-      const wrapper = mount(AdminView, { global: globalOptions })
-      await flushPromises()
-
-      await wrapper.find('.hamburger-btn').trigger('click')
-
-      expect(wrapper.find('.dropdown-menu').exists()).toBe(true)
-      expect(wrapper.find('.hamburger-btn').attributes('aria-expanded')).toBe('true')
-      expect(wrapper.find('.hamburger-btn').attributes('aria-label')).toBe('Close menu')
-    })
-
-    it('closes on second hamburger button click', async () => {
-      const wrapper = mount(AdminView, { global: globalOptions })
-      await flushPromises()
-
-      await wrapper.find('.hamburger-btn').trigger('click')
-      await wrapper.find('.hamburger-btn').trigger('click')
-
-      expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
-      expect(wrapper.find('.hamburger-btn').attributes('aria-label')).toBe('Open menu')
-    })
-
-    it('closes on Escape key press on hamburger button', async () => {
-      const wrapper = mount(AdminView, { global: globalOptions })
-      await flushPromises()
-
-      await wrapper.find('.hamburger-btn').trigger('click')
-      expect(wrapper.find('.dropdown-menu').exists()).toBe(true)
-
-      await wrapper.find('.hamburger-btn').trigger('keydown', { key: 'Escape' })
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
-    })
-
-    it('closes on outside click via document listener', async () => {
-      const wrapper = mount(AdminView, { global: globalOptions, attachTo: document.body })
-      await flushPromises()
-
-      await wrapper.find('.hamburger-btn').trigger('click')
-      expect(wrapper.find('.dropdown-menu').exists()).toBe(true)
-
-      document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
       wrapper.unmount()
     })
   })
