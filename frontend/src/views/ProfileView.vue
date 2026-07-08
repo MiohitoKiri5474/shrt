@@ -1,22 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { useThemeStore } from '../stores/theme'
+import Navbar from '../components/Navbar.vue'
 
 const authStore = useAuthStore()
-const themeStore = useThemeStore()
-
-const showMenu = ref(false)
-const menuRef = ref<HTMLDivElement | null>(null)
-
-function handleOutsideClick(e: MouseEvent) {
-  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
-    showMenu.value = false
-  }
-}
-
-onMounted(() => document.addEventListener('click', handleOutsideClick))
-onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
 
 function extractStatus(e: unknown): number | undefined {
   return (e as { response?: { status?: number } }).response?.status
@@ -104,42 +91,7 @@ async function savePassword() {
 
 <template>
   <div class="profile">
-    <header class="profile-header">
-      <h1>Profile</h1>
-      <nav class="profile-nav">
-        <button
-          class="theme-toggle"
-          :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
-          @click="themeStore.toggle()"
-        >
-          <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
-        </button>
-        <div ref="menuRef" class="hamburger-wrapper">
-          <button
-            class="hamburger-btn"
-            :aria-expanded="showMenu"
-            aria-haspopup="true"
-            :aria-label="showMenu ? 'Close menu' : 'Open menu'"
-            @keydown.esc.prevent="showMenu = false"
-            @click.stop="showMenu = !showMenu"
-          >
-            <span class="bar" />
-            <span class="bar" />
-            <span class="bar" />
-          </button>
-          <div v-if="showMenu" class="dropdown-menu" role="menu" @keydown.esc.prevent="showMenu = false">
-            <RouterLink
-              class="dropdown-item"
-              to="/dashboard"
-              role="menuitem"
-              @click="showMenu = false"
-            >
-              ← Dashboard
-            </RouterLink>
-          </div>
-        </div>
-      </nav>
-    </header>
+    <Navbar />
 
     <main class="profile-content">
       <section class="profile-card">
@@ -251,123 +203,6 @@ async function savePassword() {
 .profile {
   min-height: 100vh;
   background: var(--color-background);
-}
-
-.profile-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 2rem;
-  background: var(--color-background-soft);
-  border-bottom: 1px solid var(--color-border);
-  transition: background 0.35s ease, border-color 0.35s ease;
-}
-
-.profile-header h1 {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--color-heading);
-  letter-spacing: 0.02em;
-}
-
-.profile-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.hamburger-wrapper {
-  position: relative;
-}
-
-.hamburger-btn {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  width: 2.1rem;
-  height: 2.1rem;
-  padding: 0.35rem;
-  background: transparent;
-  border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.hamburger-btn:hover {
-  background: var(--color-border);
-}
-
-.hamburger-btn:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.bar {
-  display: block;
-  width: 100%;
-  height: 2px;
-  background: var(--color-text);
-  border-radius: 2px;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 160px;
-  background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  padding: 0.25rem 0;
-  z-index: 100;
-}
-
-.dropdown-item {
-  display: block;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  color: var(--color-text);
-  text-decoration: none;
-  transition: background 0.15s;
-}
-
-.dropdown-item:hover {
-  background: var(--color-background-mute);
-}
-
-.dropdown-item:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
-}
-
-.theme-toggle {
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 50%;
-  border: 1px solid var(--color-border-hover);
-  background: transparent;
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
-  color: var(--color-text);
-  padding: 0;
-}
-
-.theme-toggle:hover {
-  background: var(--color-border);
-  transform: rotate(15deg);
-}
-
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
 }
 
 .profile-content {
