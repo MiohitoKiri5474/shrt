@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { defineComponent } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -45,7 +46,12 @@ function setupStore() {
   return store
 }
 
-const globalOptions = { plugins: [router] }
+const NavbarStub = defineComponent({
+  name: 'Navbar',
+  template: '<div class="navbar-stub" />',
+})
+
+const globalOptions = { plugins: [router], stubs: { Navbar: NavbarStub } }
 
 describe('ProfileView username section', () => {
   it('shows success message on successful save', async () => {
@@ -154,12 +160,10 @@ describe('ProfileView password section', () => {
   })
 })
 
-describe('ProfileView navigation', () => {
-  it('has a back-to-dashboard link in the hamburger menu', async () => {
+describe('ProfileView navbar', () => {
+  it('renders Navbar', async () => {
     setupStore()
     const wrapper = mount(ProfileView, { global: globalOptions })
-    await wrapper.find('.hamburger-btn').trigger('click')
-    const link = wrapper.find('.dropdown-item')
-    expect(link.text()).toContain('Dashboard')
+    expect(wrapper.find('.navbar-stub').exists()).toBe(true)
   })
 })
