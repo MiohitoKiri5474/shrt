@@ -1,25 +1,18 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useURLsStore } from '../stores/urls'
-import { useThemeStore } from '../stores/theme'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
+import AppNavbar from '../components/AppNavbar.vue'
 import { urlsApi, type StatsOut, type URLOut } from '../api/urls'
 const BASE_URL = window.location.origin
 
-const router = useRouter()
-const authStore = useAuthStore()
 const urlsStore = useURLsStore()
-const themeStore = useThemeStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
 const loadError = ref('')
-const showMenu = ref(false)
-const menuRef = ref<HTMLDivElement | null>(null)
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
 const qrShortCode = ref<string | null>(null)
@@ -33,22 +26,11 @@ const editRemovePassword = ref(false)
 const editExpiresAt = ref('')
 const editError = ref('')
 
-function handleOutsideClick(e: MouseEvent) {
-  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
-    showMenu.value = false
-  }
-}
-
 onMounted(() => {
   loadError.value = ''
   urlsStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load URLs. Please refresh.'
   })
-  document.addEventListener('click', handleOutsideClick)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleOutsideClick)
 })
 
 watch(pendingDeleteId, (id) => {
@@ -143,64 +125,15 @@ async function confirmDelete() {
 function cancelDelete() {
   pendingDeleteId.value = null
 }
-
-async function handleLogout() {
-  await authStore.logout()
-  router.push('/login')
-}
 </script>
 
 <template>
   <div class="dashboard">
-    <header class="dash-header">
-      <h1>Shrt</h1>
-      <nav class="dash-nav">
+    <AppNavbar>
+      <template #status>
         <NetworkStatusIndicator />
-        <button
-          class="theme-toggle"
-          :aria-label="themeStore.isDark ? '昼モードに切り替え' : '夜モードに切り替え'"
-          :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
-          @click="themeStore.toggle()"
-        >
-          <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
-        </button>
-        <div ref="menuRef" class="hamburger-wrapper">
-          <button
-            class="hamburger-btn"
-            :aria-expanded="showMenu"
-            aria-haspopup="true"
-            :aria-label="showMenu ? 'Close menu' : 'Open menu'"
-            @keydown.esc.prevent="showMenu = false"
-            @click.stop="showMenu = !showMenu"
-          >
-            <span class="bar" />
-            <span class="bar" />
-            <span class="bar" />
-          </button>
-          <div v-if="showMenu" class="dropdown-menu" role="menu" @keydown.esc.prevent="showMenu = false">
-            <div class="dropdown-user">
-              <span class="user-display">{{ authStore.user?.username ?? authStore.user?.email }}</span>
-            </div>
-            <hr class="dropdown-sep" />
-            <RouterLink
-              class="dropdown-item"
-              to="/profile"
-              role="menuitem"
-              @click="showMenu = false"
-            >Profile</RouterLink>
-            <RouterLink
-              v-if="authStore.user?.is_admin"
-              class="dropdown-item"
-              to="/admin"
-              role="menuitem"
-              @click="showMenu = false"
-            >Admin</RouterLink>
-            <hr v-if="authStore.user?.is_admin" class="dropdown-sep" />
-            <button class="dropdown-item dropdown-item--danger" role="menuitem" @click="handleLogout">Sign out</button>
-          </div>
-        </div>
-      </nav>
-    </header>
+      </template>
+    </AppNavbar>
     <main class="dash-content">
       <CreateURLForm />
       <section>
@@ -307,151 +240,6 @@ async function handleLogout() {
 .dashboard {
   min-height: 100vh;
   background: var(--color-background);
-}
-
-.dash-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 2rem;
-  background: var(--color-background-soft);
-  border-bottom: 1px solid var(--color-border);
-  transition: background 0.35s ease, border-color 0.35s ease;
-}
-
-.dash-header h1 {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--color-heading);
-  letter-spacing: 0.02em;
-}
-
-.dash-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.theme-toggle {
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 50%;
-  border: 1px solid var(--color-border-hover);
-  background: transparent;
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
-  color: var(--color-text);
-  padding: 0;
-}
-
-.theme-toggle:hover {
-  background: var(--color-border);
-  transform: rotate(15deg);
-}
-
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.hamburger-wrapper {
-  position: relative;
-}
-
-.hamburger-btn {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  width: 2.1rem;
-  height: 2.1rem;
-  padding: 0.35rem;
-  background: transparent;
-  border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.hamburger-btn:hover {
-  background: var(--color-border);
-}
-
-.hamburger-btn:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.bar {
-  display: block;
-  width: 100%;
-  height: 2px;
-  background: var(--color-text);
-  border-radius: 2px;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 200px;
-  background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  padding: 0.25rem 0;
-  z-index: 100;
-}
-
-.dropdown-user {
-  padding: 0.5rem 0.75rem;
-}
-
-.dropdown-sep {
-  border: none;
-  border-top: 1px solid var(--color-border);
-  margin: 0.25rem 0;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  color: var(--color-text);
-  text-decoration: none;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
-}
-
-.dropdown-item:hover {
-  background: var(--color-background-mute);
-}
-
-.dropdown-item:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
-}
-
-.dropdown-item--danger {
-  color: var(--color-error);
-}
-
-.user-display {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.85;
-  font-weight: 500;
 }
 
 .dash-content {

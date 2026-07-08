@@ -56,6 +56,11 @@ const NetworkStatusStub = defineComponent({
   template: '<span class="network-status-stub" />',
 })
 
+const AppNavbarStub = defineComponent({
+  name: 'AppNavbar',
+  template: '<div class="navbar-stub"><slot name="status" /></div>',
+})
+
 const CreateURLFormStub = defineComponent({
   name: 'CreateURLForm',
   template: '<div class="create-url-form-stub" />',
@@ -78,6 +83,7 @@ const URLCardStub = defineComponent({
 const globalOptions = {
   plugins: [router],
   stubs: {
+    AppNavbar: AppNavbarStub,
     NetworkStatusIndicator: NetworkStatusStub,
     CreateURLForm: CreateURLFormStub,
     URLCard: URLCardStub,
@@ -109,81 +115,14 @@ function setupStores(user = { email: 'user@example.com', username: 'testuser', i
   return useURLsStore()
 }
 
-describe('DashboardView hamburger menu', () => {
-  beforeEach(() => {
+describe('DashboardView navbar', () => {
+  it('renders AppNavbar with the network status indicator in its status slot', async () => {
     const store = setupStores()
     vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
-  })
-
-  it('is closed by default', async () => {
     const wrapper = mount(DashboardView, { global: globalOptions })
     await flushPromises()
-    expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
-    expect(wrapper.find('.hamburger-btn').attributes('aria-expanded')).toBe('false')
-  })
-
-  it('opens on hamburger button click', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    expect(wrapper.find('.dropdown-menu').exists()).toBe(true)
-    expect(wrapper.find('.hamburger-btn').attributes('aria-expanded')).toBe('true')
-    expect(wrapper.find('.hamburger-btn').attributes('aria-label')).toBe('Close menu')
-  })
-
-  it('closes on second hamburger button click', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    await wrapper.find('.hamburger-btn').trigger('click')
-    expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
-    expect(wrapper.find('.hamburger-btn').attributes('aria-label')).toBe('Open menu')
-  })
-
-  it('closes on Escape key press on hamburger button', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    await wrapper.find('.hamburger-btn').trigger('keydown', { key: 'Escape' })
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
-  })
-
-  it('closes on outside click via document listener', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions, attachTo: document.body })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    expect(wrapper.find('.dropdown-menu').exists()).toBe(true)
-    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('.dropdown-menu').exists()).toBe(false)
-    wrapper.unmount()
-  })
-
-  it('shows Sign out in dropdown', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    expect(wrapper.find('.dropdown-item--danger').text()).toBe('Sign out')
-  })
-
-  it('hides Admin link and Add User for non-admin', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    const menu = wrapper.find('.dropdown-menu')
-    expect(menu.text()).not.toContain('Admin')
-    expect(menu.text()).not.toContain('Add User')
-  })
-
-  it('shows Admin link for admin user, no Add User in hamburger', async () => {
-    useAuthStore().user = { email: 'admin@example.com', username: 'admin', is_admin: true, created_at: '' }
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    const menu = wrapper.find('.dropdown-menu')
-    expect(menu.text()).toContain('Admin')
-    expect(menu.text()).not.toContain('Add User')
+    expect(wrapper.find('.navbar-stub').exists()).toBe(true)
+    expect(wrapper.find('.network-status-stub').exists()).toBe(true)
   })
 })
 
@@ -412,36 +351,3 @@ describe('DashboardView edit flow', () => {
   })
 })
 
-describe('DashboardView logout', () => {
-  beforeEach(() => {
-    const store = setupStores()
-    vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
-  })
-
-  it('calls logout and redirects to /login', async () => {
-    const authStore = useAuthStore()
-    vi.spyOn(authStore, 'logout').mockResolvedValue(undefined)
-    await router.push('/')
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    await wrapper.find('.dropdown-item--danger').trigger('click')
-    await flushPromises()
-    expect(authStore.logout).toHaveBeenCalled()
-    expect(router.currentRoute.value.path).toBe('/login')
-  })
-})
-
-describe('DashboardView profile link', () => {
-  it('has a Profile link in the hamburger menu, no click-to-edit username', async () => {
-    const store = setupStores({ email: 'user@example.com', username: 'oldname', is_admin: false, created_at: '' })
-    vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.hamburger-btn').trigger('click')
-    const menu = wrapper.find('.dropdown-menu')
-    expect(menu.text()).toContain('Profile')
-    expect(menu.text()).toContain('oldname')
-    expect(wrapper.find('.user-item').exists()).toBe(false)
-  })
-})
