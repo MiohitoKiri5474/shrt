@@ -24,8 +24,12 @@ async function handleCreate() {
     error.value = 'Please enter a valid URL.'
     return
   }
-  if (customCode.value && !/^[A-Za-z0-9_-]{3,16}$/.test(customCode.value)) {
-    error.value = 'Custom code must be 3–16 characters and contain only letters, digits, hyphens, or underscores.'
+  if (customCode.value && !/^[A-Za-z0-9_-]{6,16}$/.test(customCode.value)) {
+    error.value = 'Custom code must be 6–16 characters and contain only letters, digits, hyphens, or underscores.'
+    return
+  }
+  if (password.value && password.value.length < 6) {
+    error.value = 'Password must be at least 6 characters.'
     return
   }
   loading.value = true
@@ -56,11 +60,11 @@ async function handleCreate() {
     </div>
     <div class="field">
       <label for="custom-code">Custom code (optional)</label>
-      <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" minlength="3" maxlength="16" pattern="[A-Za-z0-9_-]{3,16}" />
+      <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" minlength="6" maxlength="16" pattern="[A-Za-z0-9_-]{6,16}" />
     </div>
     <div class="field">
       <label for="link-password">Password protection (optional)</label>
-      <input id="link-password" v-model="password" type="password" placeholder="Leave blank for public link" maxlength="128" autocomplete="new-password" />
+      <input id="link-password" v-model="password" type="password" placeholder="Leave blank for public link" minlength="6" maxlength="128" autocomplete="new-password" />
     </div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create short URL' }}</button>
