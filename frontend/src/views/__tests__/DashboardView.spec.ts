@@ -56,8 +56,8 @@ const NetworkStatusStub = defineComponent({
   template: '<span class="network-status-stub" />',
 })
 
-const NavbarStub = defineComponent({
-  name: 'Navbar',
+const AppNavbarStub = defineComponent({
+  name: 'AppNavbar',
   template: '<div class="navbar-stub"><slot name="status" /></div>',
 })
 
@@ -83,7 +83,7 @@ const URLCardStub = defineComponent({
 const globalOptions = {
   plugins: [router],
   stubs: {
-    Navbar: NavbarStub,
+    AppNavbar: AppNavbarStub,
     NetworkStatusIndicator: NetworkStatusStub,
     CreateURLForm: CreateURLFormStub,
     URLCard: URLCardStub,
@@ -116,7 +116,7 @@ function setupStores(user = { email: 'user@example.com', username: 'testuser', i
 }
 
 describe('DashboardView navbar', () => {
-  it('renders Navbar with the network status indicator in its status slot', async () => {
+  it('renders AppNavbar with the network status indicator in its status slot', async () => {
     const store = setupStores()
     vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
     const wrapper = mount(DashboardView, { global: globalOptions })

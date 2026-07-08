@@ -2,7 +2,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import Navbar from '../components/Navbar.vue'
+import AppNavbar from '../components/AppNavbar.vue'
 
 const identifier = ref('')
 const password = ref('')
@@ -79,7 +79,7 @@ async function handleSubmit() {
 
 <template>
   <div class="login-page">
-    <Navbar />
+    <AppNavbar />
     <div class="login-container">
       <div class="login-card">
         <form @submit.prevent="handleSubmit" data-testid="login-form">

@@ -28,12 +28,12 @@ const router = createRouter({
   ],
 })
 
-const NavbarStub = defineComponent({
-  name: 'Navbar',
+const AppNavbarStub = defineComponent({
+  name: 'AppNavbar',
   template: '<div class="navbar-stub" />',
 })
 
-const globalOptions = { plugins: [router], stubs: { Navbar: NavbarStub } }
+const globalOptions = { plugins: [router], stubs: { AppNavbar: AppNavbarStub } }
 
 function mountLogin() {
   return mount(LoginView, { global: globalOptions })
@@ -51,7 +51,7 @@ describe('LoginView', () => {
     } as unknown as ReturnType<typeof authStoreModule.useAuthStore>)
   })
 
-  it('renders Navbar', () => {
+  it('renders AppNavbar', () => {
     const wrapper = mountLogin()
     expect(wrapper.find('.navbar-stub').exists()).toBe(true)
   })

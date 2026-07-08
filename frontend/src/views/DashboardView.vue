@@ -4,7 +4,7 @@ import { useURLsStore } from '../stores/urls'
 import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
-import Navbar from '../components/Navbar.vue'
+import AppNavbar from '../components/AppNavbar.vue'
 import { urlsApi, type StatsOut, type URLOut } from '../api/urls'
 const BASE_URL = window.location.origin
 
@@ -129,11 +129,11 @@ function cancelDelete() {
 
 <template>
   <div class="dashboard">
-    <Navbar>
+    <AppNavbar>
       <template #status>
         <NetworkStatusIndicator />
       </template>
-    </Navbar>
+    </AppNavbar>
     <main class="dash-content">
       <CreateURLForm />
       <section>

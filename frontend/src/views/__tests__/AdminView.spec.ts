@@ -35,8 +35,8 @@ const AddUserFormStub = defineComponent({
   template: '<div class="add-user-form-stub" />',
 })
 
-const NavbarStub = defineComponent({
-  name: 'Navbar',
+const AppNavbarStub = defineComponent({
+  name: 'AppNavbar',
   template: '<div class="navbar-stub" />',
 })
 
@@ -44,7 +44,7 @@ const globalOptions = {
   stubs: {
     RouterLink: true,
     AddUserForm: AddUserFormStub,
-    Navbar: NavbarStub,
+    AppNavbar: AppNavbarStub,
   },
 }
 
@@ -85,7 +85,7 @@ describe('AdminView', () => {
     expect(wrapper.findComponent(AddUserFormStub).exists()).toBe(false)
   })
 
-  it('renders Navbar', async () => {
+  it('renders AppNavbar', async () => {
     const wrapper = mount(AdminView, { global: globalOptions })
     await flushPromises()
     expect(wrapper.find('.navbar-stub').exists()).toBe(true)
