@@ -2,7 +2,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { useThemeStore } from '../stores/theme'
+import Navbar from '../components/Navbar.vue'
 
 const identifier = ref('')
 const password = ref('')
@@ -10,7 +10,6 @@ const error = ref('')
 const loading = ref(false)
 const router = useRouter()
 const authStore = useAuthStore()
-const themeStore = useThemeStore()
 
 // ponytail: UX-only cooldown — resets on page refresh, not a security control.
 // The backend enforces 5 req/min via rate limiter; don't remove that.
@@ -79,72 +78,47 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="login-container">
-    <button
-      class="theme-toggle"
-      :aria-label="themeStore.isDark ? '昼モードに切り替え' : '夜モードに切り替え'"
-      :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
-      @click="themeStore.toggle()"
-    >
-      <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
-    </button>
-
-    <div class="login-card">
-      <h1>Shrt</h1>
-      <form @submit.prevent="handleSubmit" data-testid="login-form">
-        <div class="field">
-          <label for="identifier">Email or Username</label>
-          <input id="identifier" v-model="identifier" type="text" required autocomplete="username" />
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input id="password" v-model="password" type="password" required autocomplete="current-password" />
-        </div>
-        <p v-if="error" class="error" role="alert">{{ error }}</p>
-        <p v-if="isOnCooldown" class="cooldown" role="status">
-          Too many failed attempts. Please wait {{ cooldownSecondsLeft }}s before trying again.
-        </p>
-        <button type="submit" :disabled="loading || isOnCooldown">
-          {{ loading ? 'Signing in…' : 'Sign in' }}
-        </button>
-      </form>
+  <div class="login-page">
+    <Navbar />
+    <div class="login-container">
+      <div class="login-card">
+        <form @submit.prevent="handleSubmit" data-testid="login-form">
+          <div class="field">
+            <label for="identifier">Email or Username</label>
+            <input id="identifier" v-model="identifier" type="text" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" v-model="password" type="password" required autocomplete="current-password" />
+          </div>
+          <p v-if="error" class="error" role="alert">{{ error }}</p>
+          <p v-if="isOnCooldown" class="cooldown" role="status">
+            Too many failed attempts. Please wait {{ cooldownSecondsLeft }}s before trying again.
+          </p>
+          <button type="submit" :disabled="loading || isOnCooldown">
+            {{ loading ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.login-container {
-  position: relative;
+.login-page {
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   background: var(--color-background);
   transition: background 0.35s ease;
 }
 
-.theme-toggle {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 50%;
-  border: 1px solid var(--color-border-hover);
-  background: transparent;
-  cursor: pointer;
-  font-size: 1rem;
+.login-container {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, transform 0.2s;
-  color: var(--color-text);
-  padding: 0;
-}
-
-.theme-toggle:hover {
-  background: var(--color-border);
-  transform: rotate(15deg);
+  padding: 1rem;
 }
 
 .login-card {
@@ -156,13 +130,6 @@ async function handleSubmit() {
   width: 100%;
   max-width: 400px;
   transition: background 0.35s ease;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: var(--color-heading);
-  font-weight: 600;
 }
 
 .field {
@@ -209,8 +176,7 @@ button[type='submit']:hover:not(:disabled) {
   opacity: 0.88;
 }
 
-button[type='submit']:focus-visible,
-.theme-toggle:focus-visible {
+button[type='submit']:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }

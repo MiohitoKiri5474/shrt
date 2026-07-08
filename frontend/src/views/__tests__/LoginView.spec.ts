@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { defineComponent } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -27,7 +28,12 @@ const router = createRouter({
   ],
 })
 
-const globalOptions = { plugins: [router] }
+const NavbarStub = defineComponent({
+  name: 'Navbar',
+  template: '<div class="navbar-stub" />',
+})
+
+const globalOptions = { plugins: [router], stubs: { Navbar: NavbarStub } }
 
 function mountLogin() {
   return mount(LoginView, { global: globalOptions })
@@ -43,6 +49,11 @@ describe('LoginView', () => {
     vi.spyOn(authStoreModule, 'useAuthStore').mockReturnValue({
       login: loginSpy,
     } as unknown as ReturnType<typeof authStoreModule.useAuthStore>)
+  })
+
+  it('renders Navbar', () => {
+    const wrapper = mountLogin()
+    expect(wrapper.find('.navbar-stub').exists()).toBe(true)
   })
 
   it('renders email and password fields', () => {
