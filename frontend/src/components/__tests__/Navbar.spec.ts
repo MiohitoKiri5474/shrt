@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
@@ -39,7 +39,7 @@ const router = createRouter({
 
 const globalOptions = { plugins: [router] }
 
-function setAuth(user: { email: string; username: string | null; is_admin: boolean } | null) {
+function setAuth(user: { email: string; created_at: string; is_admin: boolean; username: string | null } | null) {
   setActivePinia(createPinia())
   useAuthStore().user = user
 }
@@ -51,7 +51,7 @@ describe('Navbar shell', () => {
 
   it('renders the Shrt brand as a link to /', async () => {
     await router.push('/dashboard')
-    setAuth({ email: 'user@example.com', username: 'user', is_admin: false })
+    setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(Navbar, { global: globalOptions })
     const brand = wrapper.find('.navbar-brand')
     expect(brand.text()).toBe('Shrt')
@@ -65,14 +65,14 @@ describe('Navbar shell', () => {
     ['/admin', 'User Management'],
   ])('shows the page title for %s', async (path, expectedTitle) => {
     await router.push(path)
-    setAuth({ email: 'user@example.com', username: 'user', is_admin: false })
+    setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(Navbar, { global: globalOptions })
     expect(wrapper.find('.navbar-title').text()).toBe(expectedTitle)
   })
 
   it('calls themeStore.toggle() when the theme button is clicked', async () => {
     await router.push('/dashboard')
-    setAuth({ email: 'user@example.com', username: 'user', is_admin: false })
+    setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const themeStore = useThemeStore()
     const toggleSpy = vi.spyOn(themeStore, 'toggle')
     const wrapper = mount(Navbar, { global: globalOptions })
@@ -89,14 +89,14 @@ describe('Navbar shell', () => {
 
   it('shows the hamburger button when authenticated', async () => {
     await router.push('/dashboard')
-    setAuth({ email: 'user@example.com', username: 'user', is_admin: false })
+    setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(Navbar, { global: globalOptions })
     expect(wrapper.find('.hamburger-btn').exists()).toBe(true)
   })
 
   it('renders content passed into the status slot', async () => {
     await router.push('/dashboard')
-    setAuth({ email: 'user@example.com', username: 'user', is_admin: false })
+    setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(Navbar, {
       global: globalOptions,
       slots: { status: '<span class="status-stub" />' },
