@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import Navbar from '../components/Navbar.vue'
+import AppNavbar from '../components/AppNavbar.vue'
 
 const authStore = useAuthStore()
 
@@ -91,7 +91,7 @@ async function savePassword() {
 
 <template>
   <div class="profile">
-    <Navbar />
+    <AppNavbar />
 
     <main class="profile-content">
       <section class="profile-card">

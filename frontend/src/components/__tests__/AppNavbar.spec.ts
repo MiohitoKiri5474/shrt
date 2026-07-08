@@ -4,7 +4,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useThemeStore } from '../../stores/theme'
-import Navbar from '../Navbar.vue'
+import AppNavbar from '../AppNavbar.vue'
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -44,7 +44,7 @@ function setAuth(user: { email: string; created_at: string; is_admin: boolean; u
   useAuthStore().user = user
 }
 
-describe('Navbar shell', () => {
+describe('AppNavbar shell', () => {
   afterEach(() => {
     document.body.replaceChildren()
   })
@@ -52,7 +52,7 @@ describe('Navbar shell', () => {
   it('renders the Shrt brand as a link to /', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions })
+    const wrapper = mount(AppNavbar, { global: globalOptions })
     const brand = wrapper.find('.navbar-brand')
     expect(brand.text()).toBe('Shrt')
     expect(brand.attributes('href')).toBe('/')
@@ -66,7 +66,7 @@ describe('Navbar shell', () => {
   ])('shows the page title for %s', async (path, expectedTitle) => {
     await router.push(path)
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions })
+    const wrapper = mount(AppNavbar, { global: globalOptions })
     expect(wrapper.find('.navbar-title').text()).toBe(expectedTitle)
   })
 
@@ -75,7 +75,7 @@ describe('Navbar shell', () => {
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const themeStore = useThemeStore()
     const toggleSpy = vi.spyOn(themeStore, 'toggle')
-    const wrapper = mount(Navbar, { global: globalOptions })
+    const wrapper = mount(AppNavbar, { global: globalOptions })
     await wrapper.find('.theme-toggle').trigger('click')
     expect(toggleSpy).toHaveBeenCalledTimes(1)
   })
@@ -83,21 +83,21 @@ describe('Navbar shell', () => {
   it('hides the hamburger button when not authenticated', async () => {
     await router.push('/login')
     setAuth(null)
-    const wrapper = mount(Navbar, { global: globalOptions })
+    const wrapper = mount(AppNavbar, { global: globalOptions })
     expect(wrapper.find('.hamburger-btn').exists()).toBe(false)
   })
 
   it('shows the hamburger button when authenticated', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions })
+    const wrapper = mount(AppNavbar, { global: globalOptions })
     expect(wrapper.find('.hamburger-btn').exists()).toBe(true)
   })
 
   it('renders content passed into the status slot', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, {
+    const wrapper = mount(AppNavbar, {
       global: globalOptions,
       slots: { status: '<span class="status-stub" />' },
     })
@@ -105,7 +105,7 @@ describe('Navbar shell', () => {
   })
 })
 
-describe('Navbar drawer', () => {
+describe('AppNavbar drawer', () => {
   afterEach(() => {
     document.body.replaceChildren()
   })
@@ -113,7 +113,7 @@ describe('Navbar drawer', () => {
   it('is closed by default', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     expect(document.body.querySelector('.drawer-panel')).toBeNull()
     expect(wrapper.find('.hamburger-btn').attributes('aria-expanded')).toBe('false')
     wrapper.unmount()
@@ -122,7 +122,7 @@ describe('Navbar drawer', () => {
   it('opens on hamburger click', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     expect(document.body.querySelector('.drawer-panel')).not.toBeNull()
     expect(wrapper.find('.hamburger-btn').attributes('aria-expanded')).toBe('true')
@@ -132,7 +132,7 @@ describe('Navbar drawer', () => {
   it('closes on backdrop click', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const backdrop = document.body.querySelector('.drawer-backdrop') as HTMLElement
     backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -144,7 +144,7 @@ describe('Navbar drawer', () => {
   it('closes on Escape key', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
     await wrapper.vm.$nextTick()
@@ -155,7 +155,7 @@ describe('Navbar drawer', () => {
   it('closes on the close button', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const closeBtn = document.body.querySelector('.drawer-close') as HTMLButtonElement
     closeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -167,7 +167,7 @@ describe('Navbar drawer', () => {
   it('shows the user display name', async () => {
     await router.push('/dashboard')
     setAuth({ email: 'user@example.com', created_at: '', username: 'testuser', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     expect(document.body.querySelector('.drawer-user')?.textContent).toBe('testuser')
     wrapper.unmount()
@@ -176,7 +176,7 @@ describe('Navbar drawer', () => {
   it('hides the link to the current page and shows the others, no Admin for non-admin', async () => {
     await router.push('/profile')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const text = document.body.querySelector('.drawer-panel')?.textContent ?? ''
     expect(text).toContain('Dashboard')
@@ -188,7 +188,7 @@ describe('Navbar drawer', () => {
   it('shows Admin link for admin users, hidden while already on /admin', async () => {
     await router.push('/admin')
     setAuth({ email: 'admin@example.com', created_at: '', username: 'admin', is_admin: true })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const text = document.body.querySelector('.drawer-panel')?.textContent ?? ''
     expect(text).toContain('Dashboard')
@@ -200,7 +200,7 @@ describe('Navbar drawer', () => {
   it('closes the drawer when a link is clicked', async () => {
     await router.push('/profile')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const dashboardLink = document.body.querySelector('.drawer-item') as HTMLAnchorElement
     dashboardLink.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
@@ -214,7 +214,7 @@ describe('Navbar drawer', () => {
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const authStore = useAuthStore()
     const logoutSpy = vi.spyOn(authStore, 'logout').mockResolvedValue(undefined)
-    const wrapper = mount(Navbar, { global: globalOptions, attachTo: document.body })
+    const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const signOutBtn = document.body.querySelector('.drawer-item--danger') as HTMLButtonElement
     signOutBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))

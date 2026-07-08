@@ -46,12 +46,12 @@ function setupStore() {
   return store
 }
 
-const NavbarStub = defineComponent({
-  name: 'Navbar',
+const AppNavbarStub = defineComponent({
+  name: 'AppNavbar',
   template: '<div class="navbar-stub" />',
 })
 
-const globalOptions = { plugins: [router], stubs: { Navbar: NavbarStub } }
+const globalOptions = { plugins: [router], stubs: { AppNavbar: AppNavbarStub } }
 
 describe('ProfileView username section', () => {
   it('shows success message on successful save', async () => {
@@ -161,7 +161,7 @@ describe('ProfileView password section', () => {
 })
 
 describe('ProfileView navbar', () => {
-  it('renders Navbar', async () => {
+  it('renders AppNavbar', async () => {
     setupStore()
     const wrapper = mount(ProfileView, { global: globalOptions })
     expect(wrapper.find('.navbar-stub').exists()).toBe(true)

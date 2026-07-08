@@ -3,7 +3,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useAdminStore } from '../stores/admin'
 import AddUserForm from '../components/AddUserForm.vue'
-import Navbar from '../components/Navbar.vue'
+import AppNavbar from '../components/AppNavbar.vue'
 
 const authStore = useAuthStore()
 const adminStore = useAdminStore()
@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="admin">
-    <Navbar />
+    <AppNavbar />
 
     <main class="admin-content">
       <div class="content-header">
