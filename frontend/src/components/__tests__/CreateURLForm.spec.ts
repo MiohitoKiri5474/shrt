@@ -75,11 +75,21 @@ describe('CreateURLForm', () => {
     expect(createSpy).not.toHaveBeenCalled()
   })
 
+  it('shows error for short password', async () => {
+    const wrapper = mount(CreateURLForm)
+    await wrapper.find('#original-url').setValue('https://example.com')
+    await wrapper.find('#link-password').setValue('abc')
+    await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').text()).toContain('Password must be at least 6 characters')
+    expect(createSpy).not.toHaveBeenCalled()
+  })
+
   it('shows error on 409 conflict', async () => {
     createSpy.mockRejectedValue({ response: { status: 409 } })
     const wrapper = mount(CreateURLForm)
     await wrapper.find('#original-url').setValue('https://example.com')
-    await wrapper.find('#custom-code').setValue('taken')
+    await wrapper.find('#custom-code').setValue('taken1')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
     expect(wrapper.find('[role="alert"]').text()).toContain('already taken')
