@@ -91,26 +91,23 @@ async function handleSignOut() {
             v-if="route.name !== 'dashboard'"
             class="drawer-item"
             to="/dashboard"
-            role="menuitem"
             @click="closeDrawer"
           >Dashboard</RouterLink>
           <RouterLink
             v-if="route.name !== 'profile'"
             class="drawer-item"
             to="/profile"
-            role="menuitem"
             @click="closeDrawer"
           >Profile</RouterLink>
           <RouterLink
             v-if="authStore.user?.is_admin && route.name !== 'admin'"
             class="drawer-item"
             to="/admin"
-            role="menuitem"
             @click="closeDrawer"
           >Admin</RouterLink>
         </nav>
         <hr class="drawer-sep" />
-        <button class="drawer-item drawer-item--danger" role="menuitem" @click="handleSignOut">Sign out</button>
+        <button class="drawer-item drawer-item--danger" @click="handleSignOut">Sign out</button>
       </aside>
     </div>
   </Teleport>
