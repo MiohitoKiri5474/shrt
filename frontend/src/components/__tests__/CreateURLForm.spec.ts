@@ -33,7 +33,7 @@ describe('CreateURLForm', () => {
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
-    expect(createSpy).toHaveBeenCalledWith('https://example.com', undefined, undefined)
+    expect(createSpy).toHaveBeenCalledWith('https://example.com', undefined, undefined, undefined)
   })
 
   it('prepends https:// when protocol missing', async () => {
@@ -42,7 +42,7 @@ describe('CreateURLForm', () => {
     await wrapper.find('#original-url').setValue('example.com')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
-    expect(createSpy).toHaveBeenCalledWith('https://example.com', undefined, undefined)
+    expect(createSpy).toHaveBeenCalledWith('https://example.com', undefined, undefined, undefined)
   })
 
   it('passes custom code when provided', async () => {
@@ -52,7 +52,7 @@ describe('CreateURLForm', () => {
     await wrapper.find('#custom-code').setValue('my-link')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
-    expect(createSpy).toHaveBeenCalledWith('https://example.com', 'my-link', undefined)
+    expect(createSpy).toHaveBeenCalledWith('https://example.com', 'my-link', undefined, undefined)
   })
 
   it('passes password when provided', async () => {
@@ -62,7 +62,22 @@ describe('CreateURLForm', () => {
     await wrapper.find('#link-password').setValue('secret')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
-    expect(createSpy).toHaveBeenCalledWith('https://example.com', undefined, 'secret')
+    expect(createSpy).toHaveBeenCalledWith('https://example.com', undefined, 'secret', undefined)
+  })
+
+  it('passes expiry date when provided', async () => {
+    createSpy.mockResolvedValue(undefined)
+    const wrapper = mount(CreateURLForm)
+    await wrapper.find('#original-url').setValue('https://example.com')
+    await wrapper.find('#expires-at').setValue('2099-01-01T00:00')
+    await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+    await flushPromises()
+    expect(createSpy).toHaveBeenCalledWith(
+      'https://example.com',
+      undefined,
+      undefined,
+      new Date('2099-01-01T00:00').toISOString(),
+    )
   })
 
   it('shows error for invalid custom code', async () => {
@@ -109,10 +124,12 @@ describe('CreateURLForm', () => {
     const wrapper = mount(CreateURLForm)
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('#custom-code').setValue('mylink')
+    await wrapper.find('#expires-at').setValue('2099-01-01T00:00')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
     expect((wrapper.find('#original-url').element as HTMLInputElement).value).toBe('')
     expect((wrapper.find('#custom-code').element as HTMLInputElement).value).toBe('')
+    expect((wrapper.find('#expires-at').element as HTMLInputElement).value).toBe('')
   })
 
   it('disables submit while loading', async () => {

@@ -41,6 +41,17 @@ describe('urls store', () => {
     expect(store.urls).toHaveLength(1)
   })
 
+  it('create passes expiresAt through to the API client', async () => {
+    vi.mocked(urlsApiModule.urlsApi.list).mockResolvedValue([])
+    vi.mocked(urlsApiModule.urlsApi.create).mockResolvedValue(mockURL)
+    const store = useURLsStore()
+    await store.fetchAll()
+    await store.create('https://ex.com', undefined, undefined, '2099-01-01T00:00:00.000Z')
+    expect(urlsApiModule.urlsApi.create).toHaveBeenCalledWith(
+      'https://ex.com', undefined, undefined, '2099-01-01T00:00:00.000Z',
+    )
+  })
+
   it('remove filters url from list', async () => {
     vi.mocked(urlsApiModule.urlsApi.list).mockResolvedValue([mockURL])
     vi.mocked(urlsApiModule.urlsApi.remove).mockResolvedValue(undefined)
