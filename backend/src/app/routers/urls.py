@@ -57,6 +57,7 @@ async def create_url(
         original_url=str(data.original_url),
         short_code=code,
         password_hash=await hash_password_async(data.password) if data.password else None,
+        expires_at=data.expires_at,
     )
     db.add(url)
     await db.commit()

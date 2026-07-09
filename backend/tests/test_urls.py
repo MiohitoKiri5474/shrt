@@ -94,6 +94,15 @@ async def test_create_url_password_too_short_rejected(auth_client):
     resp = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "abc12"})
     assert resp.status_code == 422
 
+async def test_create_url_expiry_future_accepted(auth_client):
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://exp3.com", "expires_at": "2099-01-01T00:00:00Z"})
+    assert resp.status_code == 201
+    assert resp.json()["expires_at"] is not None
+
+async def test_create_url_expiry_past_rejected(auth_client):
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://exp4.com", "expires_at": "2020-01-01T00:00:00Z"})
+    assert resp.status_code == 422
+
 async def test_delete_url_not_found(auth_client):
     resp = await auth_client.delete("/api/urls/99999")
     assert resp.status_code == 404
