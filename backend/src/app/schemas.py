@@ -153,7 +153,6 @@ class URLUpdate(_ExpiresAtValidatorMixin, BaseModel):
     expires_at: datetime | None = None
 
 
-
 class URLOut(BaseModel):
     id: int
     short_code: str
