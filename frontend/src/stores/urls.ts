@@ -10,8 +10,8 @@ export const useURLsStore = defineStore('urls', () => {
     urls.value = await urlsApi.list()
   }
 
-  async function create(originalUrl: string, customCode?: string, password?: string) {
-    const created = await urlsApi.create(originalUrl, customCode, password)
+  async function create(originalUrl: string, customCode?: string, password?: string, expiresAt?: string) {
+    const created = await urlsApi.create(originalUrl, customCode, password, expiresAt)
     urls.value.unshift(created)
     return created
   }
