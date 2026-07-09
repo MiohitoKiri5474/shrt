@@ -16,15 +16,19 @@ export function setRouter(r: Router) {
   _router = r
 }
 
-// Endpoints where a 401 means "wrong current password", not "session expired" —
-// the caller shows an inline error instead of being redirected to /login.
+// Endpoints where a 401 means "wrong current password" or "wrong link password",
+// not "session expired" — the caller shows an inline error instead of being
+// redirected to /login.
 const AUTH_REDIRECT_EXEMPT_PATHS = ['/api/auth/me/email', '/api/auth/me/password']
+const AUTH_REDIRECT_EXEMPT_SUFFIXES = ['/unlock']
 
 apiClient.interceptors.response.use(
   (res) => res,
   (error) => {
     const url: string = error.config?.url ?? ''
-    const isExempt = AUTH_REDIRECT_EXEMPT_PATHS.some((path) => url.includes(path))
+    const isExempt =
+      AUTH_REDIRECT_EXEMPT_PATHS.some((path) => url.includes(path)) ||
+      AUTH_REDIRECT_EXEMPT_SUFFIXES.some((suffix) => url.endsWith(suffix))
     if (error.response?.status === 401 && !isExempt) {
       if (_router) {
         _router.push({ name: 'login' })
