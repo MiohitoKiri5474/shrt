@@ -6,6 +6,7 @@ const urlsStore = useURLsStore()
 const originalUrl = ref('')
 const customCode = ref('')
 const password = ref('')
+const expiresAt = ref('')
 const error = ref('')
 const loading = ref(false)
 
@@ -34,10 +35,16 @@ async function handleCreate() {
   }
   loading.value = true
   try {
-    await urlsStore.create(originalUrl.value, customCode.value || undefined, password.value || undefined)
+    await urlsStore.create(
+      originalUrl.value,
+      customCode.value || undefined,
+      password.value || undefined,
+      expiresAt.value ? new Date(expiresAt.value).toISOString() : undefined,
+    )
     originalUrl.value = ''
     customCode.value = ''
     password.value = ''
+    expiresAt.value = ''
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
     if (status === 409) {
@@ -65,6 +72,10 @@ async function handleCreate() {
     <div class="field">
       <label for="link-password">Password protection (optional)</label>
       <input id="link-password" v-model="password" type="password" placeholder="Leave blank for public link" minlength="6" maxlength="128" autocomplete="new-password" />
+    </div>
+    <div class="field">
+      <label for="expires-at">Expires at (optional)</label>
+      <input id="expires-at" v-model="expiresAt" type="datetime-local" />
     </div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create short URL' }}</button>
