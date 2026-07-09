@@ -49,4 +49,14 @@ describe('apiClient 401 interceptor', () => {
 
     expect(router.push).not.toHaveBeenCalled()
   })
+
+  it('does not redirect on a 401 from a link-unlock endpoint', async () => {
+    apiClient.defaults.adapter = mockAdapter(401)
+
+    await expect(
+      apiClient.post('/api/urls/abc123/unlock', { password: 'wrong' }),
+    ).rejects.toMatchObject({ response: { status: 401 } })
+
+    expect(router.push).not.toHaveBeenCalled()
+  })
 })
