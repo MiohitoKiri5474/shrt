@@ -1,5 +1,20 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import * as authApiModule from '../../api/auth'
 import router from '../index'
+
+vi.mock('../../api/auth', () => ({
+  authApi: {
+    login: vi.fn(),
+    me: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
+    updateUsername: vi.fn(),
+    updateEmail: vi.fn(),
+    updatePassword: vi.fn(),
+    addUser: vi.fn(),
+  },
+}))
 
 describe('router meta titles', () => {
   it.each([
@@ -10,5 +25,42 @@ describe('router meta titles', () => {
   ])('sets meta.title for %s', (path, expectedTitle) => {
     const match = router.resolve(path)
     expect(match.meta.title).toBe(expectedTitle)
+  })
+})
+
+describe('router guard', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+    vi.mocked(authApiModule.authApi.me).mockRejectedValue(new Error('401'))
+  })
+
+  it('does not call restore() for the public password-gate route when unauthenticated', async () => {
+    await router.push('/p/abc123')
+    expect(authApiModule.authApi.me).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('password-gate')
+  })
+
+  it('does not call restore() for the public expired route when unauthenticated', async () => {
+    await router.push('/expired')
+    expect(authApiModule.authApi.me).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('expired')
+  })
+
+  it('still redirects to login for a requiresAuth route when unauthenticated', async () => {
+    await router.push('/dashboard')
+    expect(authApiModule.authApi.me).toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('login')
+  })
+
+  it('still redirects admin-only routes away when authenticated non-admin', async () => {
+    vi.mocked(authApiModule.authApi.me).mockResolvedValue({
+      email: 'a@b.com',
+      created_at: '',
+      is_admin: false,
+      username: null,
+    })
+    await router.push('/admin')
+    expect(router.currentRoute.value.name).toBe('dashboard')
   })
 })

@@ -44,7 +44,11 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
-  if (!auth.isAuthenticated && to.name !== 'login') {
+  // Only hydrate auth state for routes that actually need it — calling
+  // restore() on public routes (e.g. /p/:code) 401s for anonymous visitors,
+  // which trips the global axios interceptor and force-redirects to /login
+  // before the public page ever gets to render.
+  if ((to.meta.requiresAuth || to.meta.requiresAdmin) && !auth.isAuthenticated) {
     await auth.restore()
   }
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
