@@ -118,25 +118,7 @@ class AdminUserUpdate(BaseModel):
 class Token(BaseModel):
     token_type: str = "bearer"
 
-class URLCreate(BaseModel):
-    original_url: AnyHttpUrl
-    custom_code: str | None = Field(None, min_length=6, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
-    password: str | None = Field(None, min_length=6, max_length=128)
-
-    @field_validator("original_url", mode="before")
-    @classmethod
-    def url_max_length(cls, v: object) -> object:
-        if isinstance(v, str) and len(v) > 2048:
-            raise ValueError("URL must not exceed 2048 characters")
-        return v
-
-
-class URLUpdate(BaseModel):
-    short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
-    password: str = ""
-    remove_password: bool = False
-    expires_at: datetime | None = None
-
+class _ExpiresAtValidatorMixin:
     @field_validator("expires_at", mode="after")
     @classmethod
     def expires_must_be_future(cls, v: object) -> object:
@@ -149,6 +131,26 @@ class URLUpdate(BaseModel):
                 raise ValueError("Expiry must be in the future")
         return v
 
+
+class URLCreate(_ExpiresAtValidatorMixin, BaseModel):
+    original_url: AnyHttpUrl
+    custom_code: str | None = Field(None, min_length=6, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str | None = Field(None, min_length=6, max_length=128)
+    expires_at: datetime | None = None
+
+    @field_validator("original_url", mode="before")
+    @classmethod
+    def url_max_length(cls, v: object) -> object:
+        if isinstance(v, str) and len(v) > 2048:
+            raise ValueError("URL must not exceed 2048 characters")
+        return v
+
+
+class URLUpdate(_ExpiresAtValidatorMixin, BaseModel):
+    short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str = ""
+    remove_password: bool = False
+    expires_at: datetime | None = None
 
 
 class URLOut(BaseModel):

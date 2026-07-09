@@ -37,7 +37,8 @@ Notes:
 Notes:
 - All URL operations are scoped to the authenticated user — `GET`/`DELETE`/`stats` only see/affect rows where `user_id` matches the caller; otherwise `404`.
 - `original_url` is SSRF-checked synchronously on create; resolves to a private/loopback/reserved/link-local/multicast address → `422`. Transient DNS failure → `503`.
-- `custom_code`, if provided, must be unique (`409` if taken), 3-16 chars, `^[a-zA-Z0-9_-]+$`. If omitted, an 8-char random alphanumeric code is generated (`services/auth.py::get_unique_short_code`, retries up to 10 times, `503` on exhaustion).
+- `custom_code`, if provided, must be unique (`409` if taken), 6-16 chars, `^[a-zA-Z0-9_-]+$`. If omitted, an 8-char random alphanumeric code is generated (`services/auth.py::get_unique_short_code`, retries up to 10 times, `503` on exhaustion).
+- `expires_at`, if provided, must be in the future (`422` otherwise).
 - `original_url` is capped at 2048 characters.
 
 ## Admin — `/api/admin`
@@ -80,8 +81,8 @@ PasswordChange { current_password: str, new_password: str (min 12 chars; endpoin
 AdminUserOut  { id: int, email: str, username: str | null, is_admin: bool, created_at: datetime, url_count: int }
 Token         { token_type: "bearer" }
 
-URLCreate     { original_url: AnyHttpUrl (≤2048 chars), custom_code: str | null (3-16 chars, ^[a-zA-Z0-9_-]+$) }
-URLOut        { id: int, short_code: str, original_url: str, created_at: datetime, click_count: int }
+URLCreate     { original_url: AnyHttpUrl (≤2048 chars), custom_code: str | null (6-16 chars, ^[a-zA-Z0-9_-]+$), password: str | null (6-128 chars), expires_at: datetime | null (must be future) }
+URLOut        { id: int, short_code: str, original_url: str, created_at: datetime, click_count: int, has_password: bool, expires_at: datetime | null }
 StatsOut      { url_id: int, short_code: str, original_url: str, total_clicks: int, clicks_by_date: dict[str, int] }
 ```
 
