@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
 
+const router = useRouter()
 const urlsStore = useURLsStore()
 const originalUrl = ref('')
 const customCode = ref('')
@@ -35,16 +37,13 @@ async function handleCreate() {
   }
   loading.value = true
   try {
-    await urlsStore.create(
+    const created = await urlsStore.create(
       originalUrl.value,
       customCode.value || undefined,
       password.value || undefined,
       expiresAt.value ? new Date(expiresAt.value).toISOString() : undefined,
     )
-    originalUrl.value = ''
-    customCode.value = ''
-    password.value = ''
-    expiresAt.value = ''
+    router.push({ name: 'share', params: { code: created.short_code } })
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
     if (status === 409) {

@@ -1,8 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import CreateURLForm from '../CreateURLForm.vue'
 import * as urlsStoreModule from '../../stores/urls'
+
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [
+    { path: '/', component: { template: '<div />' } },
+    { path: '/links/:code/share', name: 'share', component: { template: '<div />' } },
+  ],
+})
+
+const globalOptions = { plugins: [router] }
+
+const mockCreatedUrl = {
+  id: 1,
+  short_code: 'newcode1',
+  original_url: 'https://example.com',
+  created_at: '',
+  click_count: 0,
+  has_password: false,
+  expires_at: null,
+}
 
 describe('CreateURLForm', () => {
   let createSpy: ReturnType<typeof vi.fn>
@@ -17,19 +38,19 @@ describe('CreateURLForm', () => {
   })
 
   it('renders URL input and submit button', () => {
-    const wrapper = mount(CreateURLForm)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     expect(wrapper.find('#original-url').exists()).toBe(true)
     expect(wrapper.find('button[type="submit"]').text()).toBe('Create short URL')
   })
 
   it('shows no error initially', () => {
-    const wrapper = mount(CreateURLForm)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('calls store.create with valid URL', async () => {
-    createSpy.mockResolvedValue(undefined)
-    const wrapper = mount(CreateURLForm)
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
@@ -37,8 +58,8 @@ describe('CreateURLForm', () => {
   })
 
   it('prepends https:// when protocol missing', async () => {
-    createSpy.mockResolvedValue(undefined)
-    const wrapper = mount(CreateURLForm)
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('example.com')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
@@ -46,8 +67,8 @@ describe('CreateURLForm', () => {
   })
 
   it('passes custom code when provided', async () => {
-    createSpy.mockResolvedValue(undefined)
-    const wrapper = mount(CreateURLForm)
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('#custom-code').setValue('my-link')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
@@ -56,8 +77,8 @@ describe('CreateURLForm', () => {
   })
 
   it('passes password when provided', async () => {
-    createSpy.mockResolvedValue(undefined)
-    const wrapper = mount(CreateURLForm)
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('#link-password').setValue('secret')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
@@ -66,8 +87,8 @@ describe('CreateURLForm', () => {
   })
 
   it('passes expiry date when provided', async () => {
-    createSpy.mockResolvedValue(undefined)
-    const wrapper = mount(CreateURLForm)
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('#expires-at').setValue('2099-01-01T00:00')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
@@ -80,8 +101,18 @@ describe('CreateURLForm', () => {
     )
   })
 
+  it('navigates to the share page after successful creation', async () => {
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
+    await wrapper.find('#original-url').setValue('https://example.com')
+    await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('share')
+    expect(router.currentRoute.value.params.code).toBe('newcode1')
+  })
+
   it('shows error for invalid custom code', async () => {
-    const wrapper = mount(CreateURLForm)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('#custom-code').setValue('x!')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
@@ -91,7 +122,7 @@ describe('CreateURLForm', () => {
   })
 
   it('shows error for short password', async () => {
-    const wrapper = mount(CreateURLForm)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('#link-password').setValue('abc')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
@@ -102,7 +133,7 @@ describe('CreateURLForm', () => {
 
   it('shows error on 409 conflict', async () => {
     createSpy.mockRejectedValue({ response: { status: 409 } })
-    const wrapper = mount(CreateURLForm)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('#custom-code').setValue('taken1')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
@@ -112,35 +143,22 @@ describe('CreateURLForm', () => {
 
   it('shows generic error on other failures', async () => {
     createSpy.mockRejectedValue({ response: { status: 500 } })
-    const wrapper = mount(CreateURLForm)
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     await flushPromises()
     expect(wrapper.find('[role="alert"]').text()).toContain('Failed to create')
   })
 
-  it('clears form fields after successful creation', async () => {
-    createSpy.mockResolvedValue(undefined)
-    const wrapper = mount(CreateURLForm)
-    await wrapper.find('#original-url').setValue('https://example.com')
-    await wrapper.find('#custom-code').setValue('mylink')
-    await wrapper.find('#expires-at').setValue('2099-01-01T00:00')
-    await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
-    await flushPromises()
-    expect((wrapper.find('#original-url').element as HTMLInputElement).value).toBe('')
-    expect((wrapper.find('#custom-code').element as HTMLInputElement).value).toBe('')
-    expect((wrapper.find('#expires-at').element as HTMLInputElement).value).toBe('')
-  })
-
   it('disables submit while loading', async () => {
-    let resolve: () => void
-    createSpy.mockImplementation(() => new Promise<void>((r) => { resolve = r }))
-    const wrapper = mount(CreateURLForm)
+    let resolve: (value: typeof mockCreatedUrl) => void
+    createSpy.mockImplementation(() => new Promise<typeof mockCreatedUrl>((r) => { resolve = r }))
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')
     const btn = wrapper.find('button[type="submit"]')
     await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
     expect(btn.attributes('disabled')).toBeDefined()
-    resolve!()
+    resolve!(mockCreatedUrl)
     await flushPromises()
     expect(btn.attributes('disabled')).toBeUndefined()
   })
