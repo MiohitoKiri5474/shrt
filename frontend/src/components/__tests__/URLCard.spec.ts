@@ -14,10 +14,10 @@ const mockURL = {
 }
 
 describe('URLCard', () => {
-  it('emits qr with the short_code when the QR button is clicked', async () => {
+  it('emits share with the short_code when the Share button is clicked', async () => {
     const wrapper = mount(URLCard, { props: { url: mockURL, baseUrl: 'http://localhost' } })
-    await wrapper.get('.btn-qr').trigger('click')
-    expect(wrapper.emitted('qr')).toEqual([['abc12345']])
+    await wrapper.get('.btn-share').trigger('click')
+    expect(wrapper.emitted('share')).toEqual([['abc12345']])
   })
 
   it('emits stats and delete with the url id', async () => {

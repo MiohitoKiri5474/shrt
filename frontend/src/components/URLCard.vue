@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { URLOut } from '../api/urls'
 
 const props = defineProps<{ url: URLOut; baseUrl: string }>()
-const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; qr: [shortCode: string]; edit: [id: number] }>()
+const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; share: [shortCode: string]; edit: [id: number] }>()
 const copied = ref(false)
 const copyError = ref(false)
 
@@ -62,7 +62,7 @@ function isSafeUrl(url: string): boolean {
       </div>
     </div>
     <div class="url-actions">
-      <button class="btn-qr" @click="emit('qr', url.short_code)">QR</button>
+      <button class="btn-share" @click="emit('share', url.short_code)">Share</button>
       <button class="btn-edit" @click="emit('edit', url.id)">Edit</button>
       <button class="btn-stats" @click="emit('stats', url.id)">Stats</button>
       <button class="btn-delete" @click="emit('delete', url.id)">Delete</button>
@@ -155,7 +155,7 @@ code {
   margin-left: 1rem;
 }
 
-.btn-qr,
+.btn-share,
 .btn-stats {
   padding: 0.4rem 0.8rem;
   border: 1px solid var(--color-accent);
@@ -166,7 +166,7 @@ code {
   transition: background 0.2s;
 }
 
-.btn-qr:hover,
+.btn-share:hover,
 .btn-stats:hover {
   background: var(--color-border);
 }
@@ -205,7 +205,7 @@ code {
   color: var(--color-error);
 }
 
-.btn-qr:focus-visible,
+.btn-share:focus-visible,
 .btn-stats:focus-visible,
 .btn-delete:focus-visible,
 .btn-copy:focus-visible {
