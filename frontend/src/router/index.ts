@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/auth'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', redirect: '/dashboard' },
+    { path: '/', redirect: '/manage' },
     {
       path: '/login',
       name: 'login',
@@ -12,10 +12,22 @@ const router = createRouter({
       meta: { title: 'Log in' },
     },
     {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('../views/DashboardView.vue'),
-      meta: { requiresAuth: true, title: 'Dashboard' },
+      path: '/new',
+      name: 'new-link',
+      component: () => import('../views/NewLinkView.vue'),
+      meta: { requiresAuth: true, title: 'New Link' },
+    },
+    {
+      path: '/manage',
+      name: 'manage',
+      component: () => import('../views/ManageView.vue'),
+      meta: { requiresAuth: true, title: 'Manage Links' },
+    },
+    {
+      path: '/links/:code/share',
+      name: 'share',
+      component: () => import('../views/ShareView.vue'),
+      meta: { requiresAuth: true, title: 'Share Link' },
     },
     {
       path: '/profile',
@@ -55,7 +67,7 @@ router.beforeEach(async (to) => {
     return '/login'
   }
   if (to.meta.requiresAdmin && !auth.user?.is_admin) {
-    return '/dashboard'
+    return '/manage'
   }
 })
 
