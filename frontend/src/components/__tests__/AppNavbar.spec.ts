@@ -31,7 +31,8 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: { template: '<div />' } },
     { path: '/login', name: 'login', component: { template: '<div />' }, meta: { title: 'Log in' } },
-    { path: '/dashboard', name: 'dashboard', component: { template: '<div />' }, meta: { title: 'Dashboard' } },
+    { path: '/new', name: 'new-link', component: { template: '<div />' }, meta: { title: 'New Link' } },
+    { path: '/manage', name: 'manage', component: { template: '<div />' }, meta: { title: 'Manage Links' } },
     { path: '/profile', name: 'profile', component: { template: '<div />' }, meta: { title: 'Profile' } },
     { path: '/admin', name: 'admin', component: { template: '<div />' }, meta: { title: 'User Management' } },
   ],
@@ -50,7 +51,7 @@ describe('AppNavbar shell', () => {
   })
 
   it('renders the Shrt brand as a link to /', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions })
     const brand = wrapper.find('.navbar-brand')
@@ -60,7 +61,8 @@ describe('AppNavbar shell', () => {
 
   it.each([
     ['/login', 'Log in'],
-    ['/dashboard', 'Dashboard'],
+    ['/new', 'New Link'],
+    ['/manage', 'Manage Links'],
     ['/profile', 'Profile'],
     ['/admin', 'User Management'],
   ])('shows the page title for %s', async (path, expectedTitle) => {
@@ -71,7 +73,7 @@ describe('AppNavbar shell', () => {
   })
 
   it('calls themeStore.toggle() when the theme button is clicked', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const themeStore = useThemeStore()
     const toggleSpy = vi.spyOn(themeStore, 'toggle')
@@ -88,14 +90,14 @@ describe('AppNavbar shell', () => {
   })
 
   it('shows the hamburger button when authenticated', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions })
     expect(wrapper.find('.hamburger-btn').exists()).toBe(true)
   })
 
   it('renders content passed into the status slot', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, {
       global: globalOptions,
@@ -111,7 +113,7 @@ describe('AppNavbar drawer', () => {
   })
 
   it('is closed by default', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     expect(document.body.querySelector('.drawer-panel')).toBeNull()
@@ -120,7 +122,7 @@ describe('AppNavbar drawer', () => {
   })
 
   it('opens on hamburger click', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
@@ -130,7 +132,7 @@ describe('AppNavbar drawer', () => {
   })
 
   it('closes on backdrop click', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
@@ -142,7 +144,7 @@ describe('AppNavbar drawer', () => {
   })
 
   it('closes on Escape key', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
@@ -153,7 +155,7 @@ describe('AppNavbar drawer', () => {
   })
 
   it('closes on the close button', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
@@ -165,7 +167,7 @@ describe('AppNavbar drawer', () => {
   })
 
   it('shows the user display name', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'testuser', is_admin: false })
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
@@ -179,7 +181,8 @@ describe('AppNavbar drawer', () => {
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const text = document.body.querySelector('.drawer-panel')?.textContent ?? ''
-    expect(text).toContain('Dashboard')
+    expect(text).toContain('Manage')
+    expect(text).toContain('New Link')
     expect(text).not.toContain('Profile')
     expect(text).not.toContain('Admin')
     wrapper.unmount()
@@ -191,7 +194,8 @@ describe('AppNavbar drawer', () => {
     const wrapper = mount(AppNavbar, { global: globalOptions, attachTo: document.body })
     await wrapper.find('.hamburger-btn').trigger('click')
     const text = document.body.querySelector('.drawer-panel')?.textContent ?? ''
-    expect(text).toContain('Dashboard')
+    expect(text).toContain('Manage')
+    expect(text).toContain('New Link')
     expect(text).toContain('Profile')
     expect(text).not.toContain('Admin')
     wrapper.unmount()
@@ -210,7 +214,7 @@ describe('AppNavbar drawer', () => {
   })
 
   it('signs out and redirects to /login', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     setAuth({ email: 'user@example.com', created_at: '', username: 'user', is_admin: false })
     const authStore = useAuthStore()
     const logoutSpy = vi.spyOn(authStore, 'logout').mockResolvedValue(undefined)
