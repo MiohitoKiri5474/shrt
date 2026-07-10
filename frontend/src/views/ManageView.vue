@@ -114,7 +114,7 @@ function cancelDelete() {
 </script>
 
 <template>
-  <div class="dashboard">
+  <div class="manage">
     <AppNavbar>
       <template #status>
         <NetworkStatusIndicator />
@@ -206,7 +206,7 @@ function cancelDelete() {
 </template>
 
 <style scoped>
-.dashboard {
+.manage {
   min-height: 100vh;
   background: var(--color-background);
 }

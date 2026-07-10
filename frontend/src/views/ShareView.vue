@@ -85,11 +85,14 @@ async function nativeShare() {
         </div>
         <RouterLink class="back-link" :to="{ name: 'manage' }">Back to Manage</RouterLink>
       </template>
+      <template v-else-if="loadError">
+        <p class="error" role="alert">{{ loadError }}</p>
+        <RouterLink class="back-link" :to="{ name: 'manage' }">Back to Manage</RouterLink>
+      </template>
       <template v-else>
         <p class="not-found">Link not found.</p>
         <RouterLink class="back-link" :to="{ name: 'manage' }">Back to Manage</RouterLink>
       </template>
-      <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
     </main>
   </div>
 </template>

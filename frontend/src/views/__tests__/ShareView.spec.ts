@@ -63,6 +63,8 @@ describe('ShareView', () => {
   afterEach(() => {
     // @ts-expect-error jsdom does not define navigator.share by default
     delete navigator.share
+    // @ts-expect-error jsdom does not define navigator.clipboard by default
+    delete navigator.clipboard
   })
 
   it('renders the short URL and a copy button when the link is found', async () => {
@@ -128,6 +130,15 @@ describe('ShareView', () => {
     await flushPromises()
     expect(wrapper.find('.not-found').exists()).toBe(true)
     expect(wrapper.find('.not-found').text()).toContain('not found')
+  })
+
+  it('shows only the load error, not the not-found message, when fetchAll fails', async () => {
+    const store = setupStore()
+    vi.spyOn(store, 'fetchAll').mockRejectedValue(new Error('network'))
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').text()).toContain('Failed to load link data')
+    expect(wrapper.find('.not-found').exists()).toBe(false)
   })
 
   it('calls fetchAll on mount when the store is empty', async () => {

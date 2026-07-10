@@ -36,7 +36,6 @@ HTMLDialogElement.prototype.close = vi.fn()
 vi.mock('../../api/urls', () => ({
   urlsApi: {
     list: vi.fn().mockResolvedValue([]),
-    qrUrl: vi.fn((code: string) => `/api/urls/${code}/qr`),
     remove: vi.fn().mockResolvedValue(undefined),
     update: vi.fn(),
     stats: vi.fn(),

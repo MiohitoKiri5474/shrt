@@ -24,7 +24,7 @@ const router = createRouter({
   history: createMemoryHistory(),
   routes: [
     { path: '/', component: { template: '<div />' } },
-    { path: '/dashboard', component: { template: '<div />' } },
+    { path: '/manage', component: { template: '<div />' } },
   ],
 })
 
@@ -82,14 +82,14 @@ describe('LoginView', () => {
     expect(loginSpy).toHaveBeenCalledWith('user@example.com', 'secret123')
   })
 
-  it('redirects to /dashboard on successful login', async () => {
+  it('redirects to /manage on successful login', async () => {
     loginSpy.mockResolvedValue(undefined)
     const wrapper = mountLogin()
     await wrapper.find('#identifier').setValue('user@example.com')
     await wrapper.find('#password').setValue('secret123')
     await wrapper.find('[data-testid="login-form"]').trigger('submit')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/dashboard')
+    expect(router.currentRoute.value.path).toBe('/manage')
   })
 
   it('shows error on invalid credentials (non-429)', async () => {
