@@ -5,13 +5,14 @@ import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useURLsStore } from '../../stores/urls'
-import DashboardView from '../DashboardView.vue'
+import ManageView from '../ManageView.vue'
 
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
     { path: '/', component: { template: '<div />' } },
     { path: '/login', component: { template: '<div />' } },
+    { path: '/links/:code/share', name: 'share', component: { template: '<div />' } },
   ],
 })
 
@@ -61,18 +62,13 @@ const AppNavbarStub = defineComponent({
   template: '<div class="navbar-stub"><slot name="status" /></div>',
 })
 
-const CreateURLFormStub = defineComponent({
-  name: 'CreateURLForm',
-  template: '<div class="create-url-form-stub" />',
-})
-
 const URLCardStub = defineComponent({
   name: 'URLCard',
   props: ['url', 'baseUrl'],
-  emits: ['qr', 'stats', 'delete', 'edit'],
+  emits: ['share', 'stats', 'delete', 'edit'],
   template: `
     <div class="url-card-stub" :data-id="url.id">
-      <button class="stub-qr" @click="$emit('qr', url.short_code)">QR</button>
+      <button class="stub-share" @click="$emit('share', url.short_code)">Share</button>
       <button class="stub-stats" @click="$emit('stats', url.id)">Stats</button>
       <button class="stub-delete" @click="$emit('delete', url.id)">Delete</button>
       <button class="stub-edit" @click="$emit('edit', url.id)">Edit</button>
@@ -85,7 +81,6 @@ const globalOptions = {
   stubs: {
     AppNavbar: AppNavbarStub,
     NetworkStatusIndicator: NetworkStatusStub,
-    CreateURLForm: CreateURLFormStub,
     URLCard: URLCardStub,
   },
 }
@@ -115,22 +110,22 @@ function setupStores(user = { email: 'user@example.com', username: 'testuser', i
   return useURLsStore()
 }
 
-describe('DashboardView navbar', () => {
+describe('ManageView navbar', () => {
   it('renders AppNavbar with the network status indicator in its status slot', async () => {
     const store = setupStores()
     vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     expect(wrapper.find('.navbar-stub').exists()).toBe(true)
     expect(wrapper.find('.network-status-stub').exists()).toBe(true)
   })
 })
 
-describe('DashboardView URL list', () => {
+describe('ManageView URL list', () => {
   it('shows empty state when no URLs', async () => {
     const store = setupStores()
     vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     expect(wrapper.find('.empty').exists()).toBe(true)
   })
@@ -141,7 +136,7 @@ describe('DashboardView URL list', () => {
     vi.spyOn(store, 'fetchAll').mockImplementation(async () => {
       store.urls = [mockUrl, mockUrl2]
     })
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     expect(wrapper.findAll('.url-card-stub')).toHaveLength(2)
   })
@@ -149,13 +144,13 @@ describe('DashboardView URL list', () => {
   it('shows loadError when fetchAll fails', async () => {
     const store = setupStores()
     vi.spyOn(store, 'fetchAll').mockRejectedValue(new Error('network'))
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     expect(wrapper.find('[role="alert"]').text()).toContain('Failed to load URLs')
   })
 })
 
-describe('DashboardView delete flow', () => {
+describe('ManageView delete flow', () => {
   let store: ReturnType<typeof useURLsStore>
 
   beforeEach(() => {
@@ -166,7 +161,7 @@ describe('DashboardView delete flow', () => {
   })
 
   it('opens confirm dialog when URLCard emits delete', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-delete').trigger('click')
     await flushPromises()
@@ -176,7 +171,7 @@ describe('DashboardView delete flow', () => {
 
   it('calls urlsStore.remove on confirm', async () => {
     vi.spyOn(store, 'remove').mockResolvedValue(undefined)
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-delete').trigger('click')
     await flushPromises()
@@ -187,7 +182,7 @@ describe('DashboardView delete flow', () => {
 
   it('cancels delete without calling remove', async () => {
     vi.spyOn(store, 'remove').mockResolvedValue(undefined)
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-delete').trigger('click')
     await flushPromises()
@@ -198,7 +193,7 @@ describe('DashboardView delete flow', () => {
 
   it('shows deleteError when remove fails', async () => {
     vi.spyOn(store, 'remove').mockRejectedValue(new Error('server error'))
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-delete').trigger('click')
     await flushPromises()
@@ -208,7 +203,7 @@ describe('DashboardView delete flow', () => {
   })
 })
 
-describe('DashboardView stats flow', () => {
+describe('ManageView stats flow', () => {
   let store: ReturnType<typeof useURLsStore>
 
   beforeEach(() => {
@@ -222,7 +217,7 @@ describe('DashboardView stats flow', () => {
     vi.spyOn(store, 'fetchStats').mockImplementation(async () => {
       store.currentStats = mockStats
     })
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-stats').trigger('click')
     await flushPromises()
@@ -235,7 +230,7 @@ describe('DashboardView stats flow', () => {
     vi.spyOn(store, 'fetchStats').mockImplementation(async () => {
       store.currentStats = mockStats
     })
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-stats').trigger('click')
     await flushPromises()
@@ -246,7 +241,7 @@ describe('DashboardView stats flow', () => {
 
   it('shows statsError when fetchStats fails', async () => {
     vi.spyOn(store, 'fetchStats').mockRejectedValue(new Error('fail'))
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-stats').trigger('click')
     await flushPromises()
@@ -255,7 +250,7 @@ describe('DashboardView stats flow', () => {
   })
 })
 
-describe('DashboardView QR flow', () => {
+describe('ManageView share flow', () => {
   let store: ReturnType<typeof useURLsStore>
 
   beforeEach(() => {
@@ -265,29 +260,17 @@ describe('DashboardView QR flow', () => {
     })
   })
 
-  it('opens QR dialog when URLCard emits qr', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
+  it('navigates to the share page when URLCard emits share', async () => {
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
-    await wrapper.find('.stub-qr').trigger('click')
+    await wrapper.find('.stub-share').trigger('click')
     await flushPromises()
-    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalled()
-    expect(wrapper.find('.qr-dialog').exists()).toBe(true)
-    expect(wrapper.find('.qr-target').text()).toContain('abc123')
-  })
-
-  it('closes QR dialog on Close button click', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
-    await flushPromises()
-    await wrapper.find('.stub-qr').trigger('click')
-    await flushPromises()
-    expect(wrapper.find('.qr-image').exists()).toBe(true)
-    await wrapper.find('.qr-dialog .btn-cancel').trigger('click')
-    await wrapper.vm.$nextTick()
-    expect(wrapper.find('.qr-image').exists()).toBe(false)
+    expect(router.currentRoute.value.name).toBe('share')
+    expect(router.currentRoute.value.params.code).toBe('abc123')
   })
 })
 
-describe('DashboardView edit flow', () => {
+describe('ManageView edit flow', () => {
   let store: ReturnType<typeof useURLsStore>
 
   beforeEach(() => {
@@ -298,7 +281,7 @@ describe('DashboardView edit flow', () => {
   })
 
   it('opens edit dialog when URLCard emits edit', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-edit').trigger('click')
     await flushPromises()
@@ -307,7 +290,7 @@ describe('DashboardView edit flow', () => {
   })
 
   it('pre-fills short code from URL', async () => {
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-edit').trigger('click')
     await flushPromises()
@@ -318,7 +301,7 @@ describe('DashboardView edit flow', () => {
 
   it('calls urlsStore.update on save', async () => {
     vi.spyOn(store, 'update').mockResolvedValue({ ...mockUrl })
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-edit').trigger('click')
     await flushPromises()
@@ -330,7 +313,7 @@ describe('DashboardView edit flow', () => {
 
   it('shows editError when update fails', async () => {
     vi.spyOn(store, 'update').mockRejectedValue(new Error('conflict'))
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-edit').trigger('click')
     await flushPromises()
@@ -341,7 +324,7 @@ describe('DashboardView edit flow', () => {
 
   it('cancels edit without calling update', async () => {
     vi.spyOn(store, 'update').mockResolvedValue({ ...mockUrl })
-    const wrapper = mount(DashboardView, { global: globalOptions })
+    const wrapper = mount(ManageView, { global: globalOptions })
     await flushPromises()
     await wrapper.find('.stub-edit').trigger('click')
     await flushPromises()
