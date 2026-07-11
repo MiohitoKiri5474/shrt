@@ -111,6 +111,43 @@ describe('CreateURLForm', () => {
     expect(router.currentRoute.value.params.code).toBe('newcode1')
   })
 
+  it('keeps the submit button disabled until navigation to the share page completes', async () => {
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    let resolveNav!: () => void
+    const pushSpy = vi.spyOn(router, 'push').mockImplementation(
+      () => new Promise<void>((resolve) => { resolveNav = resolve }),
+    )
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
+    await wrapper.find('#original-url').setValue('https://example.com')
+    await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+    await flushPromises()
+
+    // create() has resolved but navigation is still pending: the button must stay disabled
+    // so a second click can't fire a duplicate create() call.
+    expect(createSpy).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeDefined()
+
+    resolveNav()
+    await flushPromises()
+
+    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    pushSpy.mockRestore()
+  })
+
+  it('does not show a creation error when navigation fails after a successful create', async () => {
+    createSpy.mockResolvedValue(mockCreatedUrl)
+    const pushSpy = vi.spyOn(router, 'push').mockRejectedValue(new Error('chunk load failed'))
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
+    await wrapper.find('#original-url').setValue('https://example.com')
+    await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+    await flushPromises()
+
+    expect(createSpy).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    pushSpy.mockRestore()
+  })
+
   it('shows error for invalid custom code', async () => {
     const wrapper = mount(CreateURLForm, { global: globalOptions })
     await wrapper.find('#original-url').setValue('https://example.com')

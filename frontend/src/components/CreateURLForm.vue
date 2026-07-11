@@ -43,7 +43,13 @@ async function handleCreate() {
       password.value || undefined,
       expiresAt.value ? new Date(expiresAt.value).toISOString() : undefined,
     )
-    router.push({ name: 'share', params: { code: created.short_code } })
+    try {
+      await router.push({ name: 'share', params: { code: created.short_code } })
+    } catch {
+      // The URL was already created successfully; a navigation failure here
+      // (e.g. a lazy-chunk load error) is not a creation failure and must not
+      // be reported as "Failed to create URL".
+    }
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
     if (status === 409) {
