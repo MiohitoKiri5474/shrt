@@ -151,12 +151,68 @@ describe('ShareView', () => {
     expect(fetchAllSpy).toHaveBeenCalled()
   })
 
-  it('skips fetchAll on mount when the store is already populated', async () => {
+  it('skips fetchAll on mount when the current code is already in the store', async () => {
     const store = setupStore()
     store.urls = [mockUrl]
     const fetchAllSpy = vi.spyOn(store, 'fetchAll')
     mount(ShareView, { global: globalOptions })
     await flushPromises()
     expect(fetchAllSpy).not.toHaveBeenCalled()
+  })
+
+  it('calls fetchAll on mount even when the store is populated, if the current code is not in it', async () => {
+    const store = setupStore()
+    store.urls = [{ ...mockUrl, id: 2, short_code: 'other000' }]
+    const fetchAllSpy = vi.spyOn(store, 'fetchAll').mockImplementation(async () => {
+      store.urls = [...store.urls, mockUrl]
+    })
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    expect(fetchAllSpy).toHaveBeenCalled()
+    expect(wrapper.text()).toContain(`${window.location.origin}/abc123`)
+  })
+
+  it('shows a loading state synchronously after mount, before the fetch resolves', async () => {
+    const store = setupStore()
+    let resolveFetch: () => void = () => {}
+    vi.spyOn(store, 'fetchAll').mockImplementation(
+      () => new Promise((resolve) => { resolveFetch = () => resolve() }),
+    )
+    const wrapper = mount(ShareView, { global: globalOptions })
+
+    expect(wrapper.find('.loading').exists()).toBe(true)
+    expect(wrapper.find('.not-found').exists()).toBe(false)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+
+    resolveFetch()
+    await flushPromises()
+
+    expect(wrapper.find('.loading').exists()).toBe(false)
+    expect(wrapper.find('.not-found').exists()).toBe(true)
+  })
+
+  it('does not show the loading state once the mount-time fetch attempt has settled', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.find('.loading').exists()).toBe(false)
+  })
+
+  it('renders the Back to Manage link once for the found state', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.findAll('.back-link')).toHaveLength(1)
+  })
+
+  it('renders the Back to Manage link once for the not-found state', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    await router.push('/links/doesnotexist/share')
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.findAll('.back-link')).toHaveLength(1)
   })
 })

@@ -10,6 +10,7 @@ const BASE_URL = window.location.origin
 
 const route = useRoute()
 const urlsStore = useURLsStore()
+const loading = ref(true)
 const loadError = ref('')
 const copied = ref(false)
 const copyError = ref(false)
@@ -23,12 +24,17 @@ const twitterHref = computed(() => `https://twitter.com/intent/tweet?url=${encod
 const whatsappHref = computed(() => `https://wa.me/?text=${encodeURIComponent(shortUrl.value)}`)
 
 onMounted(async () => {
-  if (urlsStore.urls.length === 0) {
-    try {
-      await urlsStore.fetchAll()
-    } catch {
-      loadError.value = 'Failed to load link data. Please refresh.'
+  try {
+    const found = urlsStore.urls.some(u => u.short_code === shortCode.value)
+    if (!found) {
+      try {
+        await urlsStore.fetchAll()
+      } catch {
+        loadError.value = 'Failed to load link data. Please refresh.'
+      }
     }
+  } finally {
+    loading.value = false
   }
 })
 
@@ -71,26 +77,22 @@ async function nativeShare() {
       </template>
     </AppNavbar>
     <main class="share-content">
-      <template v-if="url">
-        <h2>Your short link is ready</h2>
-        <div class="short-url-row">
-          <code>{{ shortUrl }}</code>
-          <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
-        </div>
-        <img :src="qrSrc" class="qr-image" :alt="`QR code for ${shortUrl}`" width="256" height="256" />
-        <div class="share-actions">
-          <button v-if="canShare" class="btn-share-native" @click="nativeShare">Share…</button>
-          <a class="btn-social btn-twitter" :href="twitterHref" target="_blank" rel="noopener noreferrer">Share on X</a>
-          <a class="btn-social btn-whatsapp" :href="whatsappHref" target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
-        </div>
-        <RouterLink class="back-link" :to="{ name: 'manage' }">Back to Manage</RouterLink>
-      </template>
-      <template v-else-if="loadError">
-        <p class="error" role="alert">{{ loadError }}</p>
-        <RouterLink class="back-link" :to="{ name: 'manage' }">Back to Manage</RouterLink>
-      </template>
+      <p v-if="loading" class="loading">Loading…</p>
       <template v-else>
-        <p class="not-found">Link not found.</p>
+        <template v-if="url">
+          <h2>Your short link is ready</h2>
+          <div class="short-url-row">
+            <code>{{ shortUrl }}</code>
+            <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
+          </div>
+          <img :src="qrSrc" class="qr-image" :alt="`QR code for ${shortUrl}`" width="256" height="256" />
+          <div class="share-actions">
+            <button v-if="canShare" class="btn-share-native" @click="nativeShare">Share…</button>
+            <a class="btn-social btn-twitter" :href="twitterHref" target="_blank" rel="noopener noreferrer">Share on X</a>
+            <a class="btn-social btn-whatsapp" :href="whatsappHref" target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
+          </div>
+        </template>
+        <p v-else :class="loadError ? 'error' : 'not-found'" :role="loadError ? 'alert' : undefined">{{ loadError || 'Link not found.' }}</p>
         <RouterLink class="back-link" :to="{ name: 'manage' }">Back to Manage</RouterLink>
       </template>
     </main>
@@ -196,6 +198,7 @@ async function nativeShare() {
   color: var(--color-link);
 }
 
+.loading,
 .not-found {
   color: var(--color-text);
   margin-bottom: 1rem;
