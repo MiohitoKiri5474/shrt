@@ -65,6 +65,8 @@ describe('ShareView', () => {
     delete navigator.share
     // @ts-expect-error jsdom does not define navigator.clipboard by default
     delete navigator.clipboard
+    // @ts-expect-error jsdom does not implement execCommand by default
+    delete document.execCommand
   })
 
   it('renders the short URL and a copy button when the link is found', async () => {
@@ -85,6 +87,41 @@ describe('ShareView', () => {
     await flushPromises()
     await wrapper.find('.btn-copy').trigger('click')
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/abc123`)
+  })
+
+  it('shows Copied! when the execCommand clipboard fallback succeeds', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const execCommand = vi.fn().mockReturnValue(true)
+    document.execCommand = execCommand
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('.btn-copy').trigger('click')
+    await flushPromises()
+    expect(execCommand).toHaveBeenCalledWith('copy')
+    expect(wrapper.find('.btn-copy').text()).toBe('Copied!')
+  })
+
+  it('shows Failed! when the execCommand clipboard fallback returns false without throwing', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const execCommand = vi.fn().mockReturnValue(false)
+    document.execCommand = execCommand
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('.btn-copy').trigger('click')
+    await flushPromises()
+    expect(execCommand).toHaveBeenCalledWith('copy')
+    expect(wrapper.find('.btn-copy').text()).toBe('Failed!')
+    expect(wrapper.find('.btn-copy').classes()).toContain('btn-copy--error')
+  })
+
+  it('has aria-live on the copy button so status changes are announced', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.find('.btn-copy').attributes('aria-live')).toBe('polite')
   })
 
   it('renders the QR image with the correct src', async () => {
@@ -110,6 +147,30 @@ describe('ShareView', () => {
     const wrapper = mount(ShareView, { global: globalOptions })
     await flushPromises()
     expect(wrapper.find('.btn-share-native').exists()).toBe(false)
+  })
+
+  it('shows no share error when the native share sheet is cancelled (AbortError)', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const abortError = Object.assign(new Error('cancelled'), { name: 'AbortError' })
+    Object.defineProperty(navigator, 'share', { value: vi.fn().mockRejectedValue(abortError), configurable: true })
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('.btn-share-native').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('shows a visible share error when native share fails for a reason other than cancellation', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const notAllowedError = Object.assign(new Error('blocked'), { name: 'NotAllowedError' })
+    Object.defineProperty(navigator, 'share', { value: vi.fn().mockRejectedValue(notAllowedError), configurable: true })
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('.btn-share-native').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').text()).toContain('Share failed')
   })
 
   it('renders social share links with the correct href', async () => {

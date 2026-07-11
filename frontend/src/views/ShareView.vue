@@ -14,6 +14,7 @@ const loading = ref(true)
 const loadError = ref('')
 const copied = ref(false)
 const copyError = ref(false)
+const shareError = ref(false)
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
 const shortCode = computed(() => route.params.code as string)
@@ -49,8 +50,11 @@ async function copyShortUrl() {
       el.style.cssText = 'position:fixed;opacity:0'
       document.body.appendChild(el)
       el.select()
-      document.execCommand('copy')
+      const succeeded = document.execCommand('copy')
       document.body.removeChild(el)
+      if (!succeeded) {
+        throw new Error('execCommand copy failed')
+      }
     }
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
@@ -60,11 +64,21 @@ async function copyShortUrl() {
   }
 }
 
+function isAbortError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'name' in error && (error as { name: unknown }).name === 'AbortError'
+}
+
 async function nativeShare() {
+  shareError.value = false
   try {
     await navigator.share({ title: 'Shrt', url: shortUrl.value })
-  } catch {
-    // user cancelled the native share sheet — no action needed
+  } catch (error) {
+    if (isAbortError(error)) {
+      // user cancelled the native share sheet — no action needed
+      return
+    }
+    shareError.value = true
+    setTimeout(() => { shareError.value = false }, 1500)
   }
 }
 </script>
@@ -83,7 +97,7 @@ async function nativeShare() {
           <h2>Your short link is ready</h2>
           <div class="short-url-row">
             <code>{{ shortUrl }}</code>
-            <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
+            <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" aria-live="polite" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
           </div>
           <img :src="qrSrc" class="qr-image" :alt="`QR code for ${shortUrl}`" width="256" height="256" />
           <div class="share-actions">
@@ -91,6 +105,7 @@ async function nativeShare() {
             <a class="btn-social btn-twitter" :href="twitterHref" target="_blank" rel="noopener noreferrer">Share on X</a>
             <a class="btn-social btn-whatsapp" :href="whatsappHref" target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
           </div>
+          <p v-if="shareError" class="error" role="alert">Share failed. Please try again.</p>
         </template>
         <p v-else :class="loadError ? 'error' : 'not-found'" :role="loadError ? 'alert' : undefined">{{ loadError || 'Link not found.' }}</p>
         <RouterLink class="back-link" :to="{ name: 'manage' }">Back to Manage</RouterLink>
