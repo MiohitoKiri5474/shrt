@@ -134,7 +134,7 @@ describe('CreateURLForm', () => {
     pushSpy.mockRestore()
   })
 
-  it('does not show a creation error when navigation fails after a successful create', async () => {
+  it('shows a distinct redirect-failure message (not the create-failure message) when navigation fails after a successful create', async () => {
     createSpy.mockResolvedValue(mockCreatedUrl)
     const pushSpy = vi.spyOn(router, 'push').mockRejectedValue(new Error('chunk load failed'))
     const wrapper = mount(CreateURLForm, { global: globalOptions })
@@ -143,7 +143,10 @@ describe('CreateURLForm', () => {
     await flushPromises()
 
     expect(createSpy).toHaveBeenCalledTimes(1)
-    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    const alert = wrapper.find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(alert.text()).not.toContain('Failed to create URL.')
+    expect(alert.text()).toContain('was created')
     expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
     pushSpy.mockRestore()
   })

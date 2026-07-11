@@ -45,10 +45,14 @@ async function handleCreate() {
     )
     try {
       await router.push({ name: 'share', params: { code: created.short_code } })
-    } catch {
+    } catch (navError: unknown) {
       // The URL was already created successfully; a navigation failure here
       // (e.g. a lazy-chunk load error) is not a creation failure and must not
-      // be reported as "Failed to create URL".
+      // be reported as "Failed to create URL". Still, silently swallowing it
+      // would leave the user staring at a form that looks untouched, with
+      // every reason to resubmit and create a duplicate link.
+      console.error('Failed to navigate to the share page after creating URL:', navError)
+      error.value = 'Your link was created, but we could not open it automatically. Check the Manage page to find it.'
     }
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
