@@ -100,6 +100,7 @@ async function nativeShare() {
             <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" aria-live="polite" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
           </div>
           <img :src="qrSrc" class="qr-image" :alt="`QR code for ${shortUrl}`" width="256" height="256" />
+          <a class="btn-qr-download" :href="qrSrc" :download="`qr-${shortCode}.png`">Download QR</a>
           <div class="share-actions">
             <button v-if="canShare" class="btn-share-native" @click="nativeShare">Share…</button>
             <a class="btn-social btn-twitter" :href="twitterHref" target="_blank" rel="noopener noreferrer">Share on X</a>
@@ -166,11 +167,27 @@ async function nativeShare() {
   width: 256px;
   height: 256px;
   max-width: 100%;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto 0.75rem;
   background: #fff;
   padding: 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--color-border);
+}
+
+.btn-qr-download {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: background 0.2s;
+}
+
+.btn-qr-download:hover {
+  background: var(--color-border);
 }
 
 .share-actions {
@@ -202,6 +219,7 @@ async function nativeShare() {
 .btn-share-native:focus-visible,
 .btn-social:focus-visible,
 .btn-copy:focus-visible,
+.btn-qr-download:focus-visible,
 .back-link:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;

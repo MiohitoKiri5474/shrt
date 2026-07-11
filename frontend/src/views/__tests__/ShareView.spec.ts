@@ -132,6 +132,17 @@ describe('ShareView', () => {
     expect(wrapper.find('.qr-image').attributes('src')).toBe('/api/urls/abc123/qr')
   })
 
+  it('renders a QR download link with the correct href and download attributes', async () => {
+    const store = setupStore()
+    store.urls = [mockUrl]
+    const wrapper = mount(ShareView, { global: globalOptions })
+    await flushPromises()
+    const downloadLink = wrapper.find('.btn-qr-download')
+    expect(downloadLink.exists()).toBe(true)
+    expect(downloadLink.attributes('href')).toBe('/api/urls/abc123/qr')
+    expect(downloadLink.attributes('download')).toBe('qr-abc123.png')
+  })
+
   it('renders the native share button when navigator.share is defined', async () => {
     const store = setupStore()
     store.urls = [mockUrl]
