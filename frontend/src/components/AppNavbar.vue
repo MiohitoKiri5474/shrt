@@ -88,11 +88,17 @@ async function handleSignOut() {
         <hr class="drawer-sep" />
         <nav class="drawer-links">
           <RouterLink
-            v-if="route.name !== 'dashboard'"
+            v-if="route.name !== 'manage'"
             class="drawer-item"
-            to="/dashboard"
+            to="/manage"
             @click="closeDrawer"
-          >Dashboard</RouterLink>
+          >Manage</RouterLink>
+          <RouterLink
+            v-if="route.name !== 'new-link'"
+            class="drawer-item"
+            to="/new"
+            @click="closeDrawer"
+          >New Link</RouterLink>
           <RouterLink
             v-if="route.name !== 'profile'"
             class="drawer-item"

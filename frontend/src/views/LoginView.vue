@@ -52,7 +52,7 @@ async function handleSubmit() {
   try {
     await authStore.login(identifier.value, password.value)
     failureCount.value = 0
-    router.push('/dashboard')
+    router.push('/manage')
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
     if (status === 429) {

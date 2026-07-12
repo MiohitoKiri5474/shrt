@@ -19,7 +19,8 @@ vi.mock('../../api/auth', () => ({
 describe('router meta titles', () => {
   it.each([
     ['/login', 'Log in'],
-    ['/dashboard', 'Dashboard'],
+    ['/new', 'New Link'],
+    ['/manage', 'Manage Links'],
     ['/profile', 'Profile'],
     ['/admin', 'User Management'],
   ])('sets meta.title for %s', (path, expectedTitle) => {
@@ -48,7 +49,7 @@ describe('router guard', () => {
   })
 
   it('still redirects to login for a requiresAuth route when unauthenticated', async () => {
-    await router.push('/dashboard')
+    await router.push('/manage')
     expect(authApiModule.authApi.me).toHaveBeenCalled()
     expect(router.currentRoute.value.name).toBe('login')
   })
@@ -61,6 +62,12 @@ describe('router guard', () => {
       username: null,
     })
     await router.push('/admin')
-    expect(router.currentRoute.value.name).toBe('dashboard')
+    expect(router.currentRoute.value.name).toBe('manage')
+  })
+
+  it('resolves an arbitrary unmatched path to the not-found route without calling restore()', async () => {
+    await router.push('/this/path/does/not-exist')
+    expect(router.currentRoute.value.name).toBe('not-found')
+    expect(authApiModule.authApi.me).not.toHaveBeenCalled()
   })
 })
