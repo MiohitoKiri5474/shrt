@@ -132,6 +132,18 @@ class _ExpiresAtValidatorMixin:
         return v
 
 
+# Top-level paths the frontend SPA serves directly (see frontend/nginx.conf's
+# SPA-fallback regex). A short code equal to one of these would be shadowed by
+# the SPA shell and never reach the redirect route.
+RESERVED_SHORT_CODES: frozenset[str] = frozenset({"login", "new", "manage", "profile", "admin", "expired"})
+
+
+def _reject_reserved_code(v: str) -> str:
+    if v in RESERVED_SHORT_CODES:
+        raise ValueError(f"'{v}' is reserved and cannot be used as a short code")
+    return v
+
+
 class URLCreate(_ExpiresAtValidatorMixin, BaseModel):
     original_url: AnyHttpUrl
     custom_code: str | None = Field(None, min_length=6, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
@@ -145,12 +157,22 @@ class URLCreate(_ExpiresAtValidatorMixin, BaseModel):
             raise ValueError("URL must not exceed 2048 characters")
         return v
 
+    @field_validator("custom_code", mode="after")
+    @classmethod
+    def custom_code_not_reserved(cls, v: str | None) -> str | None:
+        return v if v is None else _reject_reserved_code(v)
+
 
 class URLUpdate(_ExpiresAtValidatorMixin, BaseModel):
     short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = ""
     remove_password: bool = False
     expires_at: datetime | None = None
+
+    @field_validator("short_code", mode="after")
+    @classmethod
+    def short_code_not_reserved(cls, v: str) -> str:
+        return _reject_reserved_code(v)
 
 
 class URLOut(BaseModel):
