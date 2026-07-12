@@ -138,7 +138,10 @@ function cancelDelete() {
     </AppNavbar>
     <main class="dash-content">
       <section>
-        <h2>Your URLs</h2>
+        <div class="section-header">
+          <h2>Your URLs</h2>
+          <RouterLink class="btn-add-link" to="/new">Add Link</RouterLink>
+        </div>
         <p v-if="urlsStore.urls.length === 0" class="empty">No URLs yet. Create one on the New Link page.</p>
         <URLCard
           v-for="url in urlsStore.urls"
@@ -231,6 +234,38 @@ function cancelDelete() {
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem 1rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.btn-add-link {
+  padding: 0.5rem 1rem;
+  background: var(--color-accent);
+  color: var(--color-background);
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.btn-add-link:hover {
+  opacity: 0.88;
+}
+
+.btn-add-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .empty {

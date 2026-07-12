@@ -13,6 +13,7 @@ const router = createRouter({
     { path: '/', component: { template: '<div />' } },
     { path: '/login', component: { template: '<div />' } },
     { path: '/links/:code/share', name: 'share', component: { template: '<div />' } },
+    { path: '/new', name: 'new-link', component: { template: '<div />' } },
   ],
 })
 
@@ -117,6 +118,18 @@ describe('ManageView navbar', () => {
     await flushPromises()
     expect(wrapper.find('.navbar-stub').exists()).toBe(true)
     expect(wrapper.find('.network-status-stub').exists()).toBe(true)
+  })
+})
+
+describe('ManageView add-link button', () => {
+  it('renders a link to the New Link page at the top of the page', async () => {
+    const store = setupStores()
+    vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    const addLink = wrapper.get('.btn-add-link')
+    expect(addLink.text()).toBe('Add Link')
+    expect(addLink.attributes('href')).toBe('/new')
   })
 })
 
