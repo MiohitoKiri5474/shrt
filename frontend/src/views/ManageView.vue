@@ -14,6 +14,7 @@ const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
 const loadError = ref('')
+const shareError = ref('')
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
 const editDialogRef = ref<HTMLDialogElement | null>(null)
@@ -48,8 +49,14 @@ watch(pendingDeleteId, (id) => {
   }
 })
 
-function handleShare(shortCode: string) {
-  router.push({ name: 'share', params: { code: shortCode } })
+async function handleShare(shortCode: string) {
+  shareError.value = ''
+  try {
+    await router.push({ name: 'share', params: { code: shortCode } })
+  } catch (navError: unknown) {
+    console.error('Failed to navigate to the share page:', navError)
+    shareError.value = 'Failed to open the share page. Please try again.'
+  }
 }
 
 watch(editingUrl, (url) => {
@@ -160,6 +167,7 @@ function cancelDelete() {
       <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
       <p v-if="statsError" class="error">{{ statsError }}</p>
       <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
+      <p v-if="shareError" class="error" role="alert">{{ shareError }}</p>
     </main>
 
     <dialog

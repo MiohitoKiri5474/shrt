@@ -285,6 +285,30 @@ describe('ManageView share flow', () => {
     expect(router.currentRoute.value.name).toBe('share')
     expect(router.currentRoute.value.params.code).toBe('abc123')
   })
+
+  it('shows shareError when navigation to the share page fails', async () => {
+    const pushSpy = vi.spyOn(router, 'push').mockRejectedValueOnce(new Error('chunk load failed'))
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('.stub-share').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').text()).toContain('Failed to open')
+    pushSpy.mockRestore()
+  })
+
+  it('clears a previous shareError on a successful share navigation', async () => {
+    const pushSpy = vi.spyOn(router, 'push').mockRejectedValueOnce(new Error('chunk load failed'))
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('.stub-share').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+
+    pushSpy.mockRestore()
+    await wrapper.find('.stub-share').trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('[role="alert"]')).toHaveLength(0)
+  })
 })
 
 describe('ManageView edit flow', () => {
