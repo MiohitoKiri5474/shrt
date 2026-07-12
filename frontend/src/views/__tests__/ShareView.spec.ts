@@ -18,6 +18,7 @@ vi.mock('../../api/urls', () => ({
   urlsApi: {
     list: vi.fn().mockResolvedValue([]),
     qrUrl: vi.fn((code: string) => `/api/urls/${code}/qr`),
+    shortUrl: vi.fn((code: string) => `${window.location.origin}/${code}`),
   },
 }))
 

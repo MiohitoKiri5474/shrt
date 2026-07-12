@@ -1,33 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { URLOut } from '../api/urls'
+import { computed } from 'vue'
+import { urlsApi, type URLOut } from '../api/urls'
+import { useClipboardCopy } from '../composables/useClipboardCopy'
 
-const props = defineProps<{ url: URLOut; baseUrl: string }>()
+const props = defineProps<{ url: URLOut }>()
 const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; share: [shortCode: string]; edit: [id: number] }>()
-const copied = ref(false)
-const copyError = ref(false)
+const { copied, copyError, copy } = useClipboardCopy()
 
-async function copyShortUrl() {
-  copyError.value = false
-  const text = `${props.baseUrl}/${props.url.short_code}`
-  try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      const el = document.createElement('textarea')
-      el.value = text
-      el.style.cssText = 'position:fixed;opacity:0'
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 1500)
-  } catch {
-    copyError.value = true
-    setTimeout(() => { copyError.value = false }, 1500)
-  }
+const shortUrl = computed(() => urlsApi.shortUrl(props.url.short_code))
+
+function copyShortUrl() {
+  return copy(shortUrl.value)
 }
 
 function isSafeUrl(url: string): boolean {
@@ -52,8 +35,8 @@ function isSafeUrl(url: string): boolean {
         <span class="url-invalid__badge" aria-label="Invalid URL">Invalid URL</span>
       </span>
       <div class="short">
-        <code>{{ baseUrl }}/{{ url.short_code }}</code>
-        <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
+        <code>{{ shortUrl }}</code>
+        <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" aria-live="polite" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
       </div>
       <div class="url-meta">
         <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>

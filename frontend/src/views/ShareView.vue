@@ -5,21 +5,19 @@ import { useURLsStore } from '../stores/urls'
 import { urlsApi } from '../api/urls'
 import AppNavbar from '../components/AppNavbar.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
-
-const BASE_URL = window.location.origin
+import { useClipboardCopy } from '../composables/useClipboardCopy'
 
 const route = useRoute()
 const urlsStore = useURLsStore()
 const loading = ref(true)
 const loadError = ref('')
-const copied = ref(false)
-const copyError = ref(false)
+const { copied, copyError, copy } = useClipboardCopy()
 const shareError = ref(false)
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
 const shortCode = computed(() => route.params.code as string)
 const url = computed(() => urlsStore.urls.find(u => u.short_code === shortCode.value) ?? null)
-const shortUrl = computed(() => `${BASE_URL}/${shortCode.value}`)
+const shortUrl = computed(() => urlsApi.shortUrl(shortCode.value))
 const qrSrc = computed(() => urlsApi.qrUrl(shortCode.value))
 const twitterHref = computed(() => `https://twitter.com/intent/tweet?url=${encodeURIComponent(shortUrl.value)}`)
 const whatsappHref = computed(() => `https://wa.me/?text=${encodeURIComponent(shortUrl.value)}`)
@@ -39,29 +37,8 @@ onMounted(async () => {
   }
 })
 
-async function copyShortUrl() {
-  copyError.value = false
-  try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shortUrl.value)
-    } else {
-      const el = document.createElement('textarea')
-      el.value = shortUrl.value
-      el.style.cssText = 'position:fixed;opacity:0'
-      document.body.appendChild(el)
-      el.select()
-      const succeeded = document.execCommand('copy')
-      document.body.removeChild(el)
-      if (!succeeded) {
-        throw new Error('execCommand copy failed')
-      }
-    }
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 1500)
-  } catch {
-    copyError.value = true
-    setTimeout(() => { copyError.value = false }, 1500)
-  }
+function copyShortUrl() {
+  return copy(shortUrl.value)
 }
 
 function isAbortError(error: unknown): boolean {
