@@ -1,33 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import type { URLOut } from '../api/urls'
+import { computed } from 'vue'
+import { urlsApi, type URLOut } from '../api/urls'
+import { useClipboardCopy } from '../composables/useClipboardCopy'
 
-const props = defineProps<{ url: URLOut; baseUrl: string }>()
-const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; qr: [shortCode: string]; edit: [id: number] }>()
-const copied = ref(false)
-const copyError = ref(false)
+const props = defineProps<{ url: URLOut }>()
+const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; share: [shortCode: string]; edit: [id: number] }>()
+const { copied, copyError, copy } = useClipboardCopy()
 
-async function copyShortUrl() {
-  copyError.value = false
-  const text = `${props.baseUrl}/${props.url.short_code}`
-  try {
-    if (navigator.clipboard) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      const el = document.createElement('textarea')
-      el.value = text
-      el.style.cssText = 'position:fixed;opacity:0'
-      document.body.appendChild(el)
-      el.select()
-      document.execCommand('copy')
-      document.body.removeChild(el)
-    }
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 1500)
-  } catch {
-    copyError.value = true
-    setTimeout(() => { copyError.value = false }, 1500)
-  }
+const shortUrl = computed(() => urlsApi.shortUrl(props.url.short_code))
+
+function copyShortUrl() {
+  return copy(shortUrl.value)
 }
 
 function isSafeUrl(url: string): boolean {
@@ -52,8 +35,8 @@ function isSafeUrl(url: string): boolean {
         <span class="url-invalid__badge" aria-label="Invalid URL">Invalid URL</span>
       </span>
       <div class="short">
-        <code>{{ baseUrl }}/{{ url.short_code }}</code>
-        <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
+        <code>{{ shortUrl }}</code>
+        <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" aria-live="polite" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
       </div>
       <div class="url-meta">
         <span class="clicks">{{ url.click_count }} click{{ url.click_count !== 1 ? 's' : '' }}</span>
@@ -62,7 +45,7 @@ function isSafeUrl(url: string): boolean {
       </div>
     </div>
     <div class="url-actions">
-      <button class="btn-qr" @click="emit('qr', url.short_code)">QR</button>
+      <button class="btn-share" @click="emit('share', url.short_code)">Share</button>
       <button class="btn-edit" @click="emit('edit', url.id)">Edit</button>
       <button class="btn-stats" @click="emit('stats', url.id)">Stats</button>
       <button class="btn-delete" @click="emit('delete', url.id)">Delete</button>
@@ -155,7 +138,7 @@ code {
   margin-left: 1rem;
 }
 
-.btn-qr,
+.btn-share,
 .btn-stats {
   padding: 0.4rem 0.8rem;
   border: 1px solid var(--color-accent);
@@ -166,7 +149,7 @@ code {
   transition: background 0.2s;
 }
 
-.btn-qr:hover,
+.btn-share:hover,
 .btn-stats:hover {
   background: var(--color-border);
 }
@@ -205,7 +188,7 @@ code {
   color: var(--color-error);
 }
 
-.btn-qr:focus-visible,
+.btn-share:focus-visible,
 .btn-stats:focus-visible,
 .btn-delete:focus-visible,
 .btn-copy:focus-visible {

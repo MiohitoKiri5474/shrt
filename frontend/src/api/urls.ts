@@ -72,4 +72,17 @@ export const urlsApi = {
   qrUrl(shortCode: string): string {
     return `${BASE_URL}/api/urls/${encodeURIComponent(shortCode)}/qr`
   },
+  /**
+   * The user-facing short link that redirects to `original_url`. The bare
+   * `GET /{short_code}` redirect route lives on the API host, not the
+   * frontend host — `BASE_URL` (falling back to the current origin in the
+   * default same-origin deployment) is required here so this always points
+   * at the backend, even when the frontend and API are on separate domains.
+   * Unlike `qrUrl`, this value is copied to the clipboard and interpolated
+   * into share intents, so it must always be an absolute URL.
+   */
+  shortUrl(shortCode: string): string {
+    const base = BASE_URL || window.location.origin
+    return `${base}/${encodeURIComponent(shortCode)}`
+  },
 }

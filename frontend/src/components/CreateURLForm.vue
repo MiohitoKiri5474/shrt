@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
+import { goToShare } from '../router/navigation'
 
+const router = useRouter()
 const urlsStore = useURLsStore()
 const originalUrl = ref('')
 const customCode = ref('')
@@ -35,16 +38,23 @@ async function handleCreate() {
   }
   loading.value = true
   try {
-    await urlsStore.create(
+    const created = await urlsStore.create(
       originalUrl.value,
       customCode.value || undefined,
       password.value || undefined,
       expiresAt.value ? new Date(expiresAt.value).toISOString() : undefined,
     )
-    originalUrl.value = ''
-    customCode.value = ''
-    password.value = ''
-    expiresAt.value = ''
+    try {
+      await goToShare(router, created.short_code)
+    } catch (navError: unknown) {
+      // The URL was already created successfully; a navigation failure here
+      // (e.g. a lazy-chunk load error) is not a creation failure and must not
+      // be reported as "Failed to create URL". Still, silently swallowing it
+      // would leave the user staring at a form that looks untouched, with
+      // every reason to resubmit and create a duplicate link.
+      console.error('Failed to navigate to the share page after creating URL:', navError)
+      error.value = 'Your link was created, but we could not open it automatically. Check the Manage page to find it.'
+    }
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
     if (status === 409) {

@@ -32,6 +32,44 @@ describe('urls store', () => {
     expect(store.urls[0]!.short_code).toBe('abc12345')
   })
 
+  it('does not let a stale in-flight fetchAll wipe a URL added by create', async () => {
+    let resolveList: (v: typeof mockURL[]) => void
+    vi.mocked(urlsApiModule.urlsApi.list).mockReturnValue(
+      new Promise((r) => { resolveList = r }),
+    )
+    vi.mocked(urlsApiModule.urlsApi.create).mockResolvedValue(mockURL)
+    const store = useURLsStore()
+
+    const fetchPromise = store.fetchAll() // call A: in flight, captures the pre-create version
+    await store.create('https://ex.com') // unshifts mockURL, bumps the version
+    resolveList!([]) // call A resolves with stale (pre-create) data
+    await fetchPromise
+
+    expect(store.urls).toHaveLength(1)
+    expect(store.urls[0]!.short_code).toBe('abc12345')
+  })
+
+  it('lets the most recently-initiated fetchAll win when two fetchAll calls overlap', async () => {
+    let resolveFirst: (v: typeof mockURL[]) => void
+    let resolveSecond: (v: typeof mockURL[]) => void
+    const first = new Promise<typeof mockURL[]>((r) => { resolveFirst = r })
+    const second = new Promise<typeof mockURL[]>((r) => { resolveSecond = r })
+    vi.mocked(urlsApiModule.urlsApi.list)
+      .mockReturnValueOnce(first)
+      .mockReturnValueOnce(second)
+    const store = useURLsStore()
+
+    const p1 = store.fetchAll()
+    const p2 = store.fetchAll()
+    resolveSecond!([mockURL]) // newer call resolves first
+    await p2
+    resolveFirst!([]) // older call resolves after, should be discarded
+    await p1
+
+    expect(store.urls).toHaveLength(1)
+    expect(store.urls[0]!.short_code).toBe('abc12345')
+  })
+
   it('create prepends url to list', async () => {
     vi.mocked(urlsApiModule.urlsApi.list).mockResolvedValue([])
     vi.mocked(urlsApiModule.urlsApi.create).mockResolvedValue(mockURL)

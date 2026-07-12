@@ -1,23 +1,22 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
-import CreateURLForm from '../components/CreateURLForm.vue'
 import URLCard from '../components/URLCard.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
 import AppNavbar from '../components/AppNavbar.vue'
-import { urlsApi, type StatsOut, type URLOut } from '../api/urls'
-const BASE_URL = window.location.origin
+import type { StatsOut, URLOut } from '../api/urls'
+import { goToShare } from '../router/navigation'
 
+const router = useRouter()
 const urlsStore = useURLsStore()
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
 const loadError = ref('')
+const shareError = ref('')
 const pendingDeleteId = ref<number | null>(null)
 const dialogRef = ref<HTMLDialogElement | null>(null)
-const qrShortCode = ref<string | null>(null)
-const qrDialogRef = ref<HTMLDialogElement | null>(null)
-const qrSrc = computed(() => (qrShortCode.value ? urlsApi.qrUrl(qrShortCode.value) : ''))
 const editDialogRef = ref<HTMLDialogElement | null>(null)
 const editingUrl = ref<URLOut | null>(null)
 const editShortCode = ref('')
@@ -28,6 +27,15 @@ const editError = ref('')
 
 onMounted(() => {
   loadError.value = ''
+  // Always revalidate on mount, even though the store may already hold cached URLs from a
+  // previous visit (e.g. a Manage -> Share -> Back round trip; the store persists across
+  // route changes). The list below renders that cached data immediately with no loading
+  // gate, so this is a stale-while-revalidate refresh, not a blocking reload, and its only
+  // cost is one background GET. It must stay unconditional: click_count is
+  // server-authoritative and can change from OTHER users' clicks with no local mutation ever
+  // happening on this client, so a "skip refetch if the store is non-empty" guard would let
+  // a stale count linger indefinitely. Unlike ShareView (one record, safe to trust a local
+  // cache hit), Manage owns the freshness of an entire list.
   urlsStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load URLs. Please refresh.'
   })
@@ -41,20 +49,14 @@ watch(pendingDeleteId, (id) => {
   }
 })
 
-watch(qrShortCode, (code) => {
-  if (code !== null) {
-    nextTick(() => qrDialogRef.value?.showModal())
-  } else {
-    qrDialogRef.value?.close()
+async function handleShare(shortCode: string) {
+  shareError.value = ''
+  try {
+    await goToShare(router, shortCode)
+  } catch (navError: unknown) {
+    console.error('Failed to navigate to the share page:', navError)
+    shareError.value = 'Failed to open the share page. Please try again.'
   }
-})
-
-function handleQr(shortCode: string) {
-  qrShortCode.value = shortCode
-}
-
-function closeQr() {
-  qrShortCode.value = null
 }
 
 watch(editingUrl, (url) => {
@@ -128,23 +130,24 @@ function cancelDelete() {
 </script>
 
 <template>
-  <div class="dashboard">
+  <div class="manage">
     <AppNavbar>
       <template #status>
         <NetworkStatusIndicator />
       </template>
     </AppNavbar>
     <main class="dash-content">
-      <CreateURLForm />
       <section>
-        <h2>Your URLs</h2>
-        <p v-if="urlsStore.urls.length === 0" class="empty">No URLs yet. Create one above.</p>
+        <div class="section-header">
+          <h2>Your URLs</h2>
+          <RouterLink class="btn-add-link" to="/new">Add Link</RouterLink>
+        </div>
+        <p v-if="urlsStore.urls.length === 0" class="empty">No URLs yet. Create one on the New Link page.</p>
         <URLCard
           v-for="url in urlsStore.urls"
           :key="url.id"
           :url="url"
-          :base-url="BASE_URL"
-          @qr="handleQr"
+          @share="handleShare"
           @edit="handleEdit"
           @stats="handleStats"
           @delete="handleDelete"
@@ -166,6 +169,7 @@ function cancelDelete() {
       <p v-if="loadError" class="error" role="alert">{{ loadError }}</p>
       <p v-if="statsError" class="error">{{ statsError }}</p>
       <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
+      <p v-if="shareError" class="error" role="alert">{{ shareError }}</p>
     </main>
 
     <dialog
@@ -182,22 +186,6 @@ function cancelDelete() {
       <div class="confirm-actions">
         <button class="btn-cancel" autofocus @click="cancelDelete">Cancel</button>
         <button class="btn-confirm-delete" @click="confirmDelete">Delete</button>
-      </div>
-    </dialog>
-
-    <dialog
-      ref="qrDialogRef"
-      class="qr-dialog"
-      aria-modal="true"
-      aria-labelledby="qr-title"
-      @close="closeQr"
-    >
-      <h3 id="qr-title">QR code</h3>
-      <p class="qr-target">{{ BASE_URL }}/{{ qrShortCode }}</p>
-      <img v-if="qrSrc" :src="qrSrc" class="qr-image" :alt="`QR code for ${BASE_URL}/${qrShortCode}`" width="256" height="256" />
-      <div class="qr-actions">
-        <a v-if="qrSrc" class="btn-qr-download" :href="qrSrc" :download="`qr-${qrShortCode}.png`">Download</a>
-        <button class="btn-cancel" autofocus @click="closeQr">Close</button>
       </div>
     </dialog>
 
@@ -237,7 +225,7 @@ function cancelDelete() {
 </template>
 
 <style scoped>
-.dashboard {
+.manage {
   min-height: 100vh;
   background: var(--color-background);
 }
@@ -246,6 +234,38 @@ function cancelDelete() {
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem 1rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.btn-add-link {
+  padding: 0.5rem 1rem;
+  background: var(--color-accent);
+  color: var(--color-background);
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.btn-add-link:hover {
+  opacity: 0.88;
+}
+
+.btn-add-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .empty {
@@ -339,75 +359,6 @@ function cancelDelete() {
 
 .btn-confirm-delete:hover {
   opacity: 0.85;
-}
-
-.qr-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  padding: 1.5rem;
-  max-width: 340px;
-  width: 90%;
-  text-align: center;
-  z-index: 200;
-}
-
-.qr-dialog h3 {
-  margin: 0 0 0.5rem;
-  color: var(--color-heading);
-}
-
-.qr-target {
-  margin: 0 0 1rem;
-  font-size: 0.85rem;
-  color: var(--color-text);
-  opacity: 0.7;
-  word-break: break-all;
-}
-
-.qr-image {
-  display: block;
-  width: 256px;
-  height: 256px;
-  max-width: 100%;
-  margin: 0 auto 1.25rem;
-  background: #fff;
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-}
-
-.qr-actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.btn-qr-download {
-  padding: 0.4rem 1rem;
-  border: 1px solid var(--color-accent);
-  background: var(--color-accent);
-  color: var(--color-background);
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: opacity 0.2s;
-}
-
-.btn-qr-download:hover {
-  opacity: 0.85;
-}
-
-.btn-qr-download:focus-visible,
-.qr-actions .btn-cancel:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
 }
 
 .edit-dialog {
