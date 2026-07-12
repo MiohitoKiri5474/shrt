@@ -88,6 +88,14 @@ async def test_create_url_custom_code_too_short_rejected(auth_client):
     resp = await auth_client.post("/api/urls", json={"original_url": "https://short.com", "custom_code": "abc12"})
     assert resp.status_code == 422
 
+@pytest.mark.parametrize("reserved", ["login", "new", "manage", "profile", "admin", "expired"])
+async def test_create_url_reserved_custom_code_rejected(auth_client, reserved):
+    """A custom_code matching a frontend SPA route must be rejected (422) — nginx's
+    SPA-fallback intercepts these paths before they ever reach the redirect route,
+    so a link with this code would be permanently unreachable."""
+    resp = await auth_client.post("/api/urls", json={"original_url": "https://reserved.com", "custom_code": reserved})
+    assert resp.status_code == 422
+
 async def test_create_url_password_too_short_rejected(auth_client):
     """A URL-protection password below the 6-char minimum must be rejected (422) —
     a 1-char password offers negligible brute-force resistance."""
@@ -154,6 +162,17 @@ async def test_update_url_short_code_conflict(auth_client):
     r2 = await auth_client.post("/api/urls", json={"original_url": "https://example.org", "custom_code": "bbbcode1"})
     resp = await auth_client.patch(f"/api/urls/{r2.json()['id']}", json={"short_code": "aaacode1"})
     assert resp.status_code == 409
+
+@pytest.mark.parametrize("reserved", ["login", "new", "manage", "profile", "admin", "expired"])
+async def test_update_url_reserved_short_code_rejected(auth_client, reserved):
+    """Renaming a link to a frontend SPA route must be rejected (422). Unlike
+    creation, the update path's short_code has only a 3-char minimum, so short
+    reserved words like 'new' are otherwise reachable here even though they're
+    too short to pass as a custom_code on creation."""
+    create = await auth_client.post("/api/urls", json={"original_url": "https://edit.com"})
+    url_id = create.json()["id"]
+    resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": reserved})
+    assert resp.status_code == 422
 
 async def test_update_url_set_password(auth_client):
     create = await auth_client.post("/api/urls", json={"original_url": "https://pw.com"})
