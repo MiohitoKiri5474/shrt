@@ -51,6 +51,14 @@ const router = createRouter({
       name: 'expired',
       component: () => import('../views/ExpiredView.vue'),
     },
+    {
+      // Catch-all: matches any path not handled above. Intentionally has no
+      // `requiresAuth` — an unauthenticated visitor hitting a bad URL should
+      // see a 404, not get redirected to login first. Must stay last.
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue'),
+    },
   ],
 })
 

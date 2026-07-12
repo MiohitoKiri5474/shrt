@@ -64,4 +64,10 @@ describe('router guard', () => {
     await router.push('/admin')
     expect(router.currentRoute.value.name).toBe('manage')
   })
+
+  it('resolves an arbitrary unmatched path to the not-found route without calling restore()', async () => {
+    await router.push('/this/path/does/not-exist')
+    expect(router.currentRoute.value.name).toBe('not-found')
+    expect(authApiModule.authApi.me).not.toHaveBeenCalled()
+  })
 })
