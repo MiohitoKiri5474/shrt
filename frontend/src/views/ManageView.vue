@@ -26,6 +26,15 @@ const editError = ref('')
 
 onMounted(() => {
   loadError.value = ''
+  // Always revalidate on mount, even though the store may already hold cached URLs from a
+  // previous visit (e.g. a Manage -> Share -> Back round trip; the store persists across
+  // route changes). The list below renders that cached data immediately with no loading
+  // gate, so this is a stale-while-revalidate refresh, not a blocking reload, and its only
+  // cost is one background GET. It must stay unconditional: click_count is
+  // server-authoritative and can change from OTHER users' clicks with no local mutation ever
+  // happening on this client, so a "skip refetch if the store is non-empty" guard would let
+  // a stale count linger indefinitely. Unlike ShareView (one record, safe to trust a local
+  // cache hit), Manage owns the freshness of an entire list.
   urlsStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load URLs. Please refresh.'
   })

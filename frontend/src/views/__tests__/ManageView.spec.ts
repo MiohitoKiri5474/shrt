@@ -147,6 +147,24 @@ describe('ManageView URL list', () => {
     await flushPromises()
     expect(wrapper.find('[role="alert"]').text()).toContain('Failed to load URLs')
   })
+
+  it('always calls fetchAll on mount, even when the store already holds cached URLs from a previous visit', async () => {
+    // Regression guard for a Manage -> Share -> Back round trip: the store persists across
+    // route changes (it is not torn down), so on remount `urlsStore.urls` may already be
+    // populated. The list still renders that cached data immediately (no loading gate), so
+    // this fetchAll is a background revalidation (stale-while-revalidate), not a redundant
+    // blocking reload. It must stay unconditional because click_count is server-authoritative
+    // and can change from OTHER users' clicks with no local mutation on this client ever
+    // occurring - a "skip refetch if non-empty" guard would let a stale count linger
+    // indefinitely with no way for this client to know to refresh it.
+    const store = setupStores()
+    store.urls = [mockUrl]
+    const fetchAllSpy = vi.spyOn(store, 'fetchAll').mockResolvedValue(undefined)
+    const wrapper = mount(ManageView, { global: globalOptions })
+    expect(wrapper.findAll('.url-card-stub')).toHaveLength(1)
+    await flushPromises()
+    expect(fetchAllSpy).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('ManageView delete flow', () => {
