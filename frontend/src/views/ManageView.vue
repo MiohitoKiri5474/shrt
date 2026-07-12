@@ -6,7 +6,7 @@ import URLCard from '../components/URLCard.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
 import AppNavbar from '../components/AppNavbar.vue'
 import type { StatsOut, URLOut } from '../api/urls'
-const BASE_URL = window.location.origin
+import { goToShare } from '../router/navigation'
 
 const router = useRouter()
 const urlsStore = useURLsStore()
@@ -52,7 +52,7 @@ watch(pendingDeleteId, (id) => {
 async function handleShare(shortCode: string) {
   shareError.value = ''
   try {
-    await router.push({ name: 'share', params: { code: shortCode } })
+    await goToShare(router, shortCode)
   } catch (navError: unknown) {
     console.error('Failed to navigate to the share page:', navError)
     shareError.value = 'Failed to open the share page. Please try again.'
@@ -144,7 +144,6 @@ function cancelDelete() {
           v-for="url in urlsStore.urls"
           :key="url.id"
           :url="url"
-          :base-url="BASE_URL"
           @share="handleShare"
           @edit="handleEdit"
           @stats="handleStats"

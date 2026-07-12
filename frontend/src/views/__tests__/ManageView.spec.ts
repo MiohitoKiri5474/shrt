@@ -63,7 +63,7 @@ const AppNavbarStub = defineComponent({
 
 const URLCardStub = defineComponent({
   name: 'URLCard',
-  props: ['url', 'baseUrl'],
+  props: ['url'],
   emits: ['share', 'stats', 'delete', 'edit'],
   template: `
     <div class="url-card-stub" :data-id="url.id">

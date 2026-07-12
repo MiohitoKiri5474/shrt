@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
+import { goToShare } from '../router/navigation'
 
 const router = useRouter()
 const urlsStore = useURLsStore()
@@ -44,7 +45,7 @@ async function handleCreate() {
       expiresAt.value ? new Date(expiresAt.value).toISOString() : undefined,
     )
     try {
-      await router.push({ name: 'share', params: { code: created.short_code } })
+      await goToShare(router, created.short_code)
     } catch (navError: unknown) {
       // The URL was already created successfully; a navigation failure here
       // (e.g. a lazy-chunk load error) is not a creation failure and must not
