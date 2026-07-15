@@ -57,7 +57,7 @@ It switches the backend command to `uvicorn ... --reload`, sets `APP_ENV=develop
 
 ## Database migrations
 
-There is no Alembic. `database.py::create_tables()` runs `Base.metadata.create_all()` then `_migrate_schema()`, which hand-rolls additive migrations (adding `is_admin`/`username` columns, widening `original_url` to `VARCHAR(2048)`) with separate code paths for SQLite (`PRAGMA table_info`) and PostgreSQL (`information_schema.columns`). New schema changes need a corresponding block added there.
+There is no Alembic. `database.py::create_tables()` runs `Base.metadata.create_all()` then `_migrate_schema()`, which hand-rolls additive migrations (adding `is_admin`/`username`/`password_hash`/`expires_at` columns, widening `original_url` to `VARCHAR(2048)`) with separate code paths for SQLite (`PRAGMA table_info`) and PostgreSQL (`information_schema.columns`). New schema changes need a corresponding block added there.
 
 ## Nginx (frontend container)
 
@@ -65,7 +65,7 @@ There is no Alembic. `database.py::create_tables()` runs `Base.metadata.create_a
 - Rate-limits `/api/*` at the edge: 30 req/min per IP (`limit_req_zone`, burst 10, nodelay), independent of the backend's own SlowAPI limits.
 - Sets the same security headers as the backend's `SecurityHeadersMiddleware` (CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
 - Forwards `X-Real-IP`, `X-Forwarded-For` (overwritten, not appended — prevents client header spoofing), `X-Forwarded-Proto`, `Host` to the backend.
-- Serves the built SPA for `/`, `/login`, `/dashboard`; falls through to the backend for anything else (short-code redirects).
+- Serves the built SPA for `/login`, `/new`, `/manage`, `/profile`, `/admin`, `/expired`, `/links/:code/share`, `/p/:code`; falls through to the backend for anything else (short-code redirects).
 - `client_max_body_size 64k`, `server_tokens off`.
 
-HSTS is **not** set anywhere in this stack by default — `main.py`'s startup logs a warning that the TLS-terminating layer (a CDN or external proxy in front of this stack) must add `Strict-Transport-Security` itself, since this stack only terminates HTTP.
+HSTS (`Strict-Transport-Security: max-age=31536000; includeSubDomains`) is set by nginx on every response. The backend itself never sets it — it only terminates HTTP — and its startup logs a warning as a reminder that nginx (or an equivalent TLS-terminating layer) must be in front of it in any deployment that skips this Compose stack's frontend container.

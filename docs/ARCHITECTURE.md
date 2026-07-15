@@ -20,15 +20,17 @@ Browser
   ▼
 Nginx (frontend container, port 80)
   ├── /api/*        → proxy → backend:8000
-  ├── /login, /dashboard, /  → index.html (SPA)
+  ├── /login, /new, /manage, /profile, /admin, /expired,
+  │   /links/:code/share, /p/:code  → index.html (SPA)
   └── /{short_code} → tries static file, falls back to backend:8000 (redirect lookup)
   │
   ▼
 FastAPI (backend container, port 8000, internal-only)
   ├── SecurityHeadersMiddleware (CSP, X-Frame-Options, etc.)
   ├── CORSMiddleware
+  ├── TrustedHostMiddleware
   ├── SlowAPI rate limiter (per-route limits, keyed by real client IP)
-  └── routers: auth, urls, redirect
+  └── routers: auth, urls, admin, redirect
   │
   ▼
 PostgreSQL/SQLite (via SQLAlchemy async engine)
@@ -48,13 +50,15 @@ backend/src/app/
 ├── utils.py               # IP anonymization for GDPR/CCPA-compliant click logging
 ├── routers/
 │   ├── auth.py            # register/login/logout/me/users, get_current_user dependency
-│   ├── urls.py             # create/list/delete URLs, stats
-│   └── redirect.py         # GET /{short_code} → 302 redirect + click logging
+│   ├── urls.py             # create/list/update/delete URLs, unlock, stats, QR code
+│   ├── admin.py             # list/update-role/delete users (admin-only)
+│   └── redirect.py           # GET /{short_code} → 302 redirect + click logging
 └── services/
-    └── auth.py             # password hashing, JWT issuance/decoding, short-code generation
+    ├── auth.py               # password hashing, JWT issuance/decoding, short-code generation
+    └── token_blocklist.py     # JWT revocation store, used on password change
 ```
 
-There is no Alembic. Tables are created with `Base.metadata.create_all()` on startup, and `database.py::_migrate_schema()` hand-rolls additive column migrations (adding `is_admin`/`username`, widening `original_url`) for both SQLite and PostgreSQL dialects.
+There is no Alembic. Tables are created with `Base.metadata.create_all()` on startup, and `database.py::_migrate_schema()` hand-rolls additive column migrations (adding `is_admin`/`username`/`password_hash`/`expires_at`, widening `original_url`) for both SQLite and PostgreSQL dialects.
 
 ## Frontend layout
 
@@ -63,24 +67,29 @@ frontend/src/
 ├── main.ts                # app entrypoint
 ├── App.vue                 # root component, initializes theme store, renders RouterView
 ├── router/index.ts          # routes + auth guard
-├── stores/                  # Pinia stores: auth, urls, theme
-├── api/                      # client.ts (Axios instance), auth.ts, urls.ts
-├── views/                     # LoginView.vue, DashboardView.vue
-└── components/                 # CreateURLForm.vue, URLCard.vue, AddUserForm.vue, icons/
+├── stores/                  # Pinia stores: auth, urls, admin, theme
+├── api/                      # client.ts (Axios instance), auth.ts, urls.ts, admin.ts, health.ts
+├── views/                     # LoginView, NewLinkView, ManageView, ShareView, ProfileView,
+│                               # AdminView, PasswordGateView, ExpiredView, NotFoundView
+└── components/                 # AppNavbar, CreateURLForm, URLCard, AddUserForm,
+                                  # NetworkStatusIndicator, icons/
 ```
-
-`components/HelloWorld.vue`, `TheWelcome.vue`, `WelcomeItem.vue`, and `stores/counter.ts` are unmodified Vite/Vue scaffold leftovers — not imported by `App.vue` or any route, safe to ignore or delete.
 
 ### Routing & auth guard
 
-- `/` redirects to `/dashboard`.
+- `/` redirects to `/manage`.
 - `/login` — public.
-- `/dashboard` — `meta.requiresAuth: true`; the global `beforeEach` guard calls `auth.restore()` (`GET /api/auth/me`) to re-establish session state from the cookie on load, and redirects to `/login` if still unauthenticated.
+- `/new` (create link), `/manage` (list/manage links), `/profile`, `/admin` — `meta.requiresAuth: true`; the global `beforeEach` guard calls `auth.restore()` (`GET /api/auth/me`) to re-establish session state from the cookie on load, and redirects to `/login` if still unauthenticated.
+- `/links/:code/share` — share page for a single link.
+- `/p/:code` — password gate for password-protected links (calls `POST /api/urls/{short_code}/unlock`).
+- `/expired` — shown when a link's password gate reports it has expired.
+- Short codes themselves (`custom_code`/generated) are rejected at creation time if they collide with any of these SPA route segments (`login`, `new`, `manage`, `profile`, `admin`, `expired`) — see [API.md](API.md).
 
 ### State (Pinia)
 
 - **auth store** — `user`, `isAuthenticated`; `login`, `logout`, `restore`, `updateUsername`.
-- **urls store** — `urls`, `currentStats`; `fetchAll`, `create`, `remove`, `fetchStats`.
+- **urls store** — `urls`, `currentStats`; `fetchAll`, `create`, `update`, `remove`, `fetchStats`.
+- **admin store** — admin user list/role/delete actions backed by `/api/admin`.
 - **theme store** — `isDark` (persisted to `localStorage`, toggles a `dark` class on `<html>`).
 
 ### API client
@@ -95,3 +104,4 @@ See [SECURITY.md](../SECURITY.md) for the full writeup of CSRF strategy, JWT lif
 - **IP anonymization** (`utils.py::anonymize_ip`) — click logs store IPv4 with the last octet zeroed and IPv6 with only the first /48 retained.
 - **Real-IP resolution for rate limiting** (`rate_limiter.py::get_real_ip`) — only trusts `X-Forwarded-For` when the direct connection comes from an address in `TRUSTED_PROXY_CIDRS`/`TRUSTED_PROXY_IPS`; otherwise an attacker could forge the header to dodge per-IP limits.
 - **Timing-attack mitigation on login** — unknown users and over-length passwords run dummy bcrypt operations so response time doesn't leak which failure case occurred.
+- **HSTS** — set by nginx (`frontend/nginx.conf`, `Strict-Transport-Security: max-age=31536000; includeSubDomains`) on every response. The backend itself never sets it (it only terminates HTTP) and logs a startup warning as a reminder if it's ever run without nginx or an equivalent TLS-terminating layer in front.
