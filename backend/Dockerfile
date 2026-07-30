@@ -9,6 +9,8 @@ COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
 
 ENV PYTHONPATH=/app/src \
     UV_NO_CACHE=1

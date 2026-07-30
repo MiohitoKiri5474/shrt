@@ -25,11 +25,13 @@ from app.models import Base
 target_metadata = Base.metadata
 
 # Reuse the same DATABASE_URL the running app uses, rather than a second
-# copy of it living in alembic.ini. `%` is escaped because Config wraps a
-# ConfigParser with interpolation enabled — a literal `%` (e.g. a
-# percent-encoded character in a password) would otherwise raise
-# ValueError: invalid interpolation syntax the next time this value is read.
-config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
+# copy of it living in alembic.ini. config.attributes carries a per-invocation
+# override for tests exercising a scratch database (see app.database.run_migrations).
+# `%` is escaped either way because Config wraps a ConfigParser with
+# interpolation enabled — a literal `%` (e.g. a percent-encoded character in
+# a password) would otherwise raise ValueError the next time this is read.
+_raw_url = config.attributes.get("sqlalchemy_url_override", DATABASE_URL)
+config.set_main_option("sqlalchemy.url", _raw_url.replace("%", "%%"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

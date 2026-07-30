@@ -11,7 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from app.database import create_tables, AsyncSessionLocal
+from app.database import run_migrations, AsyncSessionLocal
 from app.models import User
 from app.services.auth import hash_password_async
 from app.schemas import UserCreate
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):  # pragma: no cover
             "Ensure the TLS-terminating proxy sets: "
             "Strict-Transport-Security: max-age=31536000; includeSubDomains"
         )
-    await create_tables()
+    await run_migrations()
     await seed_default_user()
     yield
 
