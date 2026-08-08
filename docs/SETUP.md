@@ -57,7 +57,11 @@ It switches the backend command to `uvicorn ... --reload`, sets `APP_ENV=develop
 
 ## Database migrations
 
-There is no Alembic. `database.py::create_tables()` runs `Base.metadata.create_all()` then `_migrate_schema()`, which hand-rolls additive migrations (adding `is_admin`/`username` columns, widening `original_url` to `VARCHAR(2048)`) with separate code paths for SQLite (`PRAGMA table_info`) and PostgreSQL (`information_schema.columns`). New schema changes need a corresponding block added there.
+Schema is managed by Alembic (`backend/alembic/`, single baseline revision — see [ADR-0001](adr/0001-alembic-migrations.md)). `database.py::run_migrations()` runs automatically inside `lifespan()` on every boot — there is no separate migration step to remember, in Docker Compose or otherwise.
+
+On a database that predates this change (has the current tables but no `alembic_version` tracking table), `run_migrations()` detects this and runs `alembic stamp head` once before upgrading — no data loss, no manual command needed. This activates automatically the first time the new code boots against such a database and is safe to leave running indefinitely afterward.
+
+New schema changes: add a new Alembic revision (`alembic revision --autogenerate -m "..."`, then review it by hand) rather than hand-editing `database.py`.
 
 ## Nginx (frontend container)
 
