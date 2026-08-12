@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
 import { useFilesStore } from '../stores/files'
 import { goToShare } from '../router/navigation'
+import Icon from './Icon.vue'
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 const UPLOAD_LABEL: Record<'file' | 'image', string> = { file: 'File', image: 'Image' }
@@ -29,6 +30,7 @@ const selectedFile = ref<File | null>(null)
 const filePassword = ref('')
 const error = ref('')
 const loading = ref(false)
+const showAdvanced = ref(false)
 
 const submitLabel = computed(() => {
   if (uploadType.value === 'link') return loading.value ? 'Creating…' : 'Create short URL'
@@ -139,35 +141,61 @@ async function handleCreate() {
 <template>
   <form class="create-form" @submit.prevent="handleSubmit" data-testid="create-url-form">
     <h2>Share a link or a file</h2>
+
     <div class="field type-toggle" role="radiogroup" aria-label="What to share">
-      <label>
-        <input type="radio" value="link" v-model="uploadType" /> Link
+      <label :class="{ 'type-toggle-option--active': uploadType === 'link' }">
+        <input type="radio" value="link" v-model="uploadType" />
+        <Icon name="link" :size="14" />Link
       </label>
-      <label>
-        <input type="radio" value="file" v-model="uploadType" /> File
+      <label :class="{ 'type-toggle-option--active': uploadType === 'file' }">
+        <input type="radio" value="file" v-model="uploadType" />
+        <Icon name="hash" :size="14" />File
       </label>
-      <label>
-        <input type="radio" value="image" v-model="uploadType" /> Image
+      <label :class="{ 'type-toggle-option--active': uploadType === 'image' }">
+        <input type="radio" value="image" v-model="uploadType" />
+        <Icon name="copy" :size="14" />Image
       </label>
     </div>
+
     <template v-if="uploadType === 'link'">
       <div class="field">
         <label for="original-url">Original URL</label>
-        <input id="original-url" v-model="originalUrl" type="text" placeholder="https://example.com" required />
+        <div class="input-wrap">
+          <Icon name="link" :size="14" />
+          <input id="original-url" v-model="originalUrl" type="text" placeholder="example.com/your-long-link" required />
+        </div>
       </div>
-      <div class="field">
-        <label for="custom-code">Custom code (optional)</label>
-        <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" minlength="6" maxlength="16" pattern="[A-Za-z0-9_-]{6,16}" />
-      </div>
-      <div class="field">
-        <label for="link-password">Password protection (optional)</label>
-        <input id="link-password" v-model="password" type="password" placeholder="Leave blank for public link" minlength="6" maxlength="128" autocomplete="new-password" />
-      </div>
-      <div class="field">
-        <label for="expires-at">Expires at (optional)</label>
-        <input id="expires-at" v-model="expiresAt" type="datetime-local" />
+
+      <button type="button" class="advanced-toggle" :aria-expanded="showAdvanced" @click="showAdvanced = !showAdvanced">
+        <Icon name="chevronDown" :size="14" />
+        Advanced options
+      </button>
+
+      <div class="advanced-fields" v-show="showAdvanced">
+        <div class="field">
+          <label for="custom-code">Custom code</label>
+          <div class="input-wrap">
+            <Icon name="hash" :size="14" />
+            <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" maxlength="16" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="link-password">Password protection</label>
+          <div class="input-wrap">
+            <Icon name="lock" :size="14" />
+            <input id="link-password" v-model="password" type="password" placeholder="Leave blank for public link" maxlength="128" autocomplete="new-password" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="expires-at">Expires at</label>
+          <div class="input-wrap">
+            <Icon name="calendar" :size="14" />
+            <input id="expires-at" v-model="expiresAt" type="datetime-local" />
+          </div>
+        </div>
       </div>
     </template>
+
     <template v-else-if="uploadType === 'file'">
       <div class="field">
         <label for="upload-file">File (max 25MB, expires in 7 days)</label>
@@ -175,19 +203,22 @@ async function handleCreate() {
       </div>
       <div class="field">
         <label for="file-password">Password protection (optional)</label>
-        <input id="file-password" v-model="filePassword" type="password" placeholder="Leave blank for public file" minlength="6" maxlength="128" autocomplete="new-password" />
+        <div class="input-wrap">
+          <Icon name="lock" :size="14" />
+          <input id="file-password" v-model="filePassword" type="password" placeholder="Leave blank for public file" maxlength="128" autocomplete="new-password" />
+        </div>
       </div>
     </template>
+
     <template v-else>
       <div class="field">
         <label for="upload-image">Image (max 25MB, never expires)</label>
         <input id="upload-image" type="file" accept="image/jpeg,image/png,image/gif,image/webp" @change="handleFileChange" required />
       </div>
     </template>
+
     <p v-if="error" class="error" role="alert">{{ error }}</p>
-    <button type="submit" :disabled="loading">
-      {{ submitLabel }}
-    </button>
+    <button type="submit" class="btn-submit" :disabled="loading">{{ submitLabel }}</button>
   </form>
 </template>
 
@@ -195,16 +226,70 @@ async function handleCreate() {
 .create-form {
   background: var(--color-background-soft);
   padding: 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   margin-bottom: 2rem;
   transition: background 0.35s ease;
 }
 
 h2 {
   margin-bottom: 1rem;
+  font-size: 1.05rem;
   color: var(--color-heading);
+}
+
+.type-toggle {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+
+.type-toggle label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text);
+  opacity: 0.65;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+}
+
+.type-toggle label:hover {
+  opacity: 0.9;
+}
+
+.type-toggle-option--active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  opacity: 1;
+}
+
+.type-toggle label:has(:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.type-toggle input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .field {
@@ -213,53 +298,115 @@ h2 {
 
 .field label {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-text);
 }
 
-.field input {
+.field input[type="file"] {
+  display: block;
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.5rem 0.6rem;
   border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
-  box-sizing: border-box;
+  border-radius: var(--radius-md);
   background: var(--color-background);
   color: var(--color-text);
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+
+.field input[type="file"]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-text);
+  opacity: 0.85;
   transition: background 0.35s ease, border-color 0.2s;
 }
 
-.field input:focus {
-  outline: none;
+.input-wrap:focus-within {
+  opacity: 1;
   border-color: var(--color-accent);
 }
 
-button {
+.input-wrap input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  opacity: 0.65;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.advanced-toggle:hover {
+  opacity: 1;
+}
+
+.advanced-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.advanced-toggle :deep(svg) {
+  transition: transform 0.15s ease;
+}
+
+.advanced-toggle[aria-expanded="true"] :deep(svg) {
+  transform: rotate(180deg);
+}
+
+.btn-submit {
   padding: 0.6rem 1.2rem;
   background: var(--color-accent);
   color: var(--color-background);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 500;
   transition: opacity 0.2s;
 }
 
-button:hover:not(:disabled) {
+.btn-submit:hover:not(:disabled) {
   opacity: 0.88;
 }
 
-button:focus-visible {
+.btn-submit:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-button:disabled {
+.btn-submit:disabled {
   opacity: 0.55;
 }
 
 .error {
   color: var(--color-error);
   font-size: 0.875rem;
+  margin-bottom: 0.75rem;
 }
 </style>

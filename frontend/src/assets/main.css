@@ -12,3 +12,24 @@ a {
     opacity: 0.75;
   }
 }
+
+/* Shared shell layout: sidebar (AppNavbar in rail mode) + main content, side by side
+   on wide viewports. On narrow viewports AppNavbar reverts to a top bar, so this just
+   stacks normally. */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+@media (min-width: 880px) {
+  .app-shell {
+    flex-direction: row;
+  }
+
+  .app-shell > .app-main {
+    flex: 1;
+    min-width: 0;
+  }
+}
