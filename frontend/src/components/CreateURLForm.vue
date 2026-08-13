@@ -149,11 +149,11 @@ async function handleCreate() {
       </label>
       <label :class="{ 'type-toggle-option--active': uploadType === 'file' }">
         <input type="radio" value="file" v-model="uploadType" />
-        <Icon name="hash" :size="14" />File
+        <Icon name="file" :size="14" />File
       </label>
       <label :class="{ 'type-toggle-option--active': uploadType === 'image' }">
         <input type="radio" value="image" v-model="uploadType" />
-        <Icon name="copy" :size="14" />Image
+        <Icon name="image" :size="14" />Image
       </label>
     </div>
 
