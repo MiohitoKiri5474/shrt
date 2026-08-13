@@ -5,6 +5,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useURLsStore } from '../../stores/urls'
+import { useFilesStore } from '../../stores/files'
 import ManageView from '../ManageView.vue'
 
 const router = createRouter({
@@ -41,6 +42,15 @@ vi.mock('../../api/urls', () => ({
     update: vi.fn(),
     stats: vi.fn(),
     create: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/files', () => ({
+  filesApi: {
+    list: vi.fn().mockResolvedValue([]),
+    remove: vi.fn().mockResolvedValue(undefined),
+    upload: vi.fn(),
+    fileUrl: vi.fn((code: string) => `https://api.example.com/f/${code}`),
   },
 }))
 
@@ -109,6 +119,58 @@ function setupStores(user = { email: 'user@example.com', username: 'testuser', i
   useAuthStore().user = user
   return useURLsStore()
 }
+
+const mockFile = {
+  id: 1,
+  short_code: 'filecode1',
+  kind: 'file' as const,
+  original_filename: 'report.pdf',
+  mime_type: 'application/pdf',
+  size_bytes: 1024,
+  created_at: '2024-01-01T00:00:00Z',
+  expires_at: '2024-01-08T00:00:00Z',
+  has_password: false,
+}
+
+describe('ManageView files list', () => {
+  it('renders uploaded files from the store', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockFile]
+    })
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    const rows = wrapper.findAll('[data-testid="file-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('report.pdf')
+  })
+
+  it('shows empty state when there are no files', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockResolvedValue(undefined)
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.text()).toContain('No files or images shared yet.')
+  })
+
+  it('removes a file from the list on delete', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockFile]
+    })
+    vi.spyOn(filesStore, 'remove').mockImplementation(async (id: number) => {
+      filesStore.files = filesStore.files.filter((f) => f.id !== id)
+    })
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('[data-testid="file-row"] .btn-confirm-delete').trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('[data-testid="file-row"]')).toHaveLength(0)
+  })
+})
 
 describe('ManageView navbar', () => {
   it('renders AppNavbar with the network status indicator in its status slot', async () => {

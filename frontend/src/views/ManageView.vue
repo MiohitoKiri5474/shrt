@@ -2,14 +2,19 @@
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
+import { useFilesStore } from '../stores/files'
 import URLCard from '../components/URLCard.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
 import AppNavbar from '../components/AppNavbar.vue'
 import type { StatsOut, URLOut } from '../api/urls'
+import { filesApi } from '../api/files'
 import { goToShare } from '../router/navigation'
 
 const router = useRouter()
 const urlsStore = useURLsStore()
+const filesStore = useFilesStore()
+const filesLoadError = ref('')
+const filesDeleteError = ref('')
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
@@ -39,7 +44,22 @@ onMounted(() => {
   urlsStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load URLs. Please refresh.'
   })
+  filesLoadError.value = ''
+  filesStore.fetchAll().catch(() => {
+    filesLoadError.value = 'Failed to load files. Please refresh.'
+  })
 })
+
+// ponytail: no confirmation dialog before delete (unlike the URL delete flow's
+// modal) — add one if file deletion turns out to be accident-prone in practice.
+async function handleFileDelete(id: number) {
+  filesDeleteError.value = ''
+  try {
+    await filesStore.remove(id)
+  } catch {
+    filesDeleteError.value = 'Failed to delete file. Please try again.'
+  }
+}
 
 watch(pendingDeleteId, (id) => {
   if (id !== null) {
@@ -152,6 +172,25 @@ function cancelDelete() {
           @stats="handleStats"
           @delete="handleDelete"
         />
+      </section>
+      <section>
+        <div class="section-header">
+          <h2>Your Files</h2>
+          <RouterLink class="btn-add-link" to="/new">Add File</RouterLink>
+        </div>
+        <p v-if="filesStore.files.length === 0" class="empty">No files or images shared yet.</p>
+        <div v-for="file in filesStore.files" :key="file.id" class="file-row" data-testid="file-row">
+          <div class="file-info">
+            <span class="file-name">{{ file.original_filename }}</span>
+            <span class="file-meta">
+              {{ file.kind }} · {{ file.expires_at ? `expires ${new Date(file.expires_at).toLocaleDateString()}` : 'never expires' }}
+            </span>
+          </div>
+          <a :href="filesApi.fileUrl(file.short_code)" target="_blank" rel="noopener noreferrer">Open</a>
+          <button class="btn-confirm-delete" @click="handleFileDelete(file.id)">Delete</button>
+        </div>
+        <p v-if="filesLoadError" class="error" role="alert">{{ filesLoadError }}</p>
+        <p v-if="filesDeleteError" class="error" role="alert">{{ filesDeleteError }}</p>
       </section>
       <aside v-if="selectedStats" class="stats-panel">
         <h3>Stats for /{{ selectedStats.short_code }}</h3>
@@ -271,6 +310,37 @@ function cancelDelete() {
 .empty {
   color: var(--color-text);
   opacity: 0.6;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  color: var(--color-heading);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.7;
 }
 
 .stats-panel {
