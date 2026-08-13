@@ -206,3 +206,22 @@ class StatsOut(BaseModel):
     original_url: str
     total_clicks: int
     clicks_by_date: dict[str, int]
+
+
+class FileOut(BaseModel):
+    id: int
+    short_code: str
+    kind: str
+    original_filename: str
+    mime_type: str
+    size_bytes: int
+    created_at: datetime
+    expires_at: datetime | None = None
+    has_password: bool = False
+    model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm(cls, shared_file: object) -> "FileOut":
+        return cls.model_validate(shared_file).model_copy(update={
+            "has_password": bool(getattr(shared_file, "password_hash", None)),
+        })

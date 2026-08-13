@@ -2,16 +2,69 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
+import { useFilesStore } from '../stores/files'
 import { goToShare } from '../router/navigation'
+
+const MAX_FILE_UPLOAD_BYTES = 25 * 1024 * 1024
 
 const router = useRouter()
 const urlsStore = useURLsStore()
+const filesStore = useFilesStore()
+const uploadType = ref<'link' | 'file'>('link')
 const originalUrl = ref('')
 const customCode = ref('')
 const password = ref('')
 const expiresAt = ref('')
+const selectedFile = ref<File | null>(null)
 const error = ref('')
 const loading = ref(false)
+
+function handleFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  selectedFile.value = input.files?.[0] ?? null
+}
+
+async function handleSubmit() {
+  if (uploadType.value === 'file') {
+    await handleUpload()
+  } else {
+    await handleCreate()
+  }
+}
+
+async function handleUpload() {
+  error.value = ''
+  if (!selectedFile.value) {
+    error.value = 'Please choose a file to upload.'
+    return
+  }
+  if (selectedFile.value.size > MAX_FILE_UPLOAD_BYTES) {
+    error.value = 'File must be 25MB or smaller.'
+    return
+  }
+  loading.value = true
+  try {
+    await filesStore.upload(selectedFile.value, 'file')
+    selectedFile.value = null
+    try {
+      await router.push({ name: 'manage' })
+    } catch (navError: unknown) {
+      console.error('Failed to navigate to the manage page after uploading file:', navError)
+      error.value = 'Your file was uploaded, but we could not open the Manage page automatically.'
+    }
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 422) {
+      error.value = 'This file type is not allowed.'
+    } else if (status === 413) {
+      error.value = 'File is too large.'
+    } else {
+      error.value = 'Failed to upload file.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
 
 async function handleCreate() {
   error.value = ''
@@ -69,26 +122,44 @@ async function handleCreate() {
 </script>
 
 <template>
-  <form class="create-form" @submit.prevent="handleCreate" data-testid="create-url-form">
-    <h2>Shorten a URL</h2>
-    <div class="field">
-      <label for="original-url">Original URL</label>
-      <input id="original-url" v-model="originalUrl" type="text" placeholder="https://example.com" required />
+  <form class="create-form" @submit.prevent="handleSubmit" data-testid="create-url-form">
+    <h2>Share a link or a file</h2>
+    <div class="field type-toggle" role="radiogroup" aria-label="What to share">
+      <label>
+        <input type="radio" value="link" v-model="uploadType" /> Link
+      </label>
+      <label>
+        <input type="radio" value="file" v-model="uploadType" /> File
+      </label>
     </div>
-    <div class="field">
-      <label for="custom-code">Custom code (optional)</label>
-      <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" minlength="6" maxlength="16" pattern="[A-Za-z0-9_-]{6,16}" />
-    </div>
-    <div class="field">
-      <label for="link-password">Password protection (optional)</label>
-      <input id="link-password" v-model="password" type="password" placeholder="Leave blank for public link" minlength="6" maxlength="128" autocomplete="new-password" />
-    </div>
-    <div class="field">
-      <label for="expires-at">Expires at (optional)</label>
-      <input id="expires-at" v-model="expiresAt" type="datetime-local" />
-    </div>
+    <template v-if="uploadType === 'link'">
+      <div class="field">
+        <label for="original-url">Original URL</label>
+        <input id="original-url" v-model="originalUrl" type="text" placeholder="https://example.com" required />
+      </div>
+      <div class="field">
+        <label for="custom-code">Custom code (optional)</label>
+        <input id="custom-code" v-model="customCode" type="text" placeholder="my-link" minlength="6" maxlength="16" pattern="[A-Za-z0-9_-]{6,16}" />
+      </div>
+      <div class="field">
+        <label for="link-password">Password protection (optional)</label>
+        <input id="link-password" v-model="password" type="password" placeholder="Leave blank for public link" minlength="6" maxlength="128" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label for="expires-at">Expires at (optional)</label>
+        <input id="expires-at" v-model="expiresAt" type="datetime-local" />
+      </div>
+    </template>
+    <template v-else>
+      <div class="field">
+        <label for="upload-file">File (max 25MB, expires in 7 days)</label>
+        <input id="upload-file" type="file" @change="handleFileChange" required />
+      </div>
+    </template>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
-    <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create short URL' }}</button>
+    <button type="submit" :disabled="loading">
+      {{ uploadType === 'file' ? (loading ? 'Uploading…' : 'Upload file') : (loading ? 'Creating…' : 'Create short URL') }}
+    </button>
   </form>
 </template>
 
