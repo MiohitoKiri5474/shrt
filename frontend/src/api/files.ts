@@ -14,6 +14,10 @@ export interface FileOut {
   has_password: boolean
 }
 
+function apiOrigin(): string {
+  return BASE_URL || window.location.origin
+}
+
 export const filesApi = {
   // axios's default transformRequest detects a FormData body and strips the
   // instance's default JSON Content-Type, letting the browser set the
@@ -48,8 +52,7 @@ export const filesApi = {
    * copied to the clipboard, not just used as a same-page fetch target.
    */
   fileUrl(shortCode: string): string {
-    const base = BASE_URL || window.location.origin
-    return `${base}/f/${encodeURIComponent(shortCode)}`
+    return `${apiOrigin()}/f/${encodeURIComponent(shortCode)}`
   },
   /**
    * Resolves the relative `download_url` returned by `unlock` (e.g.
@@ -58,7 +61,6 @@ export const filesApi = {
    * the frontend host, in a split-domain deployment.
    */
   resolveDownloadUrl(downloadUrl: string): string {
-    const base = BASE_URL || window.location.origin
-    return `${base}${downloadUrl}`
+    return `${apiOrigin()}${downloadUrl}`
   },
 }

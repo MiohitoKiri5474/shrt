@@ -329,15 +329,31 @@ async def test_unlock_expired_file_410(auth_client):
     assert resp.status_code == 410
 
 
-async def test_serve_password_protected_file_without_token_401(auth_client):
+async def test_serve_password_protected_file_without_token_redirects_to_gate(auth_client):
+    """A visitor opening a password-protected /f/:code link cold (no token,
+    e.g. pasted from a message) must land on the same password gate links
+    use, not a bare JSON 401 with nothing to enter a password into."""
     create = await auth_client.post(
         "/api/files",
         data={"kind": "file", "password": "secretpw"},
         files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
     )
     code = create.json()["short_code"]
-    resp = await auth_client.get(f"/f/{code}")
-    assert resp.status_code == 401
+    resp = await auth_client.get(f"/f/{code}", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == f"/p/{code}?type=file"
+
+
+async def test_serve_password_protected_image_without_token_redirects_to_gate(auth_client):
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "image", "password": "secretpw"},
+        files={"file": ("pic.png", PNG_BYTES, "image/png")},
+    )
+    code = create.json()["short_code"]
+    resp = await auth_client.get(f"/f/{code}", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["location"] == f"/p/{code}?type=file"
 
 
 async def test_serve_password_protected_file_with_valid_token_succeeds(auth_client):
