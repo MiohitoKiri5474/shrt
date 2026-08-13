@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -14,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from app.database import run_migrations, AsyncSessionLocal
 from app.models import User
 from app.services.auth import hash_password_async
+from app.services.sweep import run_sweep_loop
 from app.schemas import UserCreate
 from pydantic import ValidationError
 from app.routers import auth, urls, redirect, admin, files
@@ -39,7 +42,13 @@ async def lifespan(app: FastAPI):  # pragma: no cover
         )
     await run_migrations()
     await seed_default_user()
-    yield
+    sweep_task = asyncio.create_task(run_sweep_loop(AsyncSessionLocal))
+    try:
+        yield
+    finally:
+        sweep_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await sweep_task
 
 app = FastAPI(
     title="Shrt API",
