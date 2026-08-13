@@ -30,9 +30,8 @@ const error = ref('')
 const loading = ref(false)
 
 const submitLabel = computed(() => {
-  if (uploadType.value === 'image') return loading.value ? 'Uploading…' : 'Upload image'
-  if (uploadType.value === 'file') return loading.value ? 'Uploading…' : 'Upload file'
-  return loading.value ? 'Creating…' : 'Create short URL'
+  if (uploadType.value === 'link') return loading.value ? 'Creating…' : 'Create short URL'
+  return loading.value ? 'Uploading…' : `Upload ${UPLOAD_LABEL[uploadType.value].toLowerCase()}`
 })
 
 function handleFileChange(event: Event) {
@@ -65,7 +64,7 @@ async function handleUpload(kind: 'file' | 'image') {
     try {
       await router.push({ name: 'manage' })
     } catch (navError: unknown) {
-      console.error('Failed to navigate to the manage page after uploading file:', navError)
+      console.error(`Failed to navigate to the manage page after uploading ${kind}:`, navError)
       error.value = `Your ${kind} was uploaded, but we could not open the Manage page automatically.`
     }
   } catch (e: unknown) {
