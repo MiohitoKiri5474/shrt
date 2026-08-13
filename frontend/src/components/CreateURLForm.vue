@@ -5,7 +5,17 @@ import { useURLsStore } from '../stores/urls'
 import { useFilesStore } from '../stores/files'
 import { goToShare } from '../router/navigation'
 
-const MAX_FILE_UPLOAD_BYTES = 25 * 1024 * 1024
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+const UPLOAD_LABEL: Record<'file' | 'image', string> = { file: 'File', image: 'Image' }
+const UPLOAD_NOUN: Record<'file' | 'image', string> = { file: 'a file', image: 'an image' }
+
+function uploadErrorMessage(kind: 'file' | 'image', status: number | undefined): string {
+  if (status === 422) return `This ${kind} type is not allowed.`
+  if (status === 413) {
+    return kind === 'image' ? 'Image is too large or exceeds your 500MB image quota.' : 'File is too large.'
+  }
+  return `Failed to upload ${kind}.`
+}
 
 const router = useRouter()
 const urlsStore = useURLsStore()
@@ -41,11 +51,11 @@ async function handleSubmit() {
 async function handleUpload(kind: 'file' | 'image') {
   error.value = ''
   if (!selectedFile.value) {
-    error.value = kind === 'image' ? 'Please choose an image to upload.' : 'Please choose a file to upload.'
+    error.value = `Please choose ${UPLOAD_NOUN[kind]} to upload.`
     return
   }
-  if (selectedFile.value.size > MAX_FILE_UPLOAD_BYTES) {
-    error.value = `${kind === 'image' ? 'Image' : 'File'} must be 25MB or smaller.`
+  if (selectedFile.value.size > MAX_UPLOAD_BYTES) {
+    error.value = `${UPLOAD_LABEL[kind]} must be 25MB or smaller.`
     return
   }
   loading.value = true
@@ -60,13 +70,7 @@ async function handleUpload(kind: 'file' | 'image') {
     }
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
-    if (status === 422) {
-      error.value = kind === 'image' ? 'This image type is not allowed.' : 'This file type is not allowed.'
-    } else if (status === 413) {
-      error.value = kind === 'image' ? 'Image is too large or exceeds your 500MB image quota.' : 'File is too large.'
-    } else {
-      error.value = kind === 'image' ? 'Failed to upload image.' : 'Failed to upload file.'
-    }
+    error.value = uploadErrorMessage(kind, status)
   } finally {
     loading.value = false
   }

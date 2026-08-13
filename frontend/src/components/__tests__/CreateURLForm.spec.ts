@@ -324,6 +324,14 @@ describe('CreateURLForm', () => {
       expect(wrapper.find('button[type="submit"]').text()).toBe('Upload image')
     })
 
+    it('restricts the file picker to the image allowlist', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      expect(wrapper.find('#upload-image').attributes('accept')).toBe(
+        'image/jpeg,image/png,image/gif,image/webp',
+      )
+    })
+
     it('calls filesStore.upload with the selected file and kind "image"', async () => {
       uploadSpy.mockResolvedValue(mockUploadedImage)
       const wrapper = mount(CreateURLForm, { global: globalOptions })
@@ -351,6 +359,18 @@ describe('CreateURLForm', () => {
       await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
       await flushPromises()
       expect(wrapper.find('[role="alert"]').text()).toContain('choose an image')
+      expect(uploadSpy).not.toHaveBeenCalled()
+    })
+
+    it('shows an error and does not call upload when the image exceeds 25MB', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      const bigImage = new File([new Uint8Array(1)], 'big.png', { type: 'image/png' })
+      Object.defineProperty(bigImage, 'size', { value: 26 * 1024 * 1024 })
+      await setImage(wrapper, bigImage)
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('25MB')
       expect(uploadSpy).not.toHaveBeenCalled()
     })
 
