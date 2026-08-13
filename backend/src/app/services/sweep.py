@@ -20,7 +20,12 @@ async def sweep_expired_files(db: AsyncSession) -> int:
     Rows with expires_at IS NULL (images) and not-yet-expired files are left
     untouched. Returns the number of rows deleted.
     """
-    now = datetime.now(timezone.utc)
+    # expires_at is a naive DateTime column (no timezone=True) storing UTC —
+    # asyncpg rejects a tz-aware datetime bound against a TIMESTAMP WITHOUT
+    # TIME ZONE column, so strip tzinfo before using it as a query parameter.
+    # SQLite silently accepted the tz-aware form, which is why this only
+    # surfaces against Postgres.
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     result = await db.execute(
         select(SharedFile).where(SharedFile.kind == "file", SharedFile.expires_at <= now)
     )
@@ -45,8 +50,6 @@ async def run_sweep_loop(session_factory: Callable[[], AsyncSession]) -> None:  
                 deleted = await sweep_expired_files(db)
                 if deleted:
                     logger.info("Swept %d expired file(s)", deleted)
-        except asyncio.CancelledError:
-            raise
         except Exception:
             logger.exception("File sweep iteration failed")
         await asyncio.sleep(SWEEP_INTERVAL_SECONDS)
