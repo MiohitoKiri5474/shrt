@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { urlsApi } from '../api/urls'
 import { filesApi } from '../api/files'
+import Icon from '../components/AppIcon.vue'
 
 const route = useRoute()
 const code = route.params.code as string
@@ -59,21 +60,24 @@ async function handleUnlock() {
 <template>
   <main class="gate-container">
     <div class="gate-card">
-      <span class="gate-icon" aria-hidden="true">🔒</span>
+      <Icon name="lock" :size="28" class="gate-icon" />
       <h1>Password Required</h1>
-      <p class="gate-subtitle">This link is password protected. Enter the password to continue.</p>
+      <p class="gate-subtitle">This {{ isFile ? 'file' : 'link' }} is password protected. Enter the password to continue.</p>
       <form @submit.prevent="handleUnlock">
         <div class="field">
           <label for="gate-password">Password</label>
-          <input
-            id="gate-password"
-            v-model="password"
-            type="password"
-            placeholder="Enter password"
-            required
-            autofocus
-            autocomplete="current-password"
-          />
+          <div class="input-wrap">
+            <Icon name="lock" :size="14" />
+            <input
+              id="gate-password"
+              v-model="password"
+              type="password"
+              placeholder="Enter password"
+              required
+              autofocus
+              autocomplete="current-password"
+            />
+          </div>
         </div>
         <p v-if="error" class="error" role="alert">{{ error }}</p>
         <button type="submit" :disabled="loading">
@@ -97,17 +101,15 @@ async function handleUnlock() {
 .gate-card {
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 2rem 2.5rem;
   max-width: 400px;
   width: 100%;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
 .gate-icon {
-  font-size: 2.5rem;
-  display: block;
+  color: var(--color-accent);
   margin-bottom: 0.75rem;
 }
 
@@ -136,20 +138,32 @@ h1 {
   color: var(--color-text);
 }
 
-.field input {
-  width: 100%;
-  padding: 0.5rem;
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
   border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
-  box-sizing: border-box;
+  border-radius: var(--radius-md);
   background: var(--color-background);
   color: var(--color-text);
-  transition: border-color 0.2s;
+  opacity: 0.85;
+  transition: background 0.35s ease, border-color 0.2s;
 }
 
-.field input:focus {
-  outline: none;
+.input-wrap:focus-within {
+  opacity: 1;
   border-color: var(--color-accent);
+}
+
+.input-wrap input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.9rem;
 }
 
 button {
@@ -158,7 +172,7 @@ button {
   background: var(--color-accent);
   color: var(--color-background);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 500;
   font-size: 1rem;

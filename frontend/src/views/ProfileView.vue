@@ -90,11 +90,12 @@ async function savePassword() {
 </script>
 
 <template>
-  <div class="profile">
+  <div class="profile app-shell">
     <AppNavbar />
 
-    <main class="profile-content">
-      <section class="profile-card">
+    <main class="profile-content app-main">
+      <div class="profile-card">
+      <section class="profile-section">
         <h2>Username</h2>
         <form @submit.prevent="saveUsername">
           <div class="field">
@@ -117,7 +118,7 @@ async function savePassword() {
         </form>
       </section>
 
-      <section class="profile-card">
+      <section class="profile-section">
         <h2>Email</h2>
         <p class="current-value">Current: {{ authStore.user?.email }}</p>
         <form @submit.prevent="saveEmail">
@@ -151,7 +152,7 @@ async function savePassword() {
         </form>
       </section>
 
-      <section class="profile-card">
+      <section class="profile-section">
         <h2>Password</h2>
         <form @submit.prevent="savePassword">
           <div class="field">
@@ -195,36 +196,39 @@ async function savePassword() {
           </div>
         </form>
       </section>
+      </div>
     </main>
   </div>
 </template>
 
 <style scoped>
-.profile {
-  min-height: 100vh;
-  background: var(--color-background);
-}
-
 .profile-content {
   max-width: 480px;
   margin: 0 auto;
-  padding: 2rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  padding: 2rem 1.5rem 3rem;
+  width: 100%;
 }
 
 .profile-card {
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 1.25rem;
+  border-radius: var(--radius-lg);
   transition: background 0.35s ease, border-color 0.35s ease;
 }
 
-.profile-card h2 {
+.profile-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.profile-section:last-child {
+  border-bottom: none;
+}
+
+.profile-section h2 {
   margin: 0 0 1rem;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--color-heading);
 }
 
@@ -251,7 +255,7 @@ async function savePassword() {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   font-size: 0.9375rem;
   background: var(--color-background);
@@ -287,7 +291,7 @@ async function savePassword() {
   background: var(--color-accent);
   color: var(--color-background);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.9375rem;
   transition: opacity 0.2s;

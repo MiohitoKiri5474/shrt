@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import { useAdminStore } from '../stores/admin'
 import AddUserForm from '../components/AddUserForm.vue'
 import AppNavbar from '../components/AppNavbar.vue'
+import Icon from '../components/AppIcon.vue'
 
 const authStore = useAuthStore()
 const adminStore = useAdminStore()
@@ -87,13 +88,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="admin">
+  <div class="admin app-shell">
     <AppNavbar />
 
-    <main class="admin-content">
+    <main class="admin-content app-main">
       <div class="content-header">
         <h2>All users</h2>
-        <button class="btn-add-user" @click="showAddUserModal = true">+ Add User</button>
+        <button class="btn-add-user" @click="showAddUserModal = true"><Icon name="plus" :size="13" />Add User</button>
       </div>
       <p v-if="successMessage" class="success-notice" role="status">{{ successMessage }}</p>
       <p v-if="!loadError && adminStore.users.length === 0" class="empty">No users found.</p>
@@ -176,15 +177,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.admin {
-  min-height: 100vh;
-  background: var(--color-background);
-}
-
 .admin-content {
   max-width: 900px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 2rem 1.5rem 3rem;
+  width: 100%;
 }
 
 .content-header {
@@ -201,11 +198,14 @@ onBeforeUnmount(() => {
 }
 
 .btn-add-user {
-  padding: 0.35rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
   background: var(--color-accent);
   color: var(--color-background);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
   border-collapse: collapse;
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: background 0.35s ease;
 }
@@ -364,9 +364,8 @@ onBeforeUnmount(() => {
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   max-width: 400px;
   width: 90%;

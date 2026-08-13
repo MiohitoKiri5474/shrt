@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
+import Icon, { type IconName } from './AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,6 +12,25 @@ const themeStore = useThemeStore()
 
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '')
 const showDrawer = ref(false)
+
+interface NavItem {
+  name: string
+  to: string
+  label: string
+  icon: IconName
+}
+
+const navItems = computed(() => {
+  const items: NavItem[] = [
+    { name: 'manage', to: '/manage', label: 'Manage', icon: 'link' },
+    { name: 'new-link', to: '/new', label: 'New link', icon: 'plus' },
+    { name: 'profile', to: '/profile', label: 'Profile', icon: 'user' },
+  ]
+  if (authStore.user?.is_admin) {
+    items.push({ name: 'admin', to: '/admin', label: 'Admin', icon: 'shield' })
+  }
+  return items
+})
 
 function openDrawer() {
   showDrawer.value = true
@@ -44,9 +64,26 @@ async function handleSignOut() {
 </script>
 
 <template>
-  <header class="navbar">
-    <RouterLink to="/" class="navbar-brand">Shrt</RouterLink>
+  <header class="navbar" :class="{ 'navbar--rail': authStore.isAuthenticated }">
+    <RouterLink to="/" class="navbar-brand">
+      <span class="brand-mark" aria-hidden="true" />
+      Shrt
+    </RouterLink>
     <h1 class="navbar-title">{{ pageTitle }}</h1>
+
+    <nav v-if="authStore.isAuthenticated" class="rail-nav" aria-label="Primary">
+      <RouterLink
+        v-for="item in navItems"
+        :key="item.name"
+        :to="item.to"
+        class="rail-item"
+        :class="{ 'rail-item--active': route.name === item.name }"
+      >
+        <Icon :name="item.icon" :size="16" />
+        {{ item.label }}
+      </RouterLink>
+    </nav>
+
     <div class="navbar-actions">
       <slot name="status" />
       <button
@@ -55,7 +92,7 @@ async function handleSignOut() {
         :title="themeStore.isDark ? 'Switch to day mode' : 'Switch to night mode'"
         @click="themeStore.toggle()"
       >
-        <span aria-hidden="true">{{ themeStore.isDark ? '☀' : '🌙' }}</span>
+        <Icon :name="themeStore.isDark ? 'sun' : 'moon'" :size="14" />
       </button>
       <button
         v-if="authStore.isAuthenticated"
@@ -83,7 +120,9 @@ async function handleSignOut() {
       >
         <div class="drawer-header">
           <span class="drawer-user">{{ authStore.user?.username ?? authStore.user?.email }}</span>
-          <button class="drawer-close" aria-label="Close menu" @click="closeDrawer">✕</button>
+          <button class="drawer-close" aria-label="Close menu" @click="closeDrawer">
+            <Icon name="x" :size="15" />
+          </button>
         </div>
         <hr class="drawer-sep" />
         <nav class="drawer-links">
@@ -132,11 +171,22 @@ async function handleSignOut() {
 
 .navbar-brand {
   justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--color-heading);
   letter-spacing: 0.02em;
   text-decoration: none;
+}
+
+.brand-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--color-accent);
+  flex-shrink: 0;
 }
 
 .navbar-title {
@@ -145,6 +195,42 @@ async function handleSignOut() {
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-heading);
+}
+
+.rail-nav {
+  display: none;
+}
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  opacity: 0.75;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.rail-item:hover {
+  opacity: 1;
+  background: var(--color-background-mute);
+}
+
+.rail-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.rail-item--active {
+  opacity: 1;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-left-color: var(--color-accent);
+  font-weight: 500;
 }
 
 .navbar-actions {
@@ -161,7 +247,6 @@ async function handleSignOut() {
   border: 1px solid var(--color-border-hover);
   background: transparent;
   cursor: pointer;
-  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,9 +353,9 @@ async function handleSignOut() {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
   color: var(--color-text);
   padding: 0.25rem;
+  display: flex;
 }
 
 .drawer-close:focus-visible {
@@ -316,5 +401,62 @@ async function handleSignOut() {
 
 .drawer-item--danger {
   color: var(--color-error);
+}
+
+/* Desktop: authenticated pages get a persistent left rail instead of a top bar.
+   Below the breakpoint (and on any unauthenticated page) this stays the original
+   top bar + hamburger drawer. */
+@media (min-width: 880px) {
+  .navbar--rail {
+    grid-template-columns: none;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    padding: 1.25rem 0.9rem;
+    border-bottom: none;
+    border-right: 1px solid var(--color-border);
+    gap: 0.25rem;
+  }
+
+  .navbar--rail .navbar-brand {
+    padding: 0 0.4rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* Hidden from view (the rail nav already labels the current page), but
+     kept in the a11y tree — this is the page's only h1. */
+  .navbar--rail .navbar-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .navbar--rail .rail-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .navbar--rail .navbar-actions {
+    margin-top: auto;
+    justify-self: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .navbar--rail .hamburger-btn {
+    display: none;
+  }
 }
 </style>
