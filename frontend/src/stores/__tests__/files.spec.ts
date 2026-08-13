@@ -58,6 +58,15 @@ describe('files store', () => {
     expect(store.files[0]).toEqual(mockFile)
   })
 
+  it('upload forwards an optional password to filesApi.upload', async () => {
+    vi.mocked(filesApiModule.filesApi.list).mockResolvedValue([])
+    vi.mocked(filesApiModule.filesApi.upload).mockResolvedValue({ ...mockFile, has_password: true })
+    const store = useFilesStore()
+    await store.fetchAll()
+    await store.upload(new File(['x'], 'a.pdf'), 'file', 'secretpw')
+    expect(filesApiModule.filesApi.upload).toHaveBeenCalledWith(new File(['x'], 'a.pdf'), 'file', 'secretpw')
+  })
+
   it('remove filters file out of list', async () => {
     vi.mocked(filesApiModule.filesApi.list).mockResolvedValue([mockFile])
     vi.mocked(filesApiModule.filesApi.remove).mockResolvedValue(undefined)

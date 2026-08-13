@@ -26,6 +26,7 @@ const customCode = ref('')
 const password = ref('')
 const expiresAt = ref('')
 const selectedFile = ref<File | null>(null)
+const filePassword = ref('')
 const error = ref('')
 const loading = ref(false)
 
@@ -57,10 +58,15 @@ async function handleUpload(kind: 'file' | 'image') {
     error.value = `${UPLOAD_LABEL[kind]} must be 25MB or smaller.`
     return
   }
+  if (filePassword.value && filePassword.value.length < 6) {
+    error.value = 'Password must be at least 6 characters.'
+    return
+  }
   loading.value = true
   try {
-    await filesStore.upload(selectedFile.value, kind)
+    await filesStore.upload(selectedFile.value, kind, filePassword.value || undefined)
     selectedFile.value = null
+    filePassword.value = ''
     try {
       await router.push({ name: 'manage' })
     } catch (navError: unknown) {
@@ -166,6 +172,10 @@ async function handleCreate() {
       <div class="field">
         <label for="upload-file">File (max 25MB, expires in 7 days)</label>
         <input id="upload-file" type="file" @change="handleFileChange" required />
+      </div>
+      <div class="field">
+        <label for="file-password">Password protection (optional)</label>
+        <input id="file-password" v-model="filePassword" type="password" placeholder="Leave blank for public file" minlength="6" maxlength="128" autocomplete="new-password" />
       </div>
     </template>
     <template v-else>

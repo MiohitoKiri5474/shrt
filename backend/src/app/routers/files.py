@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Path as PathParam, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +11,9 @@ from app.database import get_db
 from app.models import SharedFile, User
 from app.rate_limiter import limiter
 from app.routers.auth import get_current_user
-from app.schemas import FileOut
+from app.schemas import FileOut, FileUnlockOut, PasswordVerify
+from app.services.auth import hash_password_async, verify_password_async
+from app.services.file_access import create_file_access_token, verify_file_access_token
 from app.utils import is_expired
 from app.services.uploads import (
     IMAGE_QUOTA_BYTES,
@@ -47,6 +49,7 @@ async def upload_file(
     request: Request,
     file: UploadFile = File(...),
     kind: str = Form(...),
+    password: str | None = Form(None, min_length=6, max_length=128),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -85,6 +88,7 @@ async def upload_file(
         mime_type=mime_type,
         size_bytes=len(data),
         storage_path=storage_path,
+        password_hash=await hash_password_async(password) if password else None,
         expires_at=expires_at,
     )
     db.add(shared_file)
@@ -127,11 +131,34 @@ async def delete_file(
     await db.commit()
 
 
+@router.post("/{short_code}/unlock", response_model=FileUnlockOut)
+@limiter.limit("10/minute")
+async def unlock_file(
+    request: Request,
+    short_code: str,
+    data: PasswordVerify,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(SharedFile).where(SharedFile.short_code == short_code))
+    shared_file = result.scalar_one_or_none()
+    if not shared_file:
+        raise HTTPException(status_code=404, detail="File not found")
+    if _is_expired(shared_file):
+        raise HTTPException(status_code=410, detail="This file has expired")
+    if shared_file.password_hash is None:
+        raise HTTPException(status_code=400, detail="This file is not password protected")
+    if not await verify_password_async(data.password, shared_file.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password")
+    token = create_file_access_token(short_code)
+    return FileUnlockOut(download_url=f"/f/{short_code}?token={token}")
+
+
 @serve_router.get("/{short_code}")
 @limiter.limit("60/minute")
 async def serve_file(
     request: Request,
     short_code: str = PathParam(..., max_length=16, pattern=r"^[a-zA-Z0-9_-]+$"),
+    token: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(SharedFile).where(SharedFile.short_code == short_code))
@@ -140,6 +167,16 @@ async def serve_file(
         raise HTTPException(status_code=404, detail="File not found")
     if _is_expired(shared_file):
         raise HTTPException(status_code=404, detail="This file has expired")
+    if shared_file.password_hash is not None:
+        # No token at all means this is a visitor opening the share link cold
+        # (e.g. pasted from a message) — send them to the same password gate
+        # links use, mirroring redirect.py's unprotected-visit -> /p/{code}
+        # behavior. A token that's present but wrong/expired (only reachable
+        # by following a stale/tampered download_url) is a hard 401 instead.
+        if token is None:
+            return RedirectResponse(url=f"/p/{short_code}?type=file", status_code=302)
+        if not verify_file_access_token(token, short_code):
+            raise HTTPException(status_code=401, detail="Invalid or expired access token")
     if not Path(shared_file.storage_path).exists():
         raise HTTPException(status_code=404, detail="File not found")
     disposition = "attachment" if shared_file.kind == "file" else "inline"

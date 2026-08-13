@@ -236,3 +236,149 @@ async def test_upload_requires_auth(client):
         "/api/files", data={"kind": "file"}, files={"file": ("a.pdf", PDF_BYTES, "application/pdf")}
     )
     assert resp.status_code == 401
+
+
+async def test_upload_with_password_sets_has_password_true(auth_client):
+    resp = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["has_password"] is True
+
+
+async def test_upload_without_password_has_password_false(auth_client):
+    resp = await auth_client.post(
+        "/api/files",
+        data={"kind": "file"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["has_password"] is False
+
+
+async def test_upload_password_too_short_rejected(auth_client):
+    resp = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "short"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    assert resp.status_code == 422
+
+
+async def test_unlock_file_correct_password_returns_download_url_with_token(auth_client):
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code = create.json()["short_code"]
+    resp = await auth_client.post(f"/api/files/{code}/unlock", json={"password": "secretpw"})
+    assert resp.status_code == 200
+    download_url = resp.json()["download_url"]
+    assert download_url.startswith(f"/f/{code}?token=")
+    assert len(download_url.split("token=")[1]) > 0
+
+
+async def test_unlock_file_wrong_password_401(auth_client):
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code = create.json()["short_code"]
+    resp = await auth_client.post(f"/api/files/{code}/unlock", json={"password": "wrongpw1"})
+    assert resp.status_code == 401
+
+
+async def test_unlock_file_not_password_protected_400(auth_client):
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "file"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code = create.json()["short_code"]
+    resp = await auth_client.post(f"/api/files/{code}/unlock", json={"password": "whatever1"})
+    assert resp.status_code == 400
+
+
+async def test_unlock_file_not_found_404(client):
+    resp = await client.post("/api/files/notfound8/unlock", json={"password": "whatever1"})
+    assert resp.status_code == 404
+
+
+async def test_unlock_expired_file_410(auth_client):
+    from app.database import get_db as _get_db
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code = create.json()["short_code"]
+    override = app.dependency_overrides[_get_db]
+    async for db in override():
+        await db.execute(
+            update(SharedFile)
+            .where(SharedFile.short_code == code)
+            .values(expires_at=datetime.now(timezone.utc) - timedelta(days=1))
+        )
+        await db.commit()
+        break
+    resp = await auth_client.post(f"/api/files/{code}/unlock", json={"password": "secretpw"})
+    assert resp.status_code == 410
+
+
+async def test_serve_password_protected_file_without_token_401(auth_client):
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code = create.json()["short_code"]
+    resp = await auth_client.get(f"/f/{code}")
+    assert resp.status_code == 401
+
+
+async def test_serve_password_protected_file_with_valid_token_succeeds(auth_client):
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code = create.json()["short_code"]
+    unlock = await auth_client.post(f"/api/files/{code}/unlock", json={"password": "secretpw"})
+    download_url = unlock.json()["download_url"]
+    resp = await auth_client.get(download_url)
+    assert resp.status_code == 200
+    assert resp.content == PDF_BYTES
+
+
+async def test_serve_password_protected_file_with_garbage_token_401(auth_client):
+    create = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code = create.json()["short_code"]
+    resp = await auth_client.get(f"/f/{code}?token=not-a-real-token")
+    assert resp.status_code == 401
+
+
+async def test_serve_password_protected_file_with_token_for_different_file_401(auth_client):
+    create_a = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "secretpw"},
+        files={"file": ("report.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code_a = create_a.json()["short_code"]
+    create_b = await auth_client.post(
+        "/api/files",
+        data={"kind": "file", "password": "otherpw1"},
+        files={"file": ("other.pdf", PDF_BYTES, "application/pdf")},
+    )
+    code_b = create_b.json()["short_code"]
+    unlock_a = await auth_client.post(f"/api/files/{code_a}/unlock", json={"password": "secretpw"})
+    token_a = unlock_a.json()["download_url"].split("token=")[1]
+    resp = await auth_client.get(f"/f/{code_b}?token={token_a}")
+    assert resp.status_code == 401
