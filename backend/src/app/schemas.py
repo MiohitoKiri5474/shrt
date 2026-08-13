@@ -225,3 +225,7 @@ class FileOut(BaseModel):
         return cls.model_validate(shared_file).model_copy(update={
             "has_password": bool(getattr(shared_file, "password_hash", None)),
         })
+
+
+class FileUnlockOut(BaseModel):
+    download_url: str

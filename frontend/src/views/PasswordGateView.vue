@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { urlsApi } from '../api/urls'
+import { filesApi } from '../api/files'
 
 const route = useRoute()
 const code = route.params.code as string
+// GET /f/{code} redirects here as `/p/{code}?type=file` when password-protected
+// and visited with no token (see backend routers/files.py::serve_file) — same
+// gate component links already use, just a different unlock call + destination.
+const isFile = computed(() => route.query.type === 'file')
 
 const password = ref('')
 const error = ref('')
@@ -23,6 +28,11 @@ async function handleUnlock() {
   error.value = ''
   loading.value = true
   try {
+    if (isFile.value) {
+      const { download_url } = await filesApi.unlock(code, password.value)
+      window.location.href = filesApi.resolveDownloadUrl(download_url)
+      return
+    }
     const { redirect_url } = await urlsApi.unlock(code, password.value)
     if (!isSafeUrl(redirect_url)) {
       error.value = 'Destination URL is invalid.'
@@ -34,9 +44,9 @@ async function handleUnlock() {
     if (status === 401) {
       error.value = 'Incorrect password. Please try again.'
     } else if (status === 404) {
-      error.value = 'Link not found.'
+      error.value = isFile.value ? 'File not found.' : 'Link not found.'
     } else if (status === 410) {
-      error.value = 'This link has expired.'
+      error.value = isFile.value ? 'This file has expired.' : 'This link has expired.'
     } else {
       error.value = 'Something went wrong. Please try again.'
     }

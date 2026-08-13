@@ -3,10 +3,18 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import PasswordGateView from '../PasswordGateView.vue'
 import * as urlsApiModule from '../../api/urls'
+import * as filesApiModule from '../../api/files'
 
 vi.mock('../../api/urls', () => ({
   urlsApi: {
     unlock: vi.fn(),
+  },
+}))
+
+vi.mock('../../api/files', () => ({
+  filesApi: {
+    unlock: vi.fn(),
+    resolveDownloadUrl: vi.fn((url: string) => `https://api.example.com${url}`),
   },
 }))
 
@@ -17,6 +25,12 @@ const router = createRouter({
 
 async function mountGate(code = 'abc123') {
   await router.push(`/p/${code}`)
+  await router.isReady()
+  return mount(PasswordGateView, { global: { plugins: [router] } })
+}
+
+async function mountFileGate(code = 'abc123') {
+  await router.push(`/p/${code}?type=file`)
   await router.isReady()
   return mount(PasswordGateView, { global: { plugins: [router] } })
 }
@@ -95,5 +109,53 @@ describe('PasswordGateView', () => {
     resolve!({ redirect_url: 'https://example.com' })
     await flushPromises()
     expect(btn.attributes('disabled')).toBeUndefined()
+  })
+
+  describe('file gate (?type=file)', () => {
+    it('calls filesApi.unlock, not urlsApi.unlock, with code and password', async () => {
+      vi.mocked(filesApiModule.filesApi.unlock).mockResolvedValue({ download_url: '/f/mycode?token=t' })
+      const wrapper = await mountFileGate('mycode')
+      await wrapper.find('#gate-password').setValue('secret')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(filesApiModule.filesApi.unlock).toHaveBeenCalledWith('mycode', 'secret')
+      expect(urlsApiModule.urlsApi.unlock).not.toHaveBeenCalled()
+    })
+
+    it('resolves and navigates to the returned download_url', async () => {
+      vi.mocked(filesApiModule.filesApi.unlock).mockResolvedValue({ download_url: '/f/mycode?token=t' })
+      const wrapper = await mountFileGate('mycode')
+      await wrapper.find('#gate-password').setValue('secret')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(filesApiModule.filesApi.resolveDownloadUrl).toHaveBeenCalledWith('/f/mycode?token=t')
+    })
+
+    it('shows error on wrong password (401)', async () => {
+      vi.mocked(filesApiModule.filesApi.unlock).mockRejectedValue({ response: { status: 401 } })
+      const wrapper = await mountFileGate()
+      await wrapper.find('#gate-password').setValue('wrong')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('Incorrect password')
+    })
+
+    it('shows a file-specific error on not found (404)', async () => {
+      vi.mocked(filesApiModule.filesApi.unlock).mockRejectedValue({ response: { status: 404 } })
+      const wrapper = await mountFileGate()
+      await wrapper.find('#gate-password').setValue('any')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('File not found')
+    })
+
+    it('shows a file-specific expired error on 410', async () => {
+      vi.mocked(filesApiModule.filesApi.unlock).mockRejectedValue({ response: { status: 410 } })
+      const wrapper = await mountFileGate()
+      await wrapper.find('#gate-password').setValue('any')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('This file has expired')
+    })
   })
 })

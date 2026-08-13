@@ -6,6 +6,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useURLsStore } from '../../stores/urls'
 import { useFilesStore } from '../../stores/files'
+import { filesApi } from '../../api/files'
 import ManageView from '../ManageView.vue'
 
 const router = createRouter({
@@ -50,7 +51,9 @@ vi.mock('../../api/files', () => ({
     list: vi.fn().mockResolvedValue([]),
     remove: vi.fn().mockResolvedValue(undefined),
     upload: vi.fn(),
+    unlock: vi.fn(),
     fileUrl: vi.fn((code: string) => `https://api.example.com/f/${code}`),
+    resolveDownloadUrl: vi.fn((path: string) => `https://api.example.com${path}`),
   },
 }))
 
@@ -169,6 +172,93 @@ describe('ManageView files list', () => {
     await wrapper.find('[data-testid="file-row"] .btn-confirm-delete').trigger('click')
     await flushPromises()
     expect(wrapper.findAll('[data-testid="file-row"]')).toHaveLength(0)
+  })
+})
+
+describe('ManageView password-protected files', () => {
+  const mockLockedFile = { ...mockFile, id: 2, short_code: 'locked01', has_password: true }
+
+  it('shows a lock indicator and an inline unlock form instead of Open for password-protected files', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockLockedFile]
+    })
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    const row = wrapper.find('[data-testid="file-row"]')
+    expect(row.find('.badge--lock').exists()).toBe(true)
+    expect(row.find('a').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="file-unlock"]').exists()).toBe(true)
+  })
+
+  it('does not show a lock indicator or unlock form for a plain file', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockFile]
+    })
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    const row = wrapper.find('[data-testid="file-row"]')
+    expect(row.find('.badge--lock').exists()).toBe(false)
+    expect(row.find('a').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="file-unlock"]').exists()).toBe(false)
+  })
+
+  it('unlocks the file and opens the resolved download_url in a new tab on success', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockLockedFile]
+    })
+    vi.mocked(filesApi.unlock).mockResolvedValue({ download_url: '/f/locked01?token=xyz' })
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('[data-testid="file-unlock"] input').setValue('secretpw')
+    await wrapper.find('[data-testid="file-unlock"] button').trigger('click')
+    await flushPromises()
+    expect(filesApi.unlock).toHaveBeenCalledWith('locked01', 'secretpw')
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://api.example.com/f/locked01?token=xyz',
+      '_blank',
+      'noopener,noreferrer',
+    )
+    openSpy.mockRestore()
+  })
+
+  it('shows an inline error on wrong password (401) without calling window.open', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockLockedFile]
+    })
+    vi.mocked(filesApi.unlock).mockRejectedValue({ response: { status: 401 } })
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('[data-testid="file-unlock"] input').setValue('wrongpw')
+    await wrapper.find('[data-testid="file-unlock"] button').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.file-unlock-error').text()).toContain('Incorrect password')
+    expect(openSpy).not.toHaveBeenCalled()
+    openSpy.mockRestore()
+  })
+
+  it('shows an inline expired-file error on 410', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockLockedFile]
+    })
+    vi.mocked(filesApi.unlock).mockRejectedValue({ response: { status: 410 } })
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('[data-testid="file-unlock"] input').setValue('secretpw')
+    await wrapper.find('[data-testid="file-unlock"] button').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.file-unlock-error').text()).toContain('expired')
   })
 })
 

@@ -15,8 +15,8 @@ export const useFilesStore = defineStore('files', () => {
     }
   }
 
-  async function upload(file: File, kind: FileKind) {
-    const created = await filesApi.upload(file, kind)
+  async function upload(file: File, kind: FileKind, password?: string) {
+    const created = await filesApi.upload(file, kind, password)
     version++
     files.value.unshift(created)
     return created

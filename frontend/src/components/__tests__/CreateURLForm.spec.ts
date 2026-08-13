@@ -243,7 +243,30 @@ describe('CreateURLForm', () => {
       await setFile(wrapper, file)
       await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
       await flushPromises()
-      expect(uploadSpy).toHaveBeenCalledWith(file, 'file')
+      expect(uploadSpy).toHaveBeenCalledWith(file, 'file', undefined)
+    })
+
+    it('passes the file password when provided', async () => {
+      uploadSpy.mockResolvedValue(mockUploadedFile)
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      const file = new File(['content'], 'a.pdf', { type: 'application/pdf' })
+      await setFile(wrapper, file)
+      await wrapper.find('#file-password').setValue('secretpw')
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(uploadSpy).toHaveBeenCalledWith(file, 'file', 'secretpw')
+    })
+
+    it('shows an error and does not call upload when the file password is too short', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      await setFile(wrapper, new File(['content'], 'a.pdf', { type: 'application/pdf' }))
+      await wrapper.find('#file-password').setValue('abc')
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('Password must be at least 6 characters')
+      expect(uploadSpy).not.toHaveBeenCalled()
     })
 
     it('navigates to the manage page after a successful upload', async () => {
@@ -340,7 +363,7 @@ describe('CreateURLForm', () => {
       await setImage(wrapper, file)
       await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
       await flushPromises()
-      expect(uploadSpy).toHaveBeenCalledWith(file, 'image')
+      expect(uploadSpy).toHaveBeenCalledWith(file, 'image', undefined)
     })
 
     it('navigates to the manage page after a successful upload', async () => {

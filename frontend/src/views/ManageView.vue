@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
 import { useFilesStore } from '../stores/files'
@@ -7,7 +7,7 @@ import URLCard from '../components/URLCard.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
 import AppNavbar from '../components/AppNavbar.vue'
 import type { StatsOut, URLOut } from '../api/urls'
-import { filesApi } from '../api/files'
+import { filesApi, type FileOut } from '../api/files'
 import { goToShare } from '../router/navigation'
 
 const router = useRouter()
@@ -58,6 +58,39 @@ async function handleFileDelete(id: number) {
     await filesStore.remove(id)
   } catch {
     filesDeleteError.value = 'Failed to delete file. Please try again.'
+  }
+}
+
+// Per-file inline unlock state, keyed by file id — several password-protected
+// files can be listed at once, each with its own password field and error.
+const fileUnlockPasswords = reactive<Record<number, string>>({})
+const fileUnlockErrors = reactive<Record<number, string>>({})
+const fileUnlockLoading = reactive<Record<number, boolean>>({})
+
+async function handleFileUnlock(file: FileOut) {
+  fileUnlockErrors[file.id] = ''
+  const password = fileUnlockPasswords[file.id] ?? ''
+  fileUnlockLoading[file.id] = true
+  try {
+    const { download_url } = await filesApi.unlock(file.short_code, password)
+    // download_url is a relative backend path (e.g. "/f/abc123?token=..."),
+    // so it must be resolved against the API origin before opening — a bare
+    // relative open() would resolve against the frontend host instead.
+    window.open(filesApi.resolveDownloadUrl(download_url), '_blank', 'noopener,noreferrer')
+    fileUnlockPasswords[file.id] = ''
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    if (status === 401) {
+      fileUnlockErrors[file.id] = 'Incorrect password.'
+    } else if (status === 410) {
+      fileUnlockErrors[file.id] = 'This file has expired.'
+    } else if (status === 400) {
+      fileUnlockErrors[file.id] = 'This file is not password protected.'
+    } else {
+      fileUnlockErrors[file.id] = 'Something went wrong. Please try again.'
+    }
+  } finally {
+    fileUnlockLoading[file.id] = false
   }
 }
 
@@ -179,15 +212,37 @@ function cancelDelete() {
           <RouterLink class="btn-add-link" to="/new">Add File</RouterLink>
         </div>
         <p v-if="filesStore.files.length === 0" class="empty">No files or images shared yet.</p>
-        <div v-for="file in filesStore.files" :key="file.id" class="file-row" data-testid="file-row">
-          <div class="file-info">
-            <span class="file-name">{{ file.original_filename }}</span>
-            <span class="file-meta">
-              {{ file.kind }} · {{ file.expires_at ? `expires ${new Date(file.expires_at).toLocaleDateString()}` : 'never expires' }}
-            </span>
+        <div v-for="file in filesStore.files" :key="file.id">
+          <div class="file-row" data-testid="file-row">
+            <div class="file-info">
+              <span class="file-name">{{ file.original_filename }}</span>
+              <span class="file-meta">
+                {{ file.kind }} · {{ file.expires_at ? `expires ${new Date(file.expires_at).toLocaleDateString()}` : 'never expires' }}
+                <span v-if="file.has_password" class="badge badge--lock" title="Password protected">🔒</span>
+              </span>
+            </div>
+            <div v-if="file.has_password" class="file-unlock" data-testid="file-unlock">
+              <input
+                v-model="fileUnlockPasswords[file.id]"
+                type="password"
+                placeholder="Password"
+                class="file-unlock-input"
+                :aria-label="`Password for ${file.original_filename}`"
+                @keyup.enter="handleFileUnlock(file)"
+              />
+              <button
+                type="button"
+                class="btn-unlock"
+                :disabled="fileUnlockLoading[file.id]"
+                @click="handleFileUnlock(file)"
+              >
+                {{ fileUnlockLoading[file.id] ? 'Unlocking…' : 'Unlock' }}
+              </button>
+            </div>
+            <a v-else :href="filesApi.fileUrl(file.short_code)" target="_blank" rel="noopener noreferrer">Open</a>
+            <button class="btn-confirm-delete" @click="handleFileDelete(file.id)">Delete</button>
           </div>
-          <a :href="filesApi.fileUrl(file.short_code)" target="_blank" rel="noopener noreferrer">Open</a>
-          <button class="btn-confirm-delete" @click="handleFileDelete(file.id)">Delete</button>
+          <p v-if="fileUnlockErrors[file.id]" class="error file-unlock-error" role="alert">{{ fileUnlockErrors[file.id] }}</p>
         </div>
         <p v-if="filesLoadError" class="error" role="alert">{{ filesLoadError }}</p>
         <p v-if="filesDeleteError" class="error" role="alert">{{ filesDeleteError }}</p>
@@ -341,6 +396,60 @@ function cancelDelete() {
   font-size: 0.8rem;
   color: var(--color-text);
   opacity: 0.7;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  margin-left: 0.35rem;
+}
+
+.file-unlock {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-unlock-input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-border-hover);
+  border-radius: 4px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  width: 9rem;
+}
+
+.file-unlock-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.btn-unlock {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-accent);
+  background: transparent;
+  color: var(--color-accent);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+}
+
+.btn-unlock:hover:not(:disabled) {
+  background: var(--color-border);
+}
+
+.btn-unlock:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.file-unlock-error {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
 }
 
 .stats-panel {
