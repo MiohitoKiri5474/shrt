@@ -363,7 +363,7 @@ describe('CreateURLForm', () => {
       await setImage(wrapper, file)
       await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
       await flushPromises()
-      expect(uploadSpy).toHaveBeenCalledWith(file, 'image')
+      expect(uploadSpy).toHaveBeenCalledWith(file, 'image', undefined)
     })
 
     it('navigates to the manage page after a successful upload', async () => {
