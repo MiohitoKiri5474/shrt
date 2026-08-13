@@ -12,7 +12,8 @@ MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 IMAGE_QUOTA_BYTES = 500 * 1024 * 1024
 
 # (mime_type, magic-byte signatures the content must start with — None means
-# the type has no reliable signature and is trusted on extension alone).
+# the type has no reliable magic-byte signature to sniff; txt/csv fall back
+# to a null-byte check instead, see validate_upload()).
 FILE_EXTENSIONS: dict[str, tuple[str, tuple[bytes, ...] | None]] = {
     "pdf": ("application/pdf", (b"%PDF-",)),
     "txt": ("text/plain", None),
