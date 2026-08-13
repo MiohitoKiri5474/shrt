@@ -2,7 +2,6 @@ import asyncio
 import io
 import logging
 import re
-from datetime import datetime, timezone
 import segno
 from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +12,7 @@ from app.schemas import SSRFBlockedError, SSRFDNSError, URLCreate, URLOut, URLUp
 from app.services.auth import get_unique_short_code, hash_password_async, verify_password_async
 from app.routers.auth import get_current_user
 from app.rate_limiter import limiter, get_real_ip
-from app.utils import anonymize_ip
+from app.utils import anonymize_ip, is_expired
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -137,11 +136,8 @@ async def unlock_url(
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="Short URL not found")
-    if url.expires_at is not None:
-        now = datetime.now(timezone.utc)
-        expires = url.expires_at if url.expires_at.tzinfo else url.expires_at.replace(tzinfo=timezone.utc)
-        if now >= expires:
-            raise HTTPException(status_code=410, detail="This link has expired")
+    if is_expired(url.expires_at):
+        raise HTTPException(status_code=410, detail="This link has expired")
     if url.password_hash is None:
         raise HTTPException(status_code=400, detail="This URL is not password protected")
     if not await verify_password_async(data.password, url.password_hash):

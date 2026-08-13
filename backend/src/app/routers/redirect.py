@@ -1,14 +1,13 @@
 import asyncio
 import logging
 import re
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
 from app.models import URL, Click
-from app.utils import anonymize_ip
+from app.utils import anonymize_ip, is_expired
 from app.rate_limiter import limiter, get_real_ip
 from app.schemas import SSRFBlockedError, SSRFDNSError, validate_no_ssrf, _SSRF_EXECUTOR, _SSRF_CHECK_TIMEOUT_S
 
@@ -27,11 +26,8 @@ async def redirect(
     url = result.scalar_one_or_none()
     if not url:
         raise HTTPException(status_code=404, detail="Short URL not found")
-    if url.expires_at is not None:
-        now = datetime.now(timezone.utc)
-        expires = url.expires_at if url.expires_at.tzinfo else url.expires_at.replace(tzinfo=timezone.utc)
-        if now >= expires:
-            return RedirectResponse(url=f"/expired?code={short_code}", status_code=302)
+    if is_expired(url.expires_at):
+        return RedirectResponse(url=f"/expired?code={short_code}", status_code=302)
     if url.password_hash is not None:
         return RedirectResponse(url=f"/p/{short_code}", status_code=302)
     loop = asyncio.get_running_loop()

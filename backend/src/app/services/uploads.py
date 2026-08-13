@@ -64,6 +64,12 @@ def validate_upload(kind: str, filename: str, data: bytes) -> str:
     if ext == "webp":
         if not (data[:4] == b"RIFF" and data[8:12] == b"WEBP"):
             raise ValueError("File content does not match a valid webp image")
+    elif ext in ("txt", "csv"):
+        # Plain text has no magic-byte signature to sniff, but a null byte
+        # is never valid in text content — reject binary data renamed to
+        # .txt/.csv rather than trusting the extension alone.
+        if b"\x00" in data:
+            raise ValueError(f"File content does not look like a valid .{ext} file")
     elif signatures is not None and not any(data.startswith(sig) for sig in signatures):
         raise ValueError(f"File content does not match a valid .{ext} file")
     return mime_type

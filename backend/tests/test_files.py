@@ -89,6 +89,26 @@ async def test_upload_content_mismatch_rejected(auth_client):
     assert resp.status_code == 422
 
 
+async def test_upload_txt_with_null_byte_rejected(auth_client):
+    """.txt/.csv have no magic-byte signature to sniff, but a null byte is
+    never valid text content — binary data renamed to .txt must be rejected."""
+    resp = await auth_client.post(
+        "/api/files",
+        data={"kind": "file"},
+        files={"file": ("notes.txt", b"binary\x00data", "text/plain")},
+    )
+    assert resp.status_code == 422
+
+
+async def test_upload_plain_txt_accepted(auth_client):
+    resp = await auth_client.post(
+        "/api/files",
+        data={"kind": "file"},
+        files={"file": ("notes.txt", b"just plain text, no null bytes here", "text/plain")},
+    )
+    assert resp.status_code == 201
+
+
 async def test_upload_image_extension_rejected_for_file_kind(auth_client):
     resp = await auth_client.post(
         "/api/files",
@@ -130,6 +150,7 @@ async def test_download_file_forces_attachment(auth_client):
     assert resp.content == PDF_BYTES
     assert resp.headers["content-type"] == "application/pdf"
     assert "attachment" in resp.headers["content-disposition"]
+    assert resp.headers["x-content-type-options"] == "nosniff"
 
 
 async def test_serve_image_inline(auth_client):

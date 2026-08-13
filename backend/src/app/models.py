@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, String, Integer, DateTime, ForeignKey
+from sqlalchemy import Boolean, CheckConstraint, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -34,6 +34,7 @@ class URL(Base):
 
 class SharedFile(Base):
     __tablename__ = "shared_files"
+    __table_args__ = (CheckConstraint("kind IN ('image', 'file')", name="ck_shared_files_kind"),)
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     short_code: Mapped[str] = mapped_column(String(16), unique=True, index=True, nullable=False)
@@ -42,6 +43,8 @@ class SharedFile(Base):
     mime_type: Mapped[str] = mapped_column(String(255), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     storage_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    # Set at upload time when a password is provided (ticket 04 / #403);
+    # unused/always-null until that code path exists.
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
