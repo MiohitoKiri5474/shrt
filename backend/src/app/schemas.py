@@ -221,7 +221,7 @@ class FileOut(BaseModel):
     model_config = {"from_attributes": True}
 
     @classmethod
-    def from_orm(cls, shared_file: object) -> "FileOut":
+    def from_orm_with_password_flag(cls, shared_file: object) -> "FileOut":
         return cls.model_validate(shared_file).model_copy(update={
             "has_password": bool(getattr(shared_file, "password_hash", None)),
         })

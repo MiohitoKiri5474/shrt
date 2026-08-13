@@ -12,6 +12,7 @@ from app.models import SharedFile, User
 from app.rate_limiter import limiter
 from app.routers.auth import get_current_user
 from app.schemas import FileOut
+from app.utils import is_expired
 from app.services.uploads import (
     IMAGE_QUOTA_BYTES,
     delete_blob,
@@ -34,6 +35,10 @@ def _safe_filename(name: str) -> str:
     # this string), so the only risk here is a malformed header, not traversal.
     cleaned = "".join(c for c in name if c.isprintable() and c not in '"\\')
     return cleaned or "download"
+
+
+def _is_expired(shared_file: SharedFile) -> bool:
+    return shared_file.kind == "file" and is_expired(shared_file.expires_at)
 
 
 @router.post("", response_model=FileOut, status_code=201)
@@ -66,7 +71,12 @@ async def upload_file(
     except RuntimeError:
         raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
     storage_path = save_blob(code, data)
-    expires_at = datetime.now(timezone.utc) + timedelta(days=7) if kind == "file" else None
+    # expires_at is a naive DateTime column (no timezone=True) storing UTC —
+    # asyncpg rejects a tz-aware datetime bound against a TIMESTAMP WITHOUT
+    # TIME ZONE column, so strip tzinfo after computing in UTC.
+    expires_at = (
+        (datetime.now(timezone.utc) + timedelta(days=7)).replace(tzinfo=None) if kind == "file" else None
+    )
     shared_file = SharedFile(
         user_id=current_user.id,
         short_code=code,
@@ -80,7 +90,7 @@ async def upload_file(
     db.add(shared_file)
     await db.commit()
     await db.refresh(shared_file)
-    return FileOut.from_orm(shared_file)
+    return FileOut.from_orm_with_password_flag(shared_file)
 
 
 @router.get("", response_model=list[FileOut])
@@ -95,7 +105,7 @@ async def list_files(
         .where(SharedFile.user_id == current_user.id)
         .order_by(SharedFile.created_at.desc())
     )
-    return [FileOut.from_orm(f) for f in result.scalars()]
+    return [FileOut.from_orm_with_password_flag(f) for f in result.scalars()]
 
 
 @router.delete("/{file_id}", status_code=204)
@@ -128,15 +138,8 @@ async def serve_file(
     shared_file = result.scalar_one_or_none()
     if not shared_file:
         raise HTTPException(status_code=404, detail="File not found")
-    if shared_file.kind == "file" and shared_file.expires_at is not None:
-        now = datetime.now(timezone.utc)
-        expires = (
-            shared_file.expires_at
-            if shared_file.expires_at.tzinfo
-            else shared_file.expires_at.replace(tzinfo=timezone.utc)
-        )
-        if now >= expires:
-            raise HTTPException(status_code=404, detail="This file has expired")
+    if _is_expired(shared_file):
+        raise HTTPException(status_code=404, detail="This file has expired")
     if not Path(shared_file.storage_path).exists():
         raise HTTPException(status_code=404, detail="File not found")
     disposition = "attachment" if shared_file.kind == "file" else "inline"
