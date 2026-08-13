@@ -5,7 +5,7 @@ import { useURLsStore } from '../stores/urls'
 import { urlsApi } from '../api/urls'
 import AppNavbar from '../components/AppNavbar.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
-import Icon from '../components/Icon.vue'
+import Icon from '../components/AppIcon.vue'
 import { useClipboardCopy } from '../composables/useClipboardCopy'
 
 const route = useRoute()
@@ -62,13 +62,13 @@ async function nativeShare() {
 </script>
 
 <template>
-  <div class="share">
+  <div class="share app-shell">
     <AppNavbar>
       <template #status>
         <NetworkStatusIndicator />
       </template>
     </AppNavbar>
-    <main class="share-content">
+    <main class="share-content app-main">
       <p v-if="loading" class="loading">Loading…</p>
       <template v-else>
         <template v-if="url">
@@ -97,15 +97,11 @@ async function nativeShare() {
 </template>
 
 <style scoped>
-.share {
-  min-height: 100vh;
-  background: var(--color-background);
-}
-
 .share-content {
   max-width: 380px;
   margin: 2rem auto;
   padding: 2rem 1.5rem;
+  width: 100%;
   text-align: center;
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);

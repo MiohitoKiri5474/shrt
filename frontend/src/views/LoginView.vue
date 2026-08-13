@@ -3,7 +3,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppNavbar from '../components/AppNavbar.vue'
-import Icon from '../components/Icon.vue'
+import Icon from '../components/AppIcon.vue'
 
 const identifier = ref('')
 const password = ref('')
@@ -79,9 +79,9 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="login-page">
+  <div class="login-page app-shell">
     <AppNavbar />
-    <div class="login-container">
+    <div class="login-container app-main">
       <div class="login-card">
         <div class="login-brand"><span class="brand-mark" aria-hidden="true" />Shrt</div>
         <form @submit.prevent="handleSubmit" data-testid="login-form">
@@ -113,14 +113,6 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-background);
-  transition: background 0.35s ease;
-}
-
 .login-container {
   flex: 1;
   display: flex;

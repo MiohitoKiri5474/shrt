@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
-import Icon from './Icon.vue'
+import Icon, { type IconName } from './AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,12 +13,24 @@ const themeStore = useThemeStore()
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? '')
 const showDrawer = ref(false)
 
-const navItems = computed(() => [
-  { name: 'manage', to: '/manage', label: 'Manage', icon: 'link' },
-  { name: 'new-link', to: '/new', label: 'New link', icon: 'plus' },
-  { name: 'profile', to: '/profile', label: 'Profile', icon: 'user' },
-  ...(authStore.user?.is_admin ? [{ name: 'admin', to: '/admin', label: 'Admin', icon: 'shield' }] : []),
-])
+interface NavItem {
+  name: string
+  to: string
+  label: string
+  icon: IconName
+}
+
+const navItems = computed(() => {
+  const items: NavItem[] = [
+    { name: 'manage', to: '/manage', label: 'Manage', icon: 'link' },
+    { name: 'new-link', to: '/new', label: 'New link', icon: 'plus' },
+    { name: 'profile', to: '/profile', label: 'Profile', icon: 'user' },
+  ]
+  if (authStore.user?.is_admin) {
+    items.push({ name: 'admin', to: '/admin', label: 'Admin', icon: 'shield' })
+  }
+  return items
+})
 
 function openDrawer() {
   showDrawer.value = true
@@ -416,8 +428,18 @@ async function handleSignOut() {
     margin-bottom: 1.25rem;
   }
 
+  /* Hidden from view (the rail nav already labels the current page), but
+     kept in the a11y tree — this is the page's only h1. */
   .navbar--rail .navbar-title {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .navbar--rail .rail-nav {

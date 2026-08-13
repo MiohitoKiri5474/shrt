@@ -210,6 +210,22 @@ describe('CreateURLForm', () => {
     expect(btn.attributes('disabled')).toBeUndefined()
   })
 
+  it('does not set native minlength/pattern constraints on the collapsible advanced fields', () => {
+    // Regression guard: a browser still runs native constraint validation on
+    // display:none fields (from v-show="showAdvanced"), but can't focus/report
+    // an invalid hidden control to the user — Chrome silently blocks the whole
+    // form submit ("An invalid form control ... is not focusable"), and
+    // handleCreate (which validates these with real error messages) never
+    // runs. custom-code/link-password must stay free of minlength/pattern;
+    // handleCreate's JS validation is the only gate for these two fields.
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
+    const customCode = wrapper.find('#custom-code')
+    const linkPassword = wrapper.find('#link-password')
+    expect(customCode.attributes('minlength')).toBeUndefined()
+    expect(customCode.attributes('pattern')).toBeUndefined()
+    expect(linkPassword.attributes('minlength')).toBeUndefined()
+  })
+
   describe('File tab', () => {
     const mockUploadedFile = {
       id: 1, short_code: 'filecode1', kind: 'file' as const, original_filename: 'a.pdf',

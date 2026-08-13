@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
 import { useFilesStore } from '../stores/files'
 import { goToShare } from '../router/navigation'
-import Icon from './Icon.vue'
+import Icon from './AppIcon.vue'
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 const UPLOAD_LABEL: Record<'file' | 'image', string> = { file: 'File', image: 'Image' }

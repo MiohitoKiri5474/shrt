@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import Icon from '../components/Icon.vue'
+import Icon from '../components/AppIcon.vue'
 
 const route = useRoute()
 const code = route.query.code as string | undefined

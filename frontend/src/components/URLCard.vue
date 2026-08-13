@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { urlsApi, type URLOut } from '../api/urls'
 import { useClipboardCopy } from '../composables/useClipboardCopy'
-import Icon from './Icon.vue'
+import Icon from './AppIcon.vue'
 
 const props = defineProps<{ url: URLOut }>()
 const emit = defineEmits<{ delete: [id: number]; stats: [id: number]; share: [shortCode: string]; edit: [id: number] }>()

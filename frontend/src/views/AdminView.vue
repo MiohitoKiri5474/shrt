@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import { useAdminStore } from '../stores/admin'
 import AddUserForm from '../components/AddUserForm.vue'
 import AppNavbar from '../components/AppNavbar.vue'
-import Icon from '../components/Icon.vue'
+import Icon from '../components/AppIcon.vue'
 
 const authStore = useAuthStore()
 const adminStore = useAdminStore()
