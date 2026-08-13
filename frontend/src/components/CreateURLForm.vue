@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
 import { useFilesStore } from '../stores/files'
@@ -10,7 +10,7 @@ const MAX_FILE_UPLOAD_BYTES = 25 * 1024 * 1024
 const router = useRouter()
 const urlsStore = useURLsStore()
 const filesStore = useFilesStore()
-const uploadType = ref<'link' | 'file'>('link')
+const uploadType = ref<'link' | 'file' | 'image'>('link')
 const originalUrl = ref('')
 const customCode = ref('')
 const password = ref('')
@@ -19,47 +19,53 @@ const selectedFile = ref<File | null>(null)
 const error = ref('')
 const loading = ref(false)
 
+const submitLabel = computed(() => {
+  if (uploadType.value === 'image') return loading.value ? 'Uploading…' : 'Upload image'
+  if (uploadType.value === 'file') return loading.value ? 'Uploading…' : 'Upload file'
+  return loading.value ? 'Creating…' : 'Create short URL'
+})
+
 function handleFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   selectedFile.value = input.files?.[0] ?? null
 }
 
 async function handleSubmit() {
-  if (uploadType.value === 'file') {
-    await handleUpload()
+  if (uploadType.value === 'file' || uploadType.value === 'image') {
+    await handleUpload(uploadType.value)
   } else {
     await handleCreate()
   }
 }
 
-async function handleUpload() {
+async function handleUpload(kind: 'file' | 'image') {
   error.value = ''
   if (!selectedFile.value) {
-    error.value = 'Please choose a file to upload.'
+    error.value = kind === 'image' ? 'Please choose an image to upload.' : 'Please choose a file to upload.'
     return
   }
   if (selectedFile.value.size > MAX_FILE_UPLOAD_BYTES) {
-    error.value = 'File must be 25MB or smaller.'
+    error.value = `${kind === 'image' ? 'Image' : 'File'} must be 25MB or smaller.`
     return
   }
   loading.value = true
   try {
-    await filesStore.upload(selectedFile.value, 'file')
+    await filesStore.upload(selectedFile.value, kind)
     selectedFile.value = null
     try {
       await router.push({ name: 'manage' })
     } catch (navError: unknown) {
       console.error('Failed to navigate to the manage page after uploading file:', navError)
-      error.value = 'Your file was uploaded, but we could not open the Manage page automatically.'
+      error.value = `Your ${kind} was uploaded, but we could not open the Manage page automatically.`
     }
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } }).response?.status
     if (status === 422) {
-      error.value = 'This file type is not allowed.'
+      error.value = kind === 'image' ? 'This image type is not allowed.' : 'This file type is not allowed.'
     } else if (status === 413) {
-      error.value = 'File is too large.'
+      error.value = kind === 'image' ? 'Image is too large or exceeds your 500MB image quota.' : 'File is too large.'
     } else {
-      error.value = 'Failed to upload file.'
+      error.value = kind === 'image' ? 'Failed to upload image.' : 'Failed to upload file.'
     }
   } finally {
     loading.value = false
@@ -131,6 +137,9 @@ async function handleCreate() {
       <label>
         <input type="radio" value="file" v-model="uploadType" /> File
       </label>
+      <label>
+        <input type="radio" value="image" v-model="uploadType" /> Image
+      </label>
     </div>
     <template v-if="uploadType === 'link'">
       <div class="field">
@@ -150,15 +159,21 @@ async function handleCreate() {
         <input id="expires-at" v-model="expiresAt" type="datetime-local" />
       </div>
     </template>
-    <template v-else>
+    <template v-else-if="uploadType === 'file'">
       <div class="field">
         <label for="upload-file">File (max 25MB, expires in 7 days)</label>
         <input id="upload-file" type="file" @change="handleFileChange" required />
       </div>
     </template>
+    <template v-else>
+      <div class="field">
+        <label for="upload-image">Image (max 25MB, never expires)</label>
+        <input id="upload-image" type="file" accept="image/jpeg,image/png,image/gif,image/webp" @change="handleFileChange" required />
+      </div>
+    </template>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <button type="submit" :disabled="loading">
-      {{ uploadType === 'file' ? (loading ? 'Uploading…' : 'Upload file') : (loading ? 'Creating…' : 'Create short URL') }}
+      {{ submitLabel }}
     </button>
   </form>
 </template>
