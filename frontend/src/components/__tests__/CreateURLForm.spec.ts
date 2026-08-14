@@ -4,12 +4,14 @@ import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import CreateURLForm from '../CreateURLForm.vue'
 import * as urlsStoreModule from '../../stores/urls'
+import * as filesStoreModule from '../../stores/files'
 
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
     { path: '/', component: { template: '<div />' } },
     { path: '/links/:code/share', name: 'share', component: { template: '<div />' } },
+    { path: '/manage', name: 'manage', component: { template: '<div />' } },
   ],
 })
 
@@ -27,14 +29,19 @@ const mockCreatedUrl = {
 
 describe('CreateURLForm', () => {
   let createSpy: ReturnType<typeof vi.fn>
+  let uploadSpy: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     createSpy = vi.fn()
+    uploadSpy = vi.fn()
     vi.spyOn(urlsStoreModule, 'useURLsStore').mockReturnValue({
       create: createSpy,
     } as unknown as ReturnType<typeof urlsStoreModule.useURLsStore>)
+    vi.spyOn(filesStoreModule, 'useFilesStore').mockReturnValue({
+      upload: uploadSpy,
+    } as unknown as ReturnType<typeof filesStoreModule.useFilesStore>)
   })
 
   it('renders URL input and submit button', () => {
@@ -201,5 +208,229 @@ describe('CreateURLForm', () => {
     resolve!(mockCreatedUrl)
     await flushPromises()
     expect(btn.attributes('disabled')).toBeUndefined()
+  })
+
+  it('does not set native minlength/pattern constraints on the collapsible advanced fields', () => {
+    // Regression guard: a browser still runs native constraint validation on
+    // display:none fields (from v-show="showAdvanced"), but can't focus/report
+    // an invalid hidden control to the user — Chrome silently blocks the whole
+    // form submit ("An invalid form control ... is not focusable"), and
+    // handleCreate (which validates these with real error messages) never
+    // runs. custom-code/link-password must stay free of minlength/pattern;
+    // handleCreate's JS validation is the only gate for these two fields.
+    const wrapper = mount(CreateURLForm, { global: globalOptions })
+    const customCode = wrapper.find('#custom-code')
+    const linkPassword = wrapper.find('#link-password')
+    expect(customCode.attributes('minlength')).toBeUndefined()
+    expect(customCode.attributes('pattern')).toBeUndefined()
+    expect(linkPassword.attributes('minlength')).toBeUndefined()
+  })
+
+  describe('File tab', () => {
+    const mockUploadedFile = {
+      id: 1, short_code: 'filecode1', kind: 'file' as const, original_filename: 'a.pdf',
+      mime_type: 'application/pdf', size_bytes: 100, created_at: '', expires_at: '2099-01-01T00:00:00Z',
+      has_password: false,
+    }
+
+    async function selectFileTab(wrapper: ReturnType<typeof mount>) {
+      await wrapper.find('input[type="radio"][value="file"]').setValue()
+    }
+
+    function setFile(wrapper: ReturnType<typeof mount>, file: File) {
+      const input = wrapper.find('#upload-file')
+      Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+      return input.trigger('change')
+    }
+
+    it('shows the file input and hides link fields once File is selected', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      expect(wrapper.find('#upload-file').exists()).toBe(true)
+      expect(wrapper.find('#original-url').exists()).toBe(false)
+      expect(wrapper.find('button[type="submit"]').text()).toBe('Upload file')
+    })
+
+    it('calls filesStore.upload with the selected file and kind "file"', async () => {
+      uploadSpy.mockResolvedValue(mockUploadedFile)
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      const file = new File(['content'], 'a.pdf', { type: 'application/pdf' })
+      await setFile(wrapper, file)
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(uploadSpy).toHaveBeenCalledWith(file, 'file', undefined)
+    })
+
+    it('passes the file password when provided', async () => {
+      uploadSpy.mockResolvedValue(mockUploadedFile)
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      const file = new File(['content'], 'a.pdf', { type: 'application/pdf' })
+      await setFile(wrapper, file)
+      await wrapper.find('#file-password').setValue('secretpw')
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(uploadSpy).toHaveBeenCalledWith(file, 'file', 'secretpw')
+    })
+
+    it('shows an error and does not call upload when the file password is too short', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      await setFile(wrapper, new File(['content'], 'a.pdf', { type: 'application/pdf' }))
+      await wrapper.find('#file-password').setValue('abc')
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('Password must be at least 6 characters')
+      expect(uploadSpy).not.toHaveBeenCalled()
+    })
+
+    it('navigates to the manage page after a successful upload', async () => {
+      uploadSpy.mockResolvedValue(mockUploadedFile)
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      await setFile(wrapper, new File(['content'], 'a.pdf', { type: 'application/pdf' }))
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('manage')
+    })
+
+    it('shows an error and does not call upload when no file is selected', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('choose a file')
+      expect(uploadSpy).not.toHaveBeenCalled()
+    })
+
+    it('shows an error and does not call upload when the file exceeds 25MB', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      const bigFile = new File([new Uint8Array(1)], 'big.pdf', { type: 'application/pdf' })
+      Object.defineProperty(bigFile, 'size', { value: 26 * 1024 * 1024 })
+      await setFile(wrapper, bigFile)
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('25MB')
+      expect(uploadSpy).not.toHaveBeenCalled()
+    })
+
+    it('shows a type-rejected error on a 422 response', async () => {
+      uploadSpy.mockRejectedValue({ response: { status: 422 } })
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      await setFile(wrapper, new File(['content'], 'a.exe', { type: 'application/octet-stream' }))
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('not allowed')
+    })
+
+    it('shows a too-large error on a 413 response', async () => {
+      uploadSpy.mockRejectedValue({ response: { status: 413 } })
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectFileTab(wrapper)
+      await setFile(wrapper, new File(['content'], 'a.pdf', { type: 'application/pdf' }))
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('too large')
+    })
+  })
+
+  describe('Image tab', () => {
+    const mockUploadedImage = {
+      id: 2, short_code: 'imgcode1', kind: 'image' as const, original_filename: 'pic.png',
+      mime_type: 'image/png', size_bytes: 100, created_at: '', expires_at: null,
+      has_password: false,
+    }
+
+    async function selectImageTab(wrapper: ReturnType<typeof mount>) {
+      await wrapper.find('input[type="radio"][value="image"]').setValue()
+    }
+
+    function setImage(wrapper: ReturnType<typeof mount>, file: File) {
+      const input = wrapper.find('#upload-image')
+      Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+      return input.trigger('change')
+    }
+
+    it('shows the image input and hides link/file fields once Image is selected', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      expect(wrapper.find('#upload-image').exists()).toBe(true)
+      expect(wrapper.find('#original-url').exists()).toBe(false)
+      expect(wrapper.find('#upload-file').exists()).toBe(false)
+      expect(wrapper.find('button[type="submit"]').text()).toBe('Upload image')
+    })
+
+    it('restricts the file picker to the image allowlist', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      expect(wrapper.find('#upload-image').attributes('accept')).toBe(
+        'image/jpeg,image/png,image/gif,image/webp',
+      )
+    })
+
+    it('calls filesStore.upload with the selected file and kind "image"', async () => {
+      uploadSpy.mockResolvedValue(mockUploadedImage)
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      const file = new File(['content'], 'pic.png', { type: 'image/png' })
+      await setImage(wrapper, file)
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(uploadSpy).toHaveBeenCalledWith(file, 'image', undefined)
+    })
+
+    it('navigates to the manage page after a successful upload', async () => {
+      uploadSpy.mockResolvedValue(mockUploadedImage)
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      await setImage(wrapper, new File(['content'], 'pic.png', { type: 'image/png' }))
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(router.currentRoute.value.name).toBe('manage')
+    })
+
+    it('shows an error and does not call upload when no image is selected', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('choose an image')
+      expect(uploadSpy).not.toHaveBeenCalled()
+    })
+
+    it('shows an error and does not call upload when the image exceeds 25MB', async () => {
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      const bigImage = new File([new Uint8Array(1)], 'big.png', { type: 'image/png' })
+      Object.defineProperty(bigImage, 'size', { value: 26 * 1024 * 1024 })
+      await setImage(wrapper, bigImage)
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('25MB')
+      expect(uploadSpy).not.toHaveBeenCalled()
+    })
+
+    it('shows a quota error on a 413 response', async () => {
+      uploadSpy.mockRejectedValue({ response: { status: 413 } })
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      await setImage(wrapper, new File(['content'], 'pic.png', { type: 'image/png' }))
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('500MB image quota')
+    })
+
+    it('shows a type-rejected error on a 422 response', async () => {
+      uploadSpy.mockRejectedValue({ response: { status: 422 } })
+      const wrapper = mount(CreateURLForm, { global: globalOptions })
+      await selectImageTab(wrapper)
+      await setImage(wrapper, new File(['content'], 'pic.bmp', { type: 'image/bmp' }))
+      await wrapper.find('[data-testid="create-url-form"]').trigger('submit')
+      await flushPromises()
+      expect(wrapper.find('[role="alert"]').text()).toContain('This image type is not allowed')
+    })
   })
 })

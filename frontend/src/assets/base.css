@@ -26,11 +26,18 @@
   --color-heading: var(--color-sumi);
   --color-text:    var(--color-sumi);
   --color-accent:  var(--color-konjyo);
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
   --color-success: #16a34a;
   --color-error:   #b52626;
+  --color-warning: #a35e17;
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, transparent);
   --color-link:    var(--color-konjyo);
   --color-code:    #374151;
 
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --sidebar-width: 216px;
   --section-gap: 160px;
 }
 
@@ -46,8 +53,11 @@
   --color-heading: var(--color-gofun);
   --color-text:    var(--color-shironeri);
   --color-accent:  var(--color-nadeshiko);
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
   --color-success: #4ade80;
   --color-error:   #f87171;
+  --color-warning: #e0ac6b;
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 14%, transparent);
   --color-link:    #93b8e8;
   --color-code:    var(--color-shironeri);
 }

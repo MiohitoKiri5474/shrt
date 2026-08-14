@@ -5,6 +5,7 @@ import { useURLsStore } from '../stores/urls'
 import { urlsApi } from '../api/urls'
 import AppNavbar from '../components/AppNavbar.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
+import Icon from '../components/AppIcon.vue'
 import { useClipboardCopy } from '../composables/useClipboardCopy'
 
 const route = useRoute()
@@ -61,27 +62,30 @@ async function nativeShare() {
 </script>
 
 <template>
-  <div class="share">
+  <div class="share app-shell">
     <AppNavbar>
       <template #status>
         <NetworkStatusIndicator />
       </template>
     </AppNavbar>
-    <main class="share-content">
+    <main class="share-content app-main">
       <p v-if="loading" class="loading">Loading…</p>
       <template v-else>
         <template v-if="url">
+          <Icon name="circleCheck" :size="26" class="ready-icon" />
           <h2>Your short link is ready</h2>
           <div class="short-url-row">
             <code>{{ shortUrl }}</code>
-            <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" aria-live="polite" @click="copyShortUrl">{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}</button>
+            <button class="btn-copy" :class="{ 'btn-copy--error': copyError }" aria-live="polite" @click="copyShortUrl">
+              <Icon name="copy" :size="12" />{{ copied ? 'Copied!' : copyError ? 'Failed!' : 'Copy' }}
+            </button>
           </div>
           <img :src="qrSrc" class="qr-image" :alt="`QR code for ${shortUrl}`" width="256" height="256" />
-          <a class="btn-qr-download" :href="qrSrc" :download="`qr-${shortCode}.png`">Download QR</a>
+          <a class="btn-qr-download" :href="qrSrc" :download="`qr-${shortCode}.png`"><Icon name="download" :size="12" />Download QR</a>
           <div class="share-actions">
-            <button v-if="canShare" class="btn-share-native" @click="nativeShare">Share…</button>
-            <a class="btn-social btn-twitter" :href="twitterHref" target="_blank" rel="noopener noreferrer">Share on X</a>
-            <a class="btn-social btn-whatsapp" :href="whatsappHref" target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>
+            <button v-if="canShare" class="btn-share-native" @click="nativeShare"><Icon name="share" :size="14" />Share…</button>
+            <a class="btn-social btn-twitter" :href="twitterHref" target="_blank" rel="noopener noreferrer"><Icon name="x" :size="14" />Share on X</a>
+            <a class="btn-social btn-whatsapp" :href="whatsappHref" target="_blank" rel="noopener noreferrer"><Icon name="message" :size="14" />Share on WhatsApp</a>
           </div>
           <p v-if="shareError" class="error" role="alert">Share failed. Please try again.</p>
         </template>
@@ -93,16 +97,26 @@ async function nativeShare() {
 </template>
 
 <style scoped>
-.share {
-  min-height: 100vh;
-  background: var(--color-background);
+.share-content {
+  max-width: 380px;
+  margin: 2rem auto;
+  padding: 2rem 1.5rem;
+  width: 100%;
+  text-align: center;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
-.share-content {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-  text-align: center;
+.ready-icon {
+  color: var(--color-success);
+  margin-bottom: 0.5rem;
+}
+
+.share-content h2 {
+  font-size: 1.05rem;
+  color: var(--color-heading);
+  margin: 0;
 }
 
 .short-url-row {
@@ -120,10 +134,13 @@ async function nativeShare() {
 }
 
 .btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.8rem;
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   background: transparent;
   color: var(--color-text);
@@ -147,16 +164,18 @@ async function nativeShare() {
   margin: 0 auto 0.75rem;
   background: #fff;
   padding: 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 
 .btn-qr-download {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   margin-bottom: 1.5rem;
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--color-text);
   text-decoration: none;
   font-size: 0.8rem;
@@ -177,14 +196,17 @@ async function nativeShare() {
 
 .btn-share-native,
 .btn-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.5rem 1rem;
   border: 1px solid var(--color-accent);
   background: var(--color-accent);
   color: var(--color-background);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: opacity 0.2s;
 }
 

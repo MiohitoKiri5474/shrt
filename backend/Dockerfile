@@ -1,5 +1,5 @@
 # python:3.12-slim, digest resolved 2026-07-04
-FROM python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1
+FROM python:3.14-slim@sha256:cea0e6040540fb2b965b6e7fb5ffa00871e632eef63719f0ea54bca189ce14a6
 
 WORKDIR /app
 
@@ -9,6 +9,8 @@ COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev
 
 COPY src/ ./src/
+COPY alembic.ini ./
+COPY alembic/ ./alembic/
 
 ENV PYTHONPATH=/app/src \
     UV_NO_CACHE=1

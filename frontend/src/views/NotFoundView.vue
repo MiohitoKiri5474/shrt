@@ -1,9 +1,11 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import Icon from '../components/AppIcon.vue'
+</script>
 
 <template>
   <main class="not-found-container">
     <div class="not-found-card">
-      <span class="not-found-icon" aria-hidden="true">🔍</span>
+      <Icon name="search" :size="28" class="not-found-icon" />
       <h1>Page not found</h1>
       <p class="not-found-subtitle">
         The page you're looking for doesn't exist or may have been moved.
@@ -26,17 +28,16 @@
 .not-found-card {
   background: var(--color-background-soft);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 2rem 2.5rem;
   max-width: 400px;
   width: 100%;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
 .not-found-icon {
-  font-size: 2.5rem;
-  display: block;
+  color: var(--color-text);
+  opacity: 0.5;
   margin-bottom: 0.75rem;
 }
 
@@ -58,7 +59,7 @@ h1 {
   padding: 0.65rem 1.5rem;
   background: var(--color-accent);
   color: var(--color-background);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   text-decoration: none;
   font-weight: 500;
   font-size: 1rem;

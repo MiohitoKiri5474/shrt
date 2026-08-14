@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -11,12 +13,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from app.database import create_tables, AsyncSessionLocal
+from app.database import run_migrations, AsyncSessionLocal
 from app.models import User
 from app.services.auth import hash_password_async
+from app.services.sweep import run_sweep_loop
 from app.schemas import UserCreate
 from pydantic import ValidationError
-from app.routers import auth, urls, redirect, admin
+from app.routers import auth, urls, redirect, admin, files
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +40,15 @@ async def lifespan(app: FastAPI):  # pragma: no cover
             "Ensure the TLS-terminating proxy sets: "
             "Strict-Transport-Security: max-age=31536000; includeSubDomains"
         )
-    await create_tables()
+    await run_migrations()
     await seed_default_user()
-    yield
+    sweep_task = asyncio.create_task(run_sweep_loop(AsyncSessionLocal))
+    try:
+        yield
+    finally:
+        sweep_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await sweep_task
 
 app = FastAPI(
     title="Shrt API",
@@ -177,4 +186,6 @@ async def seed_default_user():
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(urls.router, prefix="/api/urls", tags=["urls"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(files.router, prefix="/api/files", tags=["files"])
+app.include_router(files.serve_router, prefix="/f", tags=["file-serve"])
 app.include_router(redirect.router, tags=["redirect"])
