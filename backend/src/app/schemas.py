@@ -164,7 +164,7 @@ class URLCreate(_ExpiresAtValidatorMixin, BaseModel):
 
 
 class URLUpdate(_ExpiresAtValidatorMixin, BaseModel):
-    short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    short_code: str = Field(..., min_length=6, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = ""
     remove_password: bool = False
     expires_at: datetime | None = None
@@ -173,6 +173,13 @@ class URLUpdate(_ExpiresAtValidatorMixin, BaseModel):
     @classmethod
     def short_code_not_reserved(cls, v: str) -> str:
         return _reject_reserved_code(v)
+
+    @field_validator("password", mode="after")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if v and len(v) < 6:
+            raise ValueError("Password must be at least 6 characters")
+        return v
 
 
 class URLOut(BaseModel):

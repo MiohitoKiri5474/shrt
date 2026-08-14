@@ -389,16 +389,15 @@ async def test_redis_blocklist_revoke_survives_outage_via_local_cache():
     assert await bl.is_revoked("x") is True  # caught locally, not by Redis
 
 
-async def test_redis_blocklist_still_fails_open_for_unknown_jti_during_outage():
-    """A jti never revoked by *this* process instance still fails open when
-    Redis is unreachable. The local cache only bridges revocations made by
-    this process — revocations from another worker, or from before this
-    process started, still depend on Redis. This is the accepted residual
-    risk documented in the module docstring."""
+async def test_redis_blocklist_fails_closed_for_unknown_jti_during_outage():
+    """A jti never revoked by *this* process instance fails CLOSED when Redis
+    is unreachable: we cannot confirm the token is not revoked, so we treat it
+    as revoked. This is the deliberate security-over-availability tradeoff
+    documented in the module docstring."""
     from app.services.token_blocklist import RedisTokenBlocklist
 
     bl = RedisTokenBlocklist(_BrokenRedis())
-    assert await bl.is_revoked("never-seen-by-this-process") is False
+    assert await bl.is_revoked("never-seen-by-this-process") is True
 
 
 async def test_redis_blocklist_revoked_token_survives_later_outage():

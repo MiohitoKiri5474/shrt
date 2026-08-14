@@ -165,10 +165,11 @@ async def test_update_url_short_code_conflict(auth_client):
 
 @pytest.mark.parametrize("reserved", ["login", "new", "manage", "profile", "admin", "expired"])
 async def test_update_url_reserved_short_code_rejected(auth_client, reserved):
-    """Renaming a link to a frontend SPA route must be rejected (422). Unlike
-    creation, the update path's short_code has only a 3-char minimum, so short
-    reserved words like 'new' are otherwise reachable here even though they're
-    too short to pass as a custom_code on creation."""
+    """Renaming a link to a frontend SPA route must be rejected (422). With
+    min_length=6, short reserved words ('new' 3 chars, 'login'/'admin' 5 chars)
+    now fail on length rather than the reserved-word check; longer reserved words
+    ('manage', 'profile', 'expired') exercise the reserved-word check directly.
+    All cases still return 422, which is the invariant this test asserts."""
     create = await auth_client.post("/api/urls", json={"original_url": "https://edit.com"})
     url_id = create.json()["id"]
     resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": reserved})
@@ -282,6 +283,21 @@ async def test_unlock_not_password_protected(client, auth_client):
 async def test_unlock_not_found(client):
     resp = await client.post("/api/urls/notfound8/unlock", json={"password": "wrongpw"})
     assert resp.status_code == 404
+
+
+async def test_unlock_not_found_runs_dummy_verify(client):
+    """When the short code does not exist, a dummy bcrypt verify must run to
+    equalise timing with the found-but-wrong-password path, preventing an
+    attacker from inferring code existence via response time."""
+    from unittest.mock import patch, AsyncMock
+    import app.routers.urls as urls_module
+
+    with patch.object(urls_module, "verify_password_async", new_callable=AsyncMock, return_value=False) as mock_verify:
+        resp = await client.post("/api/urls/notfound8/unlock", json={"password": "wrongpw"})
+
+    assert resp.status_code == 404
+    mock_verify.assert_called_once()
+
 
 async def test_unlock_records_click(client, auth_client):
     create = await auth_client.post("/api/urls", json={"original_url": "https://secret.com", "password": "hunter2"})

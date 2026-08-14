@@ -10,21 +10,16 @@ Each blocklist entry is written with ``SETEX`` using the token's *remaining*
 TTL, so revoked entries expire from Redis exactly when the token itself would
 have expired — the blocklist never grows without bound.
 
-Fail-open policy: if Redis is unavailable, both ``revoke`` and ``is_revoked``
-fail open (log a warning, do not raise). Failing closed on ``is_revoked`` would
-reject *every* authenticated request during a Redis outage — a self-inflicted
-denial of service. The bounded cost of failing open is that an already-revoked
-token regains validity, but only for its remaining (<= ACCESS_TOKEN_EXPIRE)
-window and only while Redis is down. The blocklist is defense-in-depth layered
-on top of the short token lifetime, not the primary access control.
+Fail-closed policy: if Redis is unavailable during ``is_revoked``, the token
+is treated as revoked (returns True). This is a deliberate security-over-
+availability tradeoff: failing open would allow a logged-out token to remain
+valid during a Redis outage, which is a worse outcome than briefly rejecting
+valid requests. ``revoke`` still fails open (log + no raise) because blocking
+logout would be a denial-of-service.
 
-Local bridge cache (M2): to narrow that fail-open window, each process also
-remembers the ``jti`` values it revokes in an in-process cache keyed by the
-token's remaining TTL. When Redis is unreachable, a token revoked *by this
-process* is still rejected here for the rest of its lifetime instead of failing
-open. Residual risk (accepted): the cache only bridges revocations made by this
-process — a revocation performed on another worker, or before this process
-started, still depends on Redis and still fails open during an outage.
+Local bridge cache: each process also remembers the ``jti`` values it revokes
+in an in-process cache. When Redis is unreachable, a token revoked *by this
+process* is still rejected here for the rest of its lifetime.
 """
 
 import logging
@@ -113,15 +108,15 @@ class RedisTokenBlocklist:
         try:
             return bool(await self._client.exists(f"{_REVOKED_PREFIX}{jti}"))
         except Exception:
-            # Fail open: a Redis outage must not reject every authenticated
-            # request. See module docstring for the security tradeoff.
+            # Fail closed: a Redis outage means we cannot confirm the token
+            # is not revoked, so we treat it as revoked. See module docstring.
             logger.warning(
                 "Token blocklist: revocation check failed for jti %s (Redis "
-                "unavailable) — failing open",
+                "unavailable) — failing closed",
                 jti,
                 exc_info=True,
             )
-            return False
+            return True
 
 
 _blocklist: TokenBlocklist | None = None
