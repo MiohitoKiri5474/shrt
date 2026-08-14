@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import URL, Click, User
 from app.schemas import SSRFBlockedError, SSRFDNSError, URLCreate, URLOut, URLUpdate, StatsOut, PasswordVerify, UnlockOut, validate_no_ssrf, _SSRF_EXECUTOR, _SSRF_CHECK_TIMEOUT_S
 from app.services.auth import get_unique_short_code, hash_password_async, verify_password_async
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, _DUMMY_HASH
 from app.rate_limiter import limiter, get_real_ip
 from app.utils import anonymize_ip, is_expired
 
@@ -135,6 +135,9 @@ async def unlock_url(
     result = await db.execute(select(URL).where(URL.short_code == short_code))
     url = result.scalar_one_or_none()
     if not url:
+        # Run a dummy bcrypt verify to equalise timing with the found-but-wrong-password
+        # path, preventing an attacker from inferring whether a short code exists.
+        await verify_password_async(data.password, _DUMMY_HASH)
         raise HTTPException(status_code=404, detail="Short URL not found")
     if is_expired(url.expires_at):
         raise HTTPException(status_code=410, detail="This link has expired")
