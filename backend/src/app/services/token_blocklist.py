@@ -18,8 +18,13 @@ valid requests. ``revoke`` still fails open (log + no raise) because blocking
 logout would be a denial-of-service.
 
 Local bridge cache: each process also remembers the ``jti`` values it revokes
-in an in-process cache. When Redis is unreachable, a token revoked *by this
-process* is still rejected here for the rest of its lifetime.
+in an in-process cache. This still matters even with fail-closed ``is_revoked``:
+``revoke()`` can fail to write to Redis during an outage (fails open — logout
+must not block) and Redis can then *recover* before the token's TTL elapses.
+In that window ``is_revoked``'s Redis call succeeds (no exception, so
+fail-closed never triggers) but returns ``False`` since the key was never
+written — the local cache is what still rejects that jti on the process that
+revoked it, for the rest of its lifetime.
 """
 
 import logging

@@ -415,6 +415,25 @@ async def test_redis_blocklist_revoked_token_survives_later_outage():
     assert await bl.is_revoked("abc") is True  # Redis down now, local cache catches it
 
 
+async def test_redis_blocklist_lost_write_survives_redis_recovery():
+    """If revoke's Redis write fails during an outage, the local cache must
+    still reject that jti even after Redis recovers. fail-closed is_revoked
+    only covers the case where the Redis call itself raises — once Redis is
+    back up, exists() succeeds but returns False for a key that was never
+    actually written, so without the local cache a lost revocation would
+    silently start passing again the moment Redis recovers."""
+    from app.services.token_blocklist import RedisTokenBlocklist
+
+    fake = _FlakyRedis()
+    fake.broken = True
+    bl = RedisTokenBlocklist(fake)
+    await bl.revoke("lost-write", 600)  # setex raises; local cache still records it
+
+    fake.broken = False  # Redis recovers, but it never received the write
+    assert "revoked_jti:lost-write" not in fake.store
+    assert await bl.is_revoked("lost-write") is True  # local cache catches it, not Redis
+
+
 async def test_null_blocklist_never_revokes():
     from app.services.token_blocklist import NullTokenBlocklist
 

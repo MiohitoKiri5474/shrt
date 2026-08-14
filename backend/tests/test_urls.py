@@ -182,6 +182,12 @@ async def test_update_url_set_password(auth_client):
     assert resp.status_code == 200
     assert resp.json()["has_password"] is True
 
+async def test_update_url_set_password_too_short_rejected(auth_client):
+    create = await auth_client.post("/api/urls", json={"original_url": "https://pw3.com"})
+    url_id = create.json()["id"]
+    resp = await auth_client.patch(f"/api/urls/{url_id}", json={"short_code": create.json()["short_code"], "password": "abc12"})
+    assert resp.status_code == 422
+
 async def test_update_url_remove_password(auth_client):
     create = await auth_client.post("/api/urls", json={"original_url": "https://pw2.com"})
     url_id = create.json()["id"]
