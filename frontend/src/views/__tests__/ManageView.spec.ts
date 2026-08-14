@@ -5,6 +5,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useURLsStore } from '../../stores/urls'
+import { useFilesStore } from '../../stores/files'
 import ManageView from '../ManageView.vue'
 
 const router = createRouter({
@@ -44,6 +45,17 @@ vi.mock('../../api/urls', () => ({
   },
 }))
 
+vi.mock('../../api/files', () => ({
+  filesApi: {
+    list: vi.fn().mockResolvedValue([]),
+    remove: vi.fn().mockResolvedValue(undefined),
+    upload: vi.fn(),
+    unlock: vi.fn(),
+    fileUrl: vi.fn((code: string) => `https://api.example.com/f/${code}`),
+    resolveDownloadUrl: vi.fn((path: string) => `https://api.example.com${path}`),
+  },
+}))
+
 vi.mock('../../api/auth', () => ({
   authApi: {
     logout: vi.fn().mockResolvedValue(undefined),
@@ -76,12 +88,25 @@ const URLCardStub = defineComponent({
   `,
 })
 
+const FileCardStub = defineComponent({
+  name: 'FileCard',
+  props: ['file'],
+  emits: ['delete'],
+  template: `
+    <div class="file-card-stub" :data-id="file.id">
+      {{ file.original_filename }}
+      <button class="stub-file-delete" @click="$emit('delete', file.id)">Delete</button>
+    </div>
+  `,
+})
+
 const globalOptions = {
   plugins: [router],
   stubs: {
     AppNavbar: AppNavbarStub,
     NetworkStatusIndicator: NetworkStatusStub,
     URLCard: URLCardStub,
+    FileCard: FileCardStub,
   },
 }
 
@@ -109,6 +134,62 @@ function setupStores(user = { email: 'user@example.com', username: 'testuser', i
   useAuthStore().user = user
   return useURLsStore()
 }
+
+const mockFile = {
+  id: 1,
+  short_code: 'filecode1',
+  kind: 'file' as const,
+  original_filename: 'report.pdf',
+  mime_type: 'application/pdf',
+  size_bytes: 1024,
+  created_at: '2024-01-01T00:00:00Z',
+  expires_at: '2024-01-08T00:00:00Z',
+  has_password: false,
+}
+
+describe('ManageView files list', () => {
+  // Per-file rendering (name, expiry/password chips, unlock flow) is covered
+  // by FileCard.spec.ts — FileCard is stubbed here, this only tests that
+  // ManageView wires the store's files through to the right number of cards
+  // and handles the delete emit.
+  it('renders a FileCard for each file in the store', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockFile]
+    })
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    const cards = wrapper.findAll('.file-card-stub')
+    expect(cards).toHaveLength(1)
+    expect(cards[0]!.text()).toContain('report.pdf')
+  })
+
+  it('shows empty state when there are no files', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockResolvedValue(undefined)
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    expect(wrapper.text()).toContain('No files or images shared yet.')
+  })
+
+  it('removes a file from the list when FileCard emits delete', async () => {
+    setupStores()
+    const filesStore = useFilesStore()
+    vi.spyOn(filesStore, 'fetchAll').mockImplementation(async () => {
+      filesStore.files = [mockFile]
+    })
+    vi.spyOn(filesStore, 'remove').mockImplementation(async (id: number) => {
+      filesStore.files = filesStore.files.filter((f) => f.id !== id)
+    })
+    const wrapper = mount(ManageView, { global: globalOptions })
+    await flushPromises()
+    await wrapper.find('.stub-file-delete').trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('.file-card-stub')).toHaveLength(0)
+  })
+})
 
 describe('ManageView navbar', () => {
   it('renders AppNavbar with the network status indicator in its status slot', async () => {

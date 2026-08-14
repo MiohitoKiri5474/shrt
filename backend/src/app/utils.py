@@ -1,4 +1,16 @@
 import ipaddress
+from datetime import datetime, timezone
+
+
+def is_expired(expires_at: datetime | None) -> bool:
+    """True if expires_at is set and in the past. Treats a naive datetime as
+    UTC (every expires_at in this app is written as UTC) rather than
+    comparing naive-vs-aware, which would raise."""
+    if expires_at is None:
+        return False
+    now = datetime.now(timezone.utc)
+    expires = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=timezone.utc)
+    return now >= expires
 
 
 def anonymize_ip(ip: str | None) -> str | None:

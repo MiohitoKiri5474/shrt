@@ -137,6 +137,12 @@ class _ExpiresAtValidatorMixin:
 # the SPA shell and never reach the redirect route.
 RESERVED_SHORT_CODES: frozenset[str] = frozenset({"login", "new", "manage", "profile", "admin", "expired"})
 
+# Shared minimum for short codes and link/file passwords — small enough to stay
+# usable, large enough that the public rate-limited redirect/unlock routes
+# can't cheaply enumerate or brute-force a match.
+_SHORT_CODE_MIN_LENGTH = 6
+_LINK_PASSWORD_MIN_LENGTH = 6
+
 
 def _reject_reserved_code(v: str) -> str:
     if v in RESERVED_SHORT_CODES:
@@ -146,8 +152,8 @@ def _reject_reserved_code(v: str) -> str:
 
 class URLCreate(_ExpiresAtValidatorMixin, BaseModel):
     original_url: AnyHttpUrl
-    custom_code: str | None = Field(None, min_length=6, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
-    password: str | None = Field(None, min_length=6, max_length=128)
+    custom_code: str | None = Field(None, min_length=_SHORT_CODE_MIN_LENGTH, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    password: str | None = Field(None, min_length=_LINK_PASSWORD_MIN_LENGTH, max_length=128)
     expires_at: datetime | None = None
 
     @field_validator("original_url", mode="before")
@@ -164,7 +170,7 @@ class URLCreate(_ExpiresAtValidatorMixin, BaseModel):
 
 
 class URLUpdate(_ExpiresAtValidatorMixin, BaseModel):
-    short_code: str = Field(..., min_length=3, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
+    short_code: str = Field(..., min_length=_SHORT_CODE_MIN_LENGTH, max_length=16, pattern=r"^[a-zA-Z0-9_-]+$")
     password: str = ""
     remove_password: bool = False
     expires_at: datetime | None = None
@@ -173,6 +179,13 @@ class URLUpdate(_ExpiresAtValidatorMixin, BaseModel):
     @classmethod
     def short_code_not_reserved(cls, v: str) -> str:
         return _reject_reserved_code(v)
+
+    @field_validator("password", mode="after")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if v and len(v) < _LINK_PASSWORD_MIN_LENGTH:
+            raise ValueError(f"Password must be at least {_LINK_PASSWORD_MIN_LENGTH} characters")
+        return v
 
 
 class URLOut(BaseModel):
@@ -194,7 +207,7 @@ class URLOut(BaseModel):
 
 
 class PasswordVerify(BaseModel):
-    password: str = Field(..., min_length=6, max_length=128)
+    password: str = Field(..., min_length=_LINK_PASSWORD_MIN_LENGTH, max_length=128)
 
 
 class UnlockOut(BaseModel):
@@ -206,3 +219,26 @@ class StatsOut(BaseModel):
     original_url: str
     total_clicks: int
     clicks_by_date: dict[str, int]
+
+
+class FileOut(BaseModel):
+    id: int
+    short_code: str
+    kind: str
+    original_filename: str
+    mime_type: str
+    size_bytes: int
+    created_at: datetime
+    expires_at: datetime | None = None
+    has_password: bool = False
+    model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_with_password_flag(cls, shared_file: object) -> "FileOut":
+        return cls.model_validate(shared_file).model_copy(update={
+            "has_password": bool(getattr(shared_file, "password_hash", None)),
+        })
+
+
+class FileUnlockOut(BaseModel):
+    download_url: str

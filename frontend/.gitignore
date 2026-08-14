@@ -28,12 +28,12 @@ coverage
 
 .eslintcache
 
-# Environment files — never commit real env values
+# Environment files — never commit real env values.
+# .env covers bare `.env`; .env.* catches .env.development, .env.test,
+# .env.production, .env.staging, .env.local, .env.*.local, etc.
+# Negations keep example templates tracked.
 .env
-.env.production
-.env.staging
-.env.local
-.env.*.local
+.env.*
 !.env.example
 !.env.*.example
 

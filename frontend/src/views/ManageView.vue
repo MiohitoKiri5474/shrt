@@ -1,15 +1,29 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useURLsStore } from '../stores/urls'
+import { useFilesStore } from '../stores/files'
 import URLCard from '../components/URLCard.vue'
+import FileCard from '../components/FileCard.vue'
 import NetworkStatusIndicator from '../components/NetworkStatusIndicator.vue'
 import AppNavbar from '../components/AppNavbar.vue'
+import Icon from '../components/AppIcon.vue'
 import type { StatsOut, URLOut } from '../api/urls'
 import { goToShare } from '../router/navigation'
 
 const router = useRouter()
 const urlsStore = useURLsStore()
+const filesStore = useFilesStore()
+const filesLoadError = ref('')
+const filesDeleteError = ref('')
+const search = ref('')
+const filteredUrls = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  if (!q) return urlsStore.urls
+  return urlsStore.urls.filter(u =>
+    u.short_code.toLowerCase().includes(q) || u.original_url.toLowerCase().includes(q),
+  )
+})
 const selectedStats = ref<StatsOut | null>(null)
 const statsError = ref('')
 const deleteError = ref('')
@@ -39,7 +53,22 @@ onMounted(() => {
   urlsStore.fetchAll().catch(() => {
     loadError.value = 'Failed to load URLs. Please refresh.'
   })
+  filesLoadError.value = ''
+  filesStore.fetchAll().catch(() => {
+    filesLoadError.value = 'Failed to load files. Please refresh.'
+  })
 })
+
+// ponytail: no confirmation dialog before delete (unlike the URL delete flow's
+// modal) — add one if file deletion turns out to be accident-prone in practice.
+async function handleFileDelete(id: number) {
+  filesDeleteError.value = ''
+  try {
+    await filesStore.remove(id)
+  } catch {
+    filesDeleteError.value = 'Failed to delete file. Please try again.'
+  }
+}
 
 watch(pendingDeleteId, (id) => {
   if (id !== null) {
@@ -130,21 +159,26 @@ function cancelDelete() {
 </script>
 
 <template>
-  <div class="manage">
+  <div class="manage app-shell">
     <AppNavbar>
       <template #status>
         <NetworkStatusIndicator />
       </template>
     </AppNavbar>
-    <main class="dash-content">
+    <main class="dash-content app-main">
       <section>
         <div class="section-header">
-          <h2>Your URLs</h2>
-          <RouterLink class="btn-add-link" to="/new">Add Link</RouterLink>
+          <h2>Your links</h2>
+          <RouterLink class="btn-add-link" to="/new"><Icon name="plus" :size="14" />Add Link</RouterLink>
         </div>
+        <label class="search" v-if="urlsStore.urls.length">
+          <Icon name="search" :size="14" />
+          <input v-model="search" type="text" placeholder="Search links" aria-label="Search links" />
+        </label>
         <p v-if="urlsStore.urls.length === 0" class="empty">No URLs yet. Create one on the New Link page.</p>
+        <p v-else-if="filteredUrls.length === 0" class="empty">No links match your search.</p>
         <URLCard
-          v-for="url in urlsStore.urls"
+          v-for="url in filteredUrls"
           :key="url.id"
           :url="url"
           @share="handleShare"
@@ -152,6 +186,21 @@ function cancelDelete() {
           @stats="handleStats"
           @delete="handleDelete"
         />
+      </section>
+      <section>
+        <div class="section-header">
+          <h2>Your files</h2>
+          <RouterLink class="btn-add-link" to="/new"><Icon name="upload" :size="14" />Add File</RouterLink>
+        </div>
+        <p v-if="filesStore.files.length === 0" class="empty">No files or images shared yet.</p>
+        <FileCard
+          v-for="file in filesStore.files"
+          :key="file.id"
+          :file="file"
+          @delete="handleFileDelete"
+        />
+        <p v-if="filesLoadError" class="error" role="alert">{{ filesLoadError }}</p>
+        <p v-if="filesDeleteError" class="error" role="alert">{{ filesDeleteError }}</p>
       </section>
       <aside v-if="selectedStats" class="stats-panel">
         <h3>Stats for /{{ selectedStats.short_code }}</h3>
@@ -231,9 +280,10 @@ function cancelDelete() {
 }
 
 .dash-content {
-  max-width: 800px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 2rem 1.5rem 3rem;
+  width: 100%;
 }
 
 .section-header {
@@ -246,15 +296,47 @@ function cancelDelete() {
 
 .section-header h2 {
   margin: 0;
+  font-size: 1.15rem;
+  color: var(--color-heading);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  opacity: 0.75;
+}
+
+.search:focus-within {
+  opacity: 1;
+  border-color: var(--color-border-hover);
+}
+
+.search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.875rem;
 }
 
 .btn-add-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.5rem 1rem;
   background: var(--color-accent);
   color: var(--color-background);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   text-decoration: none;
   font-weight: 500;
+  font-size: 0.875rem;
   white-space: nowrap;
   transition: opacity 0.2s;
 }
@@ -276,9 +358,8 @@ function cancelDelete() {
 .stats-panel {
   background: var(--color-background-soft);
   padding: 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   margin-top: 2rem;
   transition: background 0.35s ease;
 }
@@ -307,9 +388,8 @@ function cancelDelete() {
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   max-width: 380px;
   width: 90%;
@@ -367,9 +447,8 @@ function cancelDelete() {
   left: 50%;
   transform: translate(-50%, -50%);
   background: var(--color-background-soft);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   max-width: 420px;
   width: 90%;

@@ -12,3 +12,29 @@ a {
     opacity: 0.75;
   }
 }
+
+/* Shared shell layout: sidebar (AppNavbar in rail mode) + main content, side by side
+   on wide viewports. On narrow viewports AppNavbar reverts to a top bar, so this just
+   stacks normally. The row layout below is scoped to :has(.navbar--rail) — LoginView
+   uses .app-shell even when signed out (an already-authenticated visitor can land on
+   /login), and unauthenticated AppNavbar renders its own full-width top bar via CSS
+   grid, not the rail. Without the :has() scope, .app-shell's flex-row would still
+   squeeze that top bar into a narrow flex item alongside .app-main instead of leaving
+   it full width. */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+@media (min-width: 880px) {
+  .app-shell:has(.navbar--rail) {
+    flex-direction: row;
+  }
+
+  .app-shell:has(.navbar--rail) > .app-main {
+    flex: 1;
+    min-width: 0;
+  }
+}

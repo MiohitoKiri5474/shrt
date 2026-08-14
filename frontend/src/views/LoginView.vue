@@ -3,6 +3,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import AppNavbar from '../components/AppNavbar.vue'
+import Icon from '../components/AppIcon.vue'
 
 const identifier = ref('')
 const password = ref('')
@@ -78,18 +79,25 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="login-page">
+  <div class="login-page app-shell">
     <AppNavbar />
-    <div class="login-container">
+    <div class="login-container app-main">
       <div class="login-card">
+        <div class="login-brand"><span class="brand-mark" aria-hidden="true" />Shrt</div>
         <form @submit.prevent="handleSubmit" data-testid="login-form">
           <div class="field">
             <label for="identifier">Email or Username</label>
-            <input id="identifier" v-model="identifier" type="text" required autocomplete="username" />
+            <div class="input-wrap">
+              <Icon name="user" :size="14" />
+              <input id="identifier" v-model="identifier" type="text" required autocomplete="username" />
+            </div>
           </div>
           <div class="field">
             <label for="password">Password</label>
-            <input id="password" v-model="password" type="password" required autocomplete="current-password" />
+            <div class="input-wrap">
+              <Icon name="lock" :size="14" />
+              <input id="password" v-model="password" type="password" required autocomplete="current-password" />
+            </div>
           </div>
           <p v-if="error" class="error" role="alert">{{ error }}</p>
           <p v-if="isOnCooldown" class="cooldown" role="status">
@@ -105,14 +113,6 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-background);
-  transition: background 0.35s ease;
-}
-
 .login-container {
   flex: 1;
   display: flex;
@@ -124,12 +124,29 @@ async function handleSubmit() {
 .login-card {
   background: var(--color-background-soft);
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
   transition: background 0.35s ease;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.brand-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--color-accent);
 }
 
 .field {
@@ -138,36 +155,50 @@ async function handleSubmit() {
 
 .field label {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-text);
 }
 
-.field input {
-  width: 100%;
-  padding: 0.5rem;
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
   border: 1px solid var(--color-border-hover);
-  border-radius: 4px;
-  box-sizing: border-box;
+  border-radius: var(--radius-md);
   background: var(--color-background);
   color: var(--color-text);
+  opacity: 0.85;
   transition: background 0.35s ease, border-color 0.2s;
 }
 
-.field input:focus {
-  outline: none;
+.input-wrap:focus-within {
+  opacity: 1;
   border-color: var(--color-accent);
+}
+
+.input-wrap input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.9rem;
 }
 
 button[type='submit'] {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.7rem;
+  margin-top: 0.25rem;
   background: var(--color-accent);
   color: var(--color-background);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
   transition: opacity 0.2s;
 }

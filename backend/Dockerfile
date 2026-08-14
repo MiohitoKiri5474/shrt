@@ -1,4 +1,4 @@
-# python:3.12-slim, digest resolved 2026-07-04
+# python:3.14-slim (tag bumped from 3.12-slim by dependabot PR #335), digest refreshed 2026-08-14 by PR #390
 FROM python:3.14-slim@sha256:a7fb1e634c4a578f9e0bd6327f11a3cde11b7a9395f48e24360c0988bcc5c2bc
 
 WORKDIR /app
