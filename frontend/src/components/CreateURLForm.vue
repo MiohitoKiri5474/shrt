@@ -259,6 +259,7 @@ h2 {
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-weight: 500;
+  line-height: 1;
   color: var(--color-text);
   opacity: 0.65;
   cursor: pointer;
