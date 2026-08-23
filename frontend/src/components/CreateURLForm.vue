@@ -248,7 +248,7 @@ h2 {
   background: var(--color-background);
 }
 
-.type-toggle label {
+.type-toggle.field label {
   flex: 1;
   display: flex;
   align-items: center;
