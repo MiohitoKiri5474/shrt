@@ -127,7 +127,7 @@ async def test_stats_not_found(auth_client):
     assert resp.status_code == 404
 
 async def test_qr_code_success(auth_client):
-    create = await auth_client.post("/api/urls", json={"original_url": "https://qr.com"})
+    create = await auth_client.post("/api/urls", json={"original_url": "https://example.com"})
     code = create.json()["short_code"]
     resp = await auth_client.get(f"/api/urls/{code}/qr")
     assert resp.status_code == 200
